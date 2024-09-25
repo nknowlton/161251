@@ -1,0 +1,90 @@
+---
+title: Massey University --- School of Mathematical and Computational Sciences
+subtitle: 161.251 Regression Modelling
+author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment="", dev="png")
+library(tidyverse)
+```
+
+# Computer Laboratory Exercise 10B
+
+The purpose of this exercise is to gain more familiarity with the `step()` function for stepwise regression for the `climate` data.
+
+We will explore how we might get an appropriate large model that includes interactions, noting that the dataset is very small, and that AIC as a selection criteria tends to favour larger models over small ones.
+
+## Automatic Variable Selection for the Climate data
+
+```{r}
+climate <- read_csv("../data/climate.csv")
+climate
+```
+
+We're interested in exploring a model for these data thta potentially includes interactions. This dataset is probably too small for this, but we do have some binary indicators so that including interactions might not be too severe in terms of the number of variables included.
+
+It is also worth thinking about whether the variables make sense. Is there a logical order for the variables? 
+
+Here `Lat`, `Long`, `Height`, `Sea` and `NorthIsland` are all geographic variables, which may determine the weather.   
+
+On the other hand `Sun`, `MnJanTemp`, `MnJlyTemp` and `Rain` are in a sense all interconnected response weather variables, even though we are using `Sun` as the sole response for the regression.
+
+So it makes logical sense to let the geographic variables explain as much of the variation in `Sun` hours as possible, and leave the other weather variables out.
+
+1. We start by fitting an intercept-only model for `Sun`, along with a full model that includes all the geographic variables but not the climate variables, and performing stepwise regression to find the "best" model with these variables.
+
+    ```{r Sun vs geography}
+    climate.null <- lm(Sun ~ 1, data=climate)
+    climate.geog <- lm(Sun ~ Lat + Long + Height + Sea + NorthIsland, data=climate)
+    scope <- list(lower = formula(climate.null),
+                  upper = formula(climate.geog))
+    climate.geo1 <- step(climate.null, scope = scope, direction="both")
+    ```
+    
+    - Compare the summary function for the null, full and stepwise model. Which variables are included in which, and which are significant?
+
+2. Next, let's consider models that include possibly all interactions between the geographic variables. We can do this by starting with our null model and going to one where we replace all the `+` with `*` in the formula:
+
+    ```{r}
+    climate.int <- lm(Sun ~ Lat * Long * Height * Sea * NorthIsland, data=climate)
+    scope <- list(lower = formula(climate.null),
+                  upper = formula(climate.int))
+    climate.geo2 <- step(climate.null, scope = scope, direction="both")
+    ```
+    
+    - Take a look at the summary output of `climate.geo2`.
+    - Which variables are included?
+    - Which interactions are included?
+    - Is there an effect of Longitude?
+
+We see we end up with a model containing `Long`, `Sea`, `NorthIsland` and an interaction between `Long` and `Sea`. This suggests that the effect of longitude on sunshine hours is moderated by whether the town is by the sea or not: the coefficient for `Long` is 34 (and not significantly different from zero) when `Sea = 0` (i.e. inland towns) whereas the coefficient for `Long` is 34+62.85 = 96.85 when `Sea = 1`, and the 62.85 is significantly different to zero.
+
+3. We can use the `visreg` package to visualise the effect of `Long` and `Sea`:
+    
+    ```{r}
+    library(visreg)
+    visreg(climate.geo2, 'Long', by='Sea')
+    ```
+    
+    What is your conclusion from this? Think about what this means in terms of towns on the east or west coast.
+
+4. According to `climate.geo2`, North Island towns have less sunshine hours, after adjusting for other variables. Yet if we just order the data by descending `Sun`, 7 of the top 10 towns are in the NorthIsland. What is going on?
+
+5. Just for fun, let's add in the other climate variables to our `climate.geo2` model. We setup the `scope` so the largest possible model is the one with all possible interactions (a hilariously overspecified model given the data we have!)
+    
+    ```{r}
+    climate.insane <- lm(Sun ~ Lat * Long * Height * Sea * NorthIsland * MnJanTemp * MnJlyTemp * Rain, data=climate)
+    scope = list(lower=formula(climate.geo2), upper=formula(climate.insane))
+    climate.geo3 = step(climate.geo2, scope = scope, direction="both")
+    ```
+
+    - Take a look at the summary output.
+    - What do you think about the model? Do you feel it is overspecified?
+
+6. Look specifically at the `Rain` associated effects in `climate.geo3`. You should notice they're all positive with the exception of the `Long:Rain` interaction term, which has the smallest of the coefficients. On the face of it this suggests that increasing rain results in more sunshine.
+
+    - Go back to the original data and look at how `Sun` varies with `Rain`. Does a positive relationship make sense?
+    - Try visualising the `Rain` effect from `climate.geo3` using `visreg` by each of the potential interaction terms.
+    - Does it make sense now?

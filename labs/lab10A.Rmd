@@ -1,0 +1,68 @@
+---
+title: Massey University --- School of Mathematical and Computational Sciences
+subtitle: 161.251 Regression Modelling
+author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment="", dev="png")
+library(tidyverse)
+```
+
+# Computer Laboratory  Exercise 10A
+
+The purpose of this exercise is to gain some familiarity with the `step()` function for stepwise regression. You might first like to look back at Lab 5A to where we did stepwise regression by hand.
+
+## Automatic Variable Selection for Swiss Fertility Data
+
+```{r}
+data(swiss)
+head(swiss)
+```
+
+1. In lab 5A you fitted the model 
+    
+    ```{r}
+    swiss.lm.full= lm(Fertility ~ .,  data=swiss)
+    summary(swiss.lm.full)
+    ```
+    
+    Now we'll use the `step()` function to perform backwards model selection using the AIC criterion. We should get the same result as in Lab 5A.
+    
+    ```{r}
+    swiss.lm.1 = lm(Fertility~1, data=swiss)
+    swiss.step.back = step(swiss.lm.full, direction="backward")
+    summary(swiss.step.back)
+    ```
+    
+    Note that here we didn't bother specifying the `scope` argument, as we're going backwards only from a full model: the lowest model to consider will be the intercept only model.
+    
+    - Check back to your Lab 5A that you end up with the same model.
+    - Is this what you expect? Could it have been different?
+
+2.  It is of interest to know if we end up with the same model going forward. This time the `scope` argument should be the largest model (e.g. use `scope = formula(swiss.lm.full)`). Try this yourself.
+
+    - In which order do the variables enter the model?
+    - Do you get the same model as in backward selection?
+
+3.  Suppose that we start with the variable `Examination` in the model, and consider all models up to the full model. We can do that with:
+
+    ```{r}
+    swiss.lm.e = lm(Fertility ~ Examination, data=swiss)
+    summary(swiss.lm.e)
+    
+    scope <- list(lower=formula(swiss.lm.e), upper=formula(swiss.lm.full))
+    swiss.step.for2 = step( swiss.lm.e, scope=scope, direction="both")
+    summary(swiss.step.for2)
+    ```
+
+    - You should notice that Examination now stays in the model. Why is that?
+
+4. Redo the above stepwise regression starting with `swiss.lm.e` but this time allow the scope to include an intercept only model. What happens?
+
+5.  Suppose we felt the data on `Education` was unreliable and we exclude it from the model. Setup a step-wise regression that considers all models from the intercept only model up to the largest model excluding `Education`.
+
+    - Adjust the `scope` argument so that `Education` isn't considered.
+    - Do all the other variables enter in?
+
