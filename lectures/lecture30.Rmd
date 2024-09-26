@@ -8,9 +8,11 @@ output:
     code_download: true
     theme: yeti
     highlight: tango
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
   beamer_presentation: default
   word_document: default
-  ioslides_presentation: default
   slidy_presentation: 
     theme: yeti
     highlight: tango
@@ -27,7 +29,7 @@ https://r-resources.massey.ac.nz/data/161251/
 ```{r setup, purl=FALSE, include=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
-opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(fig.height=5, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
 opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
@@ -37,21 +39,27 @@ library(broom)
 
 <!--- Do not edit anything above this line. --->
 
-*Weighting by sample size. Interpretation of output. Weighting to counter heteroscedasticity.*
+## Introduction
 
-The key idea in this topic is that not all datapoints in the dataset need have the same information value.  Some data rows may contain very precise data, while data in the other rows may be less precise.  We therefore adjust our regression analysis to give more "weight" to those datapoints which are more reliable or informative. 
+- Weighting by sample size.
+- Interpretation of output.
+- Weighting to counter heteroscedasticity.
+
+The key idea in this topic is that not all datapoints in the dataset need have the same information value.  Some data rows may contain very precise data, while data in the other rows may be less precise.
+
+We therefore adjust our regression analysis to give more "weight" to those datapoints which are more reliable or informative. 
 
 ## Weighting by Sample Size 
 
-###  CPS5 Data
-
-The CPS5 dataset is a famous one in econometrics, referred to often in the book "Introductory Econometrics" by Goldberger, among other authors. 
+The CPS5 dataset is famous in econometrics, referred to often in the book "Introductory Econometrics" by Goldberger. 
 
 The dataset has individual-level data on 528 employees `ED`ucation level, whether or not they are in the `SO`uth of the United States, `BL`=whether the person was non-white and non-Hispanic 1, otherwise 0, `HP`= whether or not the person was Hispanic, whether or not the employee was `FE`male,  years of work `EX`perience, `MS`= marital status (1=married, 0 not),  whether or not they are members of a `UN`ion, and `WG`=hourly wage.
 
-Goldberger begins his text by calculating the average `WG` value for individuals at the various levels of education.  (6 years to 18 years of education).  The data are summarised in the table below.  Note that most people had 12, 14 or 16 years of education, corresponding to high-school graduates, college graduates and university graduates respectively.
+Goldberger begins his text by calculating the average `WG` value for individuals at the various levels of education.  (6 years to 18 years of education).  Note that most people had 12, 14 or 16 years of education, corresponding to high-school graduates, college graduates and university graduates respectively.
 
 Goldberger then regresses the average `WG` on `ED`. 
+
+##
 
 `r xfun::embed_file("../data/CPS5grouped.csv")`
 
@@ -59,12 +67,19 @@ Goldberger then regresses the average `WG` on `ED`.
 CPS5grouped =read.csv("CPS5grouped.csv",header=TRUE)
 CPS5grouped =read.csv("../data/CPS5grouped.csv")
 CPS5grouped
+```
+
+##
+
+```{r, message=FALSE}
 ggplot(data=CPS5grouped,
        mapping=aes(x=EDgroup, y=AvWage)) +
   geom_point(mapping = aes(size = N)) +
   geom_smooth(method='lm') +
   labs(x="Education (hours)", y = "Average wage ($)")
 ```
+
+##
 
 The data appears to be quite close to the line, which often happens when we have data which have been averaged. The regression suggests we have a high $R^2 >0.9$.   
 
@@ -73,11 +88,15 @@ grouped.lm <- lm(AvWage ~ EDgroup, data=CPS5grouped)
 summary(grouped.lm)
 ```
 
+##
+
 However note that the left-hand points represent only a few individuals compared to some of the right-hand points, represented by the size of the circles scaling with the number of individuals $N$ contributing to the average. We would like the regression line to be closer to those points that represent far more people.
 
 The line is close to the first category (which has only three people in it) and far from the 12, 14, 16-year categories which have the most people. This doesn't really make sense. 
 
-If we use the ungrouped data (see below) the relationship between Wage and Education is much weaker in terms of goodness of fit of the model.
+If we use the ungrouped data the relationship between Wage and Education is much weaker in terms of goodness of fit of the model.
+
+##
 
 `r xfun::embed_file("../data/CPS5.csv")`
 
@@ -85,19 +104,28 @@ If we use the ungrouped data (see below) the relationship between Wage and Educa
 CPS5 = read.csv("CPS5.csv", header=TRUE)
 CPS5 = read.csv("../data/CPS5.csv", header=TRUE)
 head(CPS5);
+```
+
+##
+
+```{r}
 ggplot(data=CPS5,
        mapping=aes(x=ED, y=WG)) +
   geom_point() +
   geom_smooth(method='lm') +
   labs(x="Education (years)", y="Wage ($)")
+```
 
+##
+
+```{r}
 cps5.lm  = lm(WG ~ ED, data=CPS5)
 summary(cps5.lm)
 ```
 
 We see there is an outlier, which could be a typo (decimal point in the wrong place?) However the main focus here is that there is a lot more variation among the individual data than there is among the averaged data, so the $R^2$ is much lower. Also the regression coefficients have different values. 
 
-## Why Grouped and Ungrouped Regression Results Differ
+## Why Grouped Regression Results Differ
 
 *Formulas not examinable but conclusion is important.*
 
@@ -108,52 +136,66 @@ However the regression for the averages treats all $m$ groups as being of equal 
  $$ \sum^m_{j=1}(\bar y_j - \beta_0- \beta_1 \bar x_j)^2 ~~~~~~   (2)  $$                                 
 That is,  the computations will try just as hard to fit a value that arises from a small group of data as a  value from a large group. 
 
-### How are these two sums of squares related?  
+## How are these two sums of squares related?  
 
 If we take the sum in (1) and re-order it into Education level groups we get
 $$SS_{error} =  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} - \beta_0- \beta_1 x_{ij})^2 ~~~~   (3)  $$
  
 Now suppose for a moment we pretend that all the $y_{ij}$ values are the same as the group mean $\bar y_j$   (and note that already $x_{ij} = \bar x_j$ ).  Then the sum on the right-hand side reduces to 
-$$SS_{error} =  \sum^m_{j=1}  n_j(\bar y_{ j} - \beta_0 - \beta_1 \bar x_j)^2 ~~~~   -(4)  $$
+$$SS_{error} =  \sum^m_{j=1}  n_j(\bar y_{ j} - \beta_0 - \beta_1 \bar x_j)^2 ~~~~   (4)  $$
 
 
-So the difference between this sum and the sum (2) is that the squared residual  is multiplied by  $n_j$,  the number of people in that group.  We call this multiplier the **weight**  $w_j$. 
-	Essentially we interpret the weight as the **amount of information represented by the datapoint**.  So here in this simple example "amount of information" is easily measured as the sample size $w_j = n_j$ at each education level.       
+So the difference between this sum and the sum (2) is that the squared residual  is multiplied by  $n_j$,  the number of people in that group.  We call this multiplier the **weight**  $w_j$.
+
+Essentially we interpret the weight as the **amount of information represented by the datapoint**.  So here in this simple example "amount of information" is easily measured as the sample size $w_j = n_j$ at each education level.       
+
+##
 
 But in fact we don't have all the $y_{ij}$ equal. Instead what we do is to add and subtract $\bar y_j$ inside the parentheses in equation (3), and then expand the square:
-$$SS_{error} =  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j + \bar y_j - \beta_0- \beta_1 x_{ij})^2 ~~~~       $$
-$$  =  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j)^2  + \sum^m_{j=1}\sum^{n_j}_{i=1}(\bar y_j - \beta_0- \beta_1 \bar x_j)^2 ~~~~~~~    (*)  $$
-$$  =  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j)^2  + \sum^m_{j=1} n_j~(\bar y_j - \beta_0- \beta_1 \bar x_j)^2 ~~~~       $$
+$$\begin{aligned}SS_{error} &=  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j + \bar y_j - \beta_0- \beta_1 x_{ij})^2\\&=  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j)^2  + \sum^m_{j=1}\sum^{n_j}_{i=1}(\bar y_j - \beta_0- \beta_1 \bar x_j)^2 ~~~~~(*)\\&=  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j)^2  + \sum^m_{j=1} n_j~(\bar y_j - \beta_0- \beta_1 \bar x_j)^2\end{aligned}$$
+
 (*) Equality happens because the cross-product term $\sum^m_{j=1} \sum^{n_j}_{i=1} ~2~(y_{ij} -\bar y_j) (\bar y_j - \beta_0- \beta_1 \bar x_j) =0$. 
+
+##
 
 The key fact is that the error SS splits into two parts: 
 
-•	The first term is the "pure error" SS for $y_{ij}$ and relates to the variation in the $y_{ij}$s around the group means $\bar y_j$, and 
+$$SS_{error} =  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j)^2  + \sum^m_{j=1} n_j~(\bar y_j - \beta_0- \beta_1 \bar x_j)^2$$
+-	The first term is the "pure error" SS for $y_{ij}$ and relates to the variation in the $y_{ij}$s around the group means $\bar y_j$, and 
 
-•	the second term is the weighted SS that one gets from pretending all the $y_{ij}$s   occur at $\bar y_j$ .
+-	the second term is the weighted SS that one gets from pretending all the $y_{ij}$s   occur at $\bar y_j$ .
 
 Note that estimation of $\beta_0$ and $\beta_1$ *depends only on the second term*.   Therefore  the regression coefficients you get from weighted regression should be *exactly the same* as those from handling the whole data.
 
-However the estimate of goodness of fit ($R^2$) would be entirely wrong as the variance is underestimated. 
+However the estimate of goodness of fit ($R^2$) would be entirely wrong as the variance is underestimated (missing the first term).
 
-To do a weighted regression we have to specify `weights` in the lm() command.   Below we compare the weighted least squares (**WLS**) estimates from the averaged data to the ungrouped ordinary least squares (**OLS**) estimates from the raw data.
+## Weighted regression in R
+
+To do a weighted regression we have to specify `weights` in the `lm()` command.   Below we compare the weighted least squares (**WLS**) estimates from the averaged data to the ungrouped ordinary least squares (**OLS**) estimates from the raw data.
 
 ```{r weighted}
 cps.wls = lm(AvWage ~ EDgroup, weights=N, data=CPS5grouped)
 summary(cps.wls)
+```
+
+##
+
+```{r}
 summary(cps5.lm)
 ```
 
 We see that the coefficient estimates are the same, but the standard errors and the $R^2$ are different. 
 
-The following plot shows the averaged data with the unweighted (dashed) and weighted (solid) lines. The weighted line is closer to where more data are. 
+The following plot shows the averaged data with the unweighted (dashed) and weighted (solid red) lines. The weighted line is closer to where more data are. 
 
-```{r WLS vs OLS}
+##
+
+```{r WLS vs OLS, message=FALSE}
 ggplot(data=CPS5grouped,
        mapping=aes(x=AvWage, y=EDgroup)) +
   geom_point(mapping=aes(size=N)) +
-  geom_smooth(method='lm', method.args=list(weights=CPS5grouped$N)) +
-  geom_smooth(method='lm', linetype = 'dashed') +
+  geom_smooth(method='lm', mapping=aes(weight=N), col='red', se=FALSE) +
+  geom_smooth(method='lm', linetype = 'dashed' , se=FALSE) +
   labs(x="Education (years)", y="Average wage ($)")
 ```
 
@@ -161,7 +203,7 @@ ggplot(data=CPS5grouped,
 
 Clearly a plot of ordinary residuals could be misleading in the context of weighted least squares.  The low weight points on the left are badly fitted and this could make them look like influential outliers. 
  
-```{r residuals from WLS}
+```{r residuals from WLS, fig.height=4}
 augment(cps.wls, CPS5grouped) |>
   ggplot(mapping = aes(x=EDgroup, y=.resid)) +
   geom_point() +
@@ -169,10 +211,11 @@ augment(cps.wls, CPS5grouped) |>
   labs(y="Simple residuals", x="Education group (years)")
 ```
 
-Instead we use  "weighted"  or  "Pearson" Residuals   
- i.e.   **WtRes  =   sqrt(Wt)$\times$ Residuals**        where in the above example $wt = n_j$ . 
+##
+
+Instead we use "weighted" or  Pearson" Residuals $r_j = \sqrt{w_j}\varepsilon_j$.
  
-```{r weighted residuals }
+```{r weighted residuals, fig.height=4.5}
 augment(cps.wls, CPS5grouped) |>
   mutate(pearson = .resid*sqrt(N)) |>
   ggplot(mapping = aes(x=EDgroup, y=pearson)) +
@@ -180,7 +223,9 @@ augment(cps.wls, CPS5grouped) |>
   geom_hline(yintercept=0, linetype="dotted") +
   labs(y="Pearson (weighted) residuals", x="Education group (years)")
 ```
- 
+
+##
+
 This has given a proper sense of importance to each residual. We see that the low-weight points on the left are not particularly important. 
 
 Unfortunately the $Y$ axis scale is now meaningless so all we can look at is the *shape* and the *relative* importance or lack of fit for each point. 
@@ -192,7 +237,6 @@ So we want to give more weight to those points which have small variance (or are
 
 This still fits with the idea that Weight represents the  amount of information carried by each datapoint. 
 
-
 ### Supervisors and Workers
 
 The following data is on the number of supervisors $Y$ (e.g. team leaders) and the number of workers $X$ at a number of industrial establishments.   The data are from the book by Chatterjee and Price "Regression Analysis by Example"
@@ -203,6 +247,11 @@ The following data is on the number of supervisors $Y$ (e.g. team leaders) and t
 supervisors = read.csv("supervisors.csv")
 supervisors = read.csv("../data/supervisors.csv")
 supervisors
+```
+
+##
+
+```{r, message=FALSE}
 ggplot(supervisors,
        mapping=aes(x=X, y=Y)) +
   geom_point() +
@@ -210,50 +259,69 @@ ggplot(supervisors,
   labs(x = "Number of workers (X)", y = "Number of supervisors (Y)")
 ```
 
+##
+
 Note that the line is overshooting the cluster of points on the left.  The residual plots show curvature and heteroscedasticity.  The fourth graph shows a simple linear model is highly influenced by the points at the right, which have very large residuals.
 
-```{r Supervisor residuals}
+```{r Supervisor residuals, fig.height=4}
 sup.lm <- lm(Y ~ X, data=supervisors)
-par(mfrow=c(2,2))
-plot(sup.lm)
+par(mfrow=c(1,2))
+plot(sup.lm, which=c(1,5))
 ```
 
-Considering the heteroscedasticity, look at the amount of vertical spread of residuals when $x$= 400, 800 and 1600. As $X$ doubles, the spread roughly doubles.  This suggests that $\mbox{sd}(residuals) \propto x$,  or in other words $\sigma = k x$ for some constant $k$.
+##
+
+Considering the heteroscedasticity, look at the amount of vertical spread of residuals when $x$= 400, 800 and 1600. As $X$ doubles, the spread roughly doubles.  This suggests that $\mbox{sd}(\varepsilon) \propto x$,  or in other words $\sigma = k x$ for some constant $k$.
 
 Now let us suppose we want to fit a straight-line model $$y_i = \beta_0 + \beta_1 x_i  + \varepsilon_i ~   $$
 We would ordinarily solve this by minimising the 
 $$SS_{error} = \sum( y_i - \beta_0 - \beta_1 x_i)^2$$ where the components of the sum (the residuals $y_i - \beta_0 - \beta_1 x_i$) have constant standard deviation.  Except now the standard deviation is not constant. 
 
-But what we could do is divide through by $x_i$.  The model becomes $$\frac{y_i}{x_i}  = \frac{\beta_0 + \beta_1 x_i}{x_i}  + \frac{\varepsilon_i}{x_i}  ~~~~(5)$$
-where the error term in equation (5) now *has* constant standard deviation  since 
-$$sd\left( \frac{\varepsilon_i}{x_i}\right) = \frac{ kx_i}{x_i} = k ~~.$$
+But what we could do is divide through by $x_i$.  The model becomes
+$$\begin{aligned}\frac{y_i}{x_i} &= \frac{\beta_0}{x_i} + \beta_1\frac{x_i}{x_i}  + \frac{\varepsilon_i}{x_i}\\Y_i &=\beta_0 X_i + \beta_1 + \eta_i\end{aligned}$$
+where $Y_i = \frac{y_i}{x_i}$, $X_i = \frac{1}{x_i}$ and $\eta_i = \frac{\varepsilon_i}{x_i}$.
 
-Equation (5) could be  written as $Y_{new}=\beta_0 x_{new} + \beta_1$ and solved for $\beta_0$ and $\beta_1$ by least squares in the usual way. 
+##
 
-To do this, the sum we need to minimise is  
+The error term $\eta_i$ now has constant standard deviation as
+
+$$\mbox{sd}\left( \frac{\varepsilon_i}{x_i}\right) = \frac{ kx_i}{x_i} = k.$$
+
+We now have a linear model with constant variance so can solve by least squares in the usual way.
+
+We could do the transformation ourselves and then just use `lm()` normally, but another way to look at it is we're minimising
+
 $$\sum \left(\frac{y_i}{x_i} - \frac{\beta_0}{x_i} - \beta_1 \right)^2   ~~= ~~ \sum \frac{1}{x_i^2}\left(y_i - \beta_0 -\beta_1 x_i \right)^2$$
-which we can write as 
-$$\sum w_i \left(y_i - \beta_0 -\beta_1 x_i \right)^2$$ where  the weight $w_i = 1/ x_i^2$.  So the task with this transformation is the same as weighted least squares with these weights.
+
+which is a weighted regression with $w_i = 1/ x_i^2$.  So the task with this transformation is the same as weighted least squares with these weights.
+
+##
 
 ```{r wls for supervisors}
 sup.wls = lm(Y ~ X  , data=supervisors, weights = 1/X^2 )
 summary(sup.wls)
- 
+```
+
+##
+
+```{r, message=FALSE}
 ggplot(data=supervisors,
        mapping=aes(x=X, y=Y)) +
   geom_point() +
-  geom_smooth(method='lm', method.args = list(weights=1/supervisors$X^2), col='red') +
-  geom_smooth(method='lm', linetype='dotted') +
+  geom_smooth(method='lm', mapping=aes(weight=1/X^2), col='red', se=FALSE) +
+  geom_smooth(method='lm', linetype='dotted', se=FALSE) +
   labs(x="Number of workers (X)", y = "Number of supervisors (Y)")
 ```
 
-The plot above shows that weighted line (red, solid) is now going closer to the data at the left, where the random error is smallest, whereas the OLS line (dotted) overshot the data at left.
+##
+
+The plot shows that weighted line (red, solid) is now going closer to the data at the left, where the random error is smallest, whereas the OLS line (dotted) overshot the data at left.
 
 The plot of weighted residuals below shows constant variance (with perhaps a little curvature). 
 
-```{r Wt Res for Sup.wls}
+```{r Wt Res for Sup.wls, fig.height=4}
 augment(sup.wls) |>
-  mutate(pearson = .resid/X^2) |>
+  mutate(pearson = .resid/X) |>
   ggplot(mapping = aes(x=X, y=pearson)) +
   geom_point() +
   geom_hline(yintercept=0, linetype="dotted")
@@ -262,29 +330,34 @@ augment(sup.wls) |>
 
 ## Basic rule for Weighting
 
-Assume weights  $$Wt_i = \frac{ n_i}{\mbox{variance}_i}  . ~~~~~ (6) $$
+Assume weights  $$w_i = \frac{n_i}{\mbox{variance}_i} ~~~~~ (6) $$
 
 where, if $n$ doesn't vary between data rows then just replace by $n=1$,  and if the precision of data (1/variance) does not differ between data rows then just drop that term.
 
-Application: You may have heard of the  field of **meta-analysis**, which  is concerned with combining the results of many small studies in order to get an overall result.  
+### Application: Meta Analysis
+
+You may have heard of the  field of **meta-analysis**, which  is concerned with combining the results of many small studies in order to get an overall result.  
 
 Meta-analysis uses weights of the form (6) to represent the differing amounts and quality of data from the different studies.
 
-### Revisiting the CPS5grouped data
+## Revisiting the CPS5grouped data
 
-For these data, there was a column of  standard deviations (`StDev`) as well as sample sizes `N`.  So we could use weights $Wt = N/ \mbox{StDev}^2$
+For these data, there was a column of  standard deviations (`StDev`) as well as sample sizes `N`.  So we could use weights $W_i = N_i/ \mbox{StDev}_i^2$
 
-```{r CPS5 re-weighted}
+```{r CPS5 re-weighted, tidy=FALSE}
 CPS5weighted <- CPS5grouped |> mutate(Wt = N/ StDev^2)
-
 cps.wls2 <- lm(AvWage ~ EDgroup, weights=Wt, data=CPS5weighted)
 summary(cps.wls2)
+```
 
+##
+
+```{r, message=FALSE, fig.height=4}
 ggplot(data=CPS5weighted,
        mapping=aes(x=EDgroup, y=AvWage)) +
   geom_point(mapping=aes(size=N)) +
-  geom_smooth(method='lm', method.args=list(weights=CPS5weighted$Wt), col='red') +
-  geom_smooth(method='lm', method.args=list(weights=CPS5weighted$N), linetype='dotted') +
+  geom_smooth(method='lm', mapping=aes(weight=Wt), col='red', se=FALSE) +
+  geom_smooth(method='lm', mapping=aes(weight=N), linetype='dotted', se=FALSE) +
   labs(x="Education group (years)", y="Average Wage ($)")
 ```
 
