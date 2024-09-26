@@ -11,7 +11,7 @@ Week 10
 Week 11
 
 29: Multicollinearity (DONE as ioslides)
-30: Weighted regression (INITIAL DONE)
+30: Weighted regression (DONE as ioslides)
 
 11A:
 11B:

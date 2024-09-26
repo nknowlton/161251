@@ -3,6 +3,9 @@ title: Massey University --- School of Mathematical and Computational Sciences
 subtitle: 161.251 Regression Modelling
 author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
 date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: true
 ---
 
 ```{r setup, include=FALSE}
