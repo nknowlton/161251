@@ -4,13 +4,15 @@ subtitle: 161.251 Regression Modelling
 author: "Presented by Jonathan Marshall <J.C.marshall@massey.ac.nz>"  
 date: "Week 11 of Semester 2, `r lubridate::year(lubridate::now())`"
 output:
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
   html_document:
     code_download: true
     theme: yeti
     highlight: tango
   beamer_presentation: default
   word_document: default
-  ioslides_presentation: default
   slidy_presentation: 
     theme: yeti
     highlight: tango
@@ -27,23 +29,16 @@ https://r-resources.massey.ac.nz/data/161251/
 ```{r setup, purl=FALSE, include=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
-opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(fig.height=5, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center")
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
-```
-
-
-<!--- Do not edit anything above this line. --->
-
-```{r extraLibs}
-library(scatterplot3d)
 library(car)
 ```
 
 
-*Collinearity and Orthogonality, Measuring multicollinearity, variance  inflation factors. *
+<!--- Do not edit anything above this line. --->
 
 ##  Idea of Collinearity and Orthogonality  
 
@@ -60,20 +55,21 @@ In practice regressors are rarely orthogonal unless the regression arises from a
 
 Nevertheless a little non-orthogonality is usually not important to the analysis, especially in view of all the other variability involved.
 
+## Non-Orthogonality
+
 However sometimes  $X_1$  and $X_2$ are so closely related that the regression results are very hard to interpret.  For example inclusion of one variable into a model already containing the other variable can radically alter the regression parameters.  The parameters may also be very sensitive to slight changes in the data and have large standard errors.
 
 Severe non-orthogonality is referred to as **collinear** data or **multicollinearity**. This
 
 *	can be difficult to detect
-
 *	is not strictly a modeling error but a problem of inadequate data
-
 *	requires caution in interpreting results.
 
 So we address the following questions:
-	How does multicollinearity affect inference and forecasting?
-	How does one detect multicollinearity?
-	How does one improve the analysis if multicollinearity is present?
+
+-	How does multicollinearity affect inference and forecasting?
+-	How does one detect multicollinearity?
+-	How does one improve the analysis if multicollinearity is present?
 
 ##   A Numerical Example
 
@@ -84,15 +80,21 @@ Though you would not have noticed it, the `A` and `B` data were highly correlate
 
 `r xfun::embed_file("../data/simulation1.csv")` 
 
-```{r read Simulation1, eval=-1, echo=-2}
+```{r read Simulation1, eval=-1, echo=-2, message=FALSE}
 sim = read_csv("simulation1.csv")
 sim = read_csv("../data/simulation1.csv")
 
 sim_final <- sim |> mutate(Y = 50 + 5*A +5*B+ epsilon)
+```
 
+##
+
+```{r, fig.height=5}
 ggplot(sim_final) + 
   geom_point(mapping=aes(x=A, y=B, size=Y))
 ```
+
+##
 
 This is what resulted in the relatively high standard errors for each regression coefficient (given the super high $R^2$)
 
@@ -100,6 +102,8 @@ This is what resulted in the relatively high standard errors for each regression
 lm.cor = lm( Y ~ A + B, data=sim_final)
 summary(lm.cor)
 ```
+
+##
 
 Now suppose we keep exactly the same numbers A, B and epsilon, but break the correlation between the A and B columns.
 
@@ -109,10 +113,17 @@ As a simple way of spreading them out, we just randomize the order of numbers in
 sim_rand <- sim_final |>
   mutate(B_rand = sample(B)) |>
   mutate(Y_rand = 50 + 5*A + 5*B_rand + epsilon)
+```
 
+##
+
+```{r}
 ggplot(sim_rand) + 
   geom_point(mapping=aes(x=A, y=B_rand, size=Y_rand))
+```
 
+##
+```{r}
 lm.uncor = lm( Y_rand ~ A + B_rand, data=sim_rand)
 summary(lm.uncor)
 ```
@@ -124,13 +135,13 @@ Note that really the only thing we have done here is to break the correlation be
 
 Consider the model	$$Y  =  \beta_0 + \beta_1 X  + \beta_2 Z + \varepsilon$$  
 
-Recall that  $X$  and  $Z$ are uncorrelated, they are called orthogonal.  Then  
+Recall that if $X$  and  $Z$ are uncorrelated, they are called orthogonal.  Then  
 
 *	the least squares estimates $\hat\beta_1$ and $\hat\beta_2$  are independent of each other
 
 *	the order of adding the variables does not affect the sums of squares in the ANOVA table.
 
-In other words  it doesn't matter whether we talk about the effect of  $X$ by itself or  “$X$ after $Z$".  The effect is the same.    
+In other words  it doesn't matter whether we talk about the effect of  $X$ by itself or  "$X$ after $Z$".  The effect is the same.    
 
 *	Interpretation of parameters a lot easier.
 
@@ -151,17 +162,21 @@ Then the regression model could be rewritten in terms of any arbitrary combinati
 
 $$\begin{aligned}Y &= \beta_0 +\beta_1 X + \beta_2 Z + k(\alpha_0 + \alpha_1 X) - k Z  +\varepsilon\\ & = (\beta_0 + k\alpha_0) + (\beta_1 + k\alpha_1)X + (\beta_2 - k)Z + \varepsilon\end{aligned}$$
 
-for any real number $k$.  In other words there are an infinite number of possible solutions, and if we do get a numerical answer for 
-the regression coefficients, the particular answer may depend on something as trivial as rounding error.  Different amounts of rounding could give very different answers.  
+for any real number $k$.
+
+There are an infinite number of possible solutions, and if we do get a numerical answer for the regression coefficients, the particular answer may even just depend on rounding, with different amounts of rounding could give very different answers.
+
+##
+
 We describe this situation by saying the regression model is *not estimable*.  
 
 A consequence of such high correlation between the predictor variables is that the regression coefficients may become totally uninterpretable  (for example something you  *know* has a positive relationship with the response ends up with a negative coefficient)  and  the regression coefficients may have very  high standard errors.
 
-## Measuring Multicollinearity
+This is the problem of **Multicollinearity**.
 
-So we recognize a potential problem.  How do we assess whether it is a real problem in our data?
+How do we assess whether it is a real problem in our data?
 
-###  Correlations Among The Predictors
+##  Correlations Among The Predictors
 
 We could look at the correlations between the explanatory variables.  Since correlation is a measure of linear relationship, then if two variables are highly correlated then it doesn't make sense to keep them both in the model.
 
@@ -175,11 +190,13 @@ Each of these explanatory variables would be expected to be related to the Bill,
 
 `r xfun::embed_file("../data/electric.csv")` 
 
-```{r read electric, eval=-1, echo=-2}
+```{r read electric, eval=-1, echo=-2, message=FALSE}
 electric = read_csv("electric.csv")
 electric = read_csv("../data/electric.csv")
 electric
 ```
+
+##
 
 We could check all pair-wise correlations with the `cor()` function:
 
@@ -191,29 +208,26 @@ This indicates that the `Area` of the house is very strongly correlated to the `
 
 By contrast the number of persons in the house is almost unrelated (r  =  0.143) to the `Income` and only weakly related to the `Area` (r = 0.366) so persons provides more-or-less independent information.
 
-The following graph helps one visualise the relationships expressed by the correlations. 
+A pairs plot can be useful in these circumstances.
+
+##
+
 ```{r  electric pairs}
 pairs(electric)
 ```
-The question is: 
 
-### How do we know this is causing real problems? 
+But how do we know this is causing real problems? 
 
-The aim of the analysis is to explain electricity consumption `Bill` in terms of household `Income`, `Persons` and `Area`. 
+## Spotting multicollinearity
 
 ```{r lm}
 electric.lm0 = lm(Bill~ Area+ Persons + Income, data=electric)
 summary(electric.lm0)
 ```
 
+The regression as a whole is highly significant, yet none of the regression coefficents are significant. This suggests multicollinearity.
 
-Note (fact 1) the regression as a whole is highly significant. 
-
-However (fact 2) none of the regression coefficients in the model is significant.    
-
-So these two facts together suggest multicollinearity. 
-
-### Contradictory Regression Coefficients
+## Contradictory Regression Coefficients
 
 Let's look at the variable we know are highly correlated (i.e. `Area` and `Income`) separately as predictors:
 
@@ -221,12 +235,19 @@ Let's look at the variable we know are highly correlated (i.e. `Area` and `Incom
 elec.lm1 = lm(Bill ~ Area, data=electric)
 elec.lm2= lm(Bill ~ Income, data=electric)
 summary(elec.lm1)
+```
+
+##
+
+```{r}
 summary(elec.lm2)
 ```
 
 By themselves both variables are positively related to Bill and have small Std Errors, as we would expect given the pairs chart.
 
 But let's see what happens if we put them together:
+
+##
 
 ```{r correlated variables}
 elec.lm3 <- lm(Bill ~ Area + Income, data=electric)
@@ -237,18 +258,25 @@ When put together, one predictor has changed its sign and the Std Errors are muc
 
 This illustrates how multicollinearity can render the regression coefficients quite misleading, as presumably income IS related to higher electricity bills (as folk on higher incomes can afford to have more stuff that consumes energy).
 
+##
+
 One solution to multicollinearity is to delete one of the variables.  However it can be difficult to decide which one to delete.   For example suppose we particularly want to quantify the effect of *Persons* on the electricity bill after adjusting for one of the others:
 
 ```{r pair of variables}
 elec.lm4 = lm(Bill ~ Area + Persons, data=electric)
 elec.lm5= lm(Bill ~ Income + Persons, data=electric)
 summary(elec.lm4)
+```
+
+##
+
+```{r}
 summary(elec.lm5)
 ```
 
 Should we estimate that each extra person adds 42 to the electric bill, or 83 to  the bill?  Of course the interpretation of these regression models differs slightly (in the first model it is the effect of each additional person among families of the same income, while in the second it is the effect of person among families of with homes of the same area). But it still makes one uneasy to see such a big difference.  
 
-### Regressing The Predictors Among Themselves
+## Regressing The Predictors Among Themselves
 
 More generally (more than just looking at individual correlations) we could look at whether any of the variables are strongly predicted by a combination of the other regressors.
 
@@ -264,7 +292,7 @@ A "rule of thumb" is that multicollinearity is a big problem if $R_i^2 > 0.9$,  
 
 We can get $R_i^2$ by doing the regressions ourselves, but it is easier to consider the concept of variance inflation instead.
 
-### Variance Inflation Factors, VIFs
+## Variance Inflation Factors, VIFs
 
 A major impact of multicollinearity is found in the variances (and hence standard errors) of the regression coefficients.
 
@@ -274,6 +302,8 @@ $$\hat{\mbox{var}}(\hat\beta_1) = \frac{s^2}{(n-1)\mbox{var}(X_i)}$$
 2. If $X_i$   is in a model with other predictors then 
 $$\hat{\mbox{var}}(\hat\beta_i) =  s^2   \left(X^T X\right)^{-1}_{ii}$$
 where the last term is the corresponding diagonal entry of the $(X^T X )^{-1}$ matrix,  the *variance-covariance* matrix.
+
+##
 
 It turns out that we can rewrite this as:
 
@@ -288,6 +318,8 @@ Variable inflation factors that are large (e.g. $\mbox{VIF}_i > 10$) indicates m
 
 On the other hand if  the VIF is around 1, then the variable $X_i$ is pretty much orthogonal to the other variables.
 
+##
+
 To obtain VIFs we need to invoke `library(car)`.
 
 ```{r vifs1}
@@ -298,36 +330,26 @@ library(car)
 vif( electric.lm0)
 ```
 
-Clearly we need to do something to reduce the multicollinearity.   
+Clearly we need to do something to reduce the multicollinearity.
+
+What we do is application-specific! We might choose to remove a variable, or we might choose to do something else (e.g. find a better measure or somehow combine the variables into some average?)
 
 ## Example: SAP Data
 
-The following example illustrates multicollinearity in a context where it is not immediately visible.  Chatterjee and Price  discuss a dataset relating  Sales to  A (advertising expenditure),  A1 (last year's advertising),  P (promotion expenditure), P1 (last year’s promotions expenditure) and other variables.  The analyst eventually found out that an approximate budgetary constraint 
+The following example illustrates multicollinearity in a context where it is not immediately visible.  Chatterjee and Price  discuss a dataset relating  Sales `S` to  `A` (advertising expenditure),  `A1` (last year's advertising),  `P` (promotion expenditure), `P1` (last year’s promotions expenditure) and `SE` (sales expenses).  The analyst eventually found out that an approximate budgetary constraint 
 
 $$ A + A1 + P + P1  =  5  $$
 was hidden in the data.  The constraint was known to the advertising executives who had commissioned the study but it had not been mentioned to the statistical consultant who was given the data to analyze.  
 
-Annual Data on Advertising, Promotion, and Sales Expenses,  and Sales:
-
-A= advertising expenditure (at time t)  
-
-A1 denotes lagged values, i.e. at time t-1.
-
-P denotes promotion expenditures (at time t) 
-
-P1  denotes the lagged values.
-
-SE denotes sales expense and   
-
-S the aggregate sales. 
-
 `r xfun::embed_file("../data/SAP.csv")` 
 
-```{r  read SAP, eval=-1, echo=-2}
+```{r  read SAP, eval=-1, echo=-2, message=FALSE}
 SAP = read_csv("SAP.csv")
 SAP = read_csv("../data/SAP.csv")
 SAP
 ```
+
+##
 
 We start with a linear model for sales in terms of all other variables:
 
@@ -335,6 +357,8 @@ We start with a linear model for sales in terms of all other variables:
 SAP.lm = lm( S ~ A + P + SE + A1 + P1, data=SAP)
 summary(SAP.lm)
 ```
+
+##
 
 We see that, apart from Sales Expenses, there is only weak
 evidence of a relationship between advertising, promotions and sales. 
@@ -344,6 +368,9 @@ vif(SAP.lm)
 ```
 
 The VIF shows high multicollinearity for all advertising and promotions data. 
+
+##
+
 If we drop one of the variables the others change their coefficients unpredictably  depending on which variable we drop. 
 
 ```{r dropping}
@@ -352,6 +379,8 @@ SAP.lm3= lm( S ~ A +P +SE  + P1, data=SAP)
 SAP.lm2 |> tidy()
 SAP.lm3 |> tidy()
 ```
+
+##
 
 Suppose we look at the relationships among the predictor variables: 
 
@@ -370,10 +399,14 @@ As far as 161.251 is concerned, we have few options.
 
 2.  We could construct another variable which is a combination of the two most highly correlated variables.  It might be an ordinary average $(X_1+X_2)/2$, or an average of standardized versions of the $X_i$s or some other linear combination. Sometimes subtracting or dividing one variable by another will help.    For example the incidence of a particular disease such as obesity may be higher in countries with high GDP and high Population.   But GDP depends on the size of the economy, which is correlated with the Population.  Dividing gives us per capita GDP which is a better indicator of average wealth and hence may be more related to disease incidence. 
 
-3. (Not examinable). Those who have studied multivariate statistics may find it useful to construct principal components  or do a factor analysis of a set of correlated variables.  Dropping less important components leads to a class of models called biased regression.  Another form of biased regression shrinks the regression coefficients towards zero - a method called shrinkage estimators. 
+##
 
-4. (Not examinable). It is possible to fit regression models that impose linear constraints on the regression coefficients (such as forcing them to add to 100%). Such restricted least squares is also beyond the scope of this course. 
-Therefore for this course we focus on method 1, dropping variables. 
+<ol start=3>
+<li> (Not examinable) Those who have studied multivariate statistics may find it useful to construct principal components  or do a factor analysis of a set of correlated variables.  Dropping less important components leads to a class of models called biased regression.  Another form of biased regression shrinks the regression coefficients towards zero - a method called shrinkage estimators.</li>
+
+<li> (Not examinable) It is possible to fit regression models that impose linear constraints on the regression coefficients (such as forcing them to add to 100%). Such restricted least squares is also beyond the scope of this course. 
+Therefore for this course we focus on method 1, dropping variables. </li>
+</ol>
 
 
 
