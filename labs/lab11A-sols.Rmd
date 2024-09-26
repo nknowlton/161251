@@ -1,0 +1,206 @@
+---
+title: "Massey University"
+subtitle: 161.251 Regression Modelling   
+author: " "
+date: "Last modified 14 April 2023"
+output:
+  html_document:
+    mathjax: https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-MML-AM_CHTML
+  pdf_document: default
+
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment="", dev="png")
+library(tidyverse)
+```
+
+  
+
+
+
+### Computer Laboratory Tutorial 11 B Solutions
+
+An [R markdown template](https://stream.massey.ac.nz/mod/resource/view.php?id=4649263&redirect=1) is available for this tutorial solution. Copy and paste its content into a new R markdown file in RStudio.
+
+
+### Investigating real survey data, and multicollinearity
+
+Open the dataset WVS2005NZmodif.csv . 
+
+One variable in the dataset is HwManyMembrshp.   This is a combined variable indicating how many organisations /clubs etc.  a person belongs to.    Low values= few memberships,  high values= many memberships.  
+
+*(Why might this be worth researching?  Answer:  Sociologists have noticed that  western society is getting more individualistic and less committed to group activities, e.g.  Generation X and Y were less likely to commit to clubs and  organisations than earlier generations.  cf. the book “Bowling Alone: The Collapse and Revival of American Community” by Robert Putnam. Is true of Gen Z? Future data may tell.)*
+
+We will try to work out variables that are predictive of  HwManyMembrshp  in the NZ context. 
+
+First we will correlate all the other variables with HwManyMembrshp.   Which variables appear to be significantly correlated with  HwManyMembrshp?
+
+The following table will be helpful for interpreting the variables.  Note that several of them are coded counter-intuitively, e.g. a low value for Family important means very important, while a high value means not important. 
+
+Variable | Description | Coding |
+---|---|--- |
+ID	| Original respondent ID	| a number |
+FamilyImp |	Family important	| 1= Very important    …	4= not at all important|
+FrndsImp	|Friends important	| 1= Very important    …	4= not at all important|
+LesrImp|	Leisure time|	 1= Very important    …	4= not at all important|
+PoltcImp	|Politics important	| 1= Very important    …	4= not at all important|
+WorkImp|	Work important| 1= Very important    …	4= not at all important|
+RelgnImp	|Religion important	| 1= Very important    …	4= not at all important|
+FeelHappy|	Feeling of happiness|	1=very happy, 2=quite happy 	3=not happy,  4=not at all happy |
+StateofHlth	|State of health (subjective)	|1=Very good, 2=good,	3=fair,  4 =poor|
+SatisfLife|	How satisfied are you with your life?|	1=dissatisfied ….	10=satisfied|
+Sex|	Sex|	1= male        2=female	|
+Age|	Age	|Age in years	|
+HighEducLev|	Highest educational level attained|	1=no formal educ   …	9= university degree|
+SocialClass|	Social class (subjective)|	1=upper class, 2=upper middle	3=lower middle,   4=working,  5=lower class|
+IncomeSpecfc|	Income Decile|	1= poorest decile …	10= richest decile|
+SizeTown|	Size of Town|	1=rural, 2=small town	…,    7=large city|
+VeryHappy	|Indicator for Very Happy|	1 = very happy	0= quite,not or not at all|
+AgeGroup4	|Age Group|	1=18-34,      2=35-49	3=50-64,       4=65+|
+MostTrusted	|Most people can be trusted	|1= yes (most people  can be trusted)	0 = no (need to be very careful)|
+MaritalStatus |	Marital status |	1= single  2=married/partnered	3= separated/widowed/divorced|
+HwManyMembrshp|	How many groups respondent is a member of?|	1=none ...	15= maximum in dataset|
+| | |
+
+Read in the data from WVS2005NZmodif.csv.    
+
+```{r }
+WVS= read.csv("WVS2005NZmodif.csv",header=TRUE)
+summary(WVS)
+```
+
+**1. Find out  which variable are significantly correlated with HwManyMembershp, and interpret some of them.  **
+
+Technical details: the following code  shows one way to overcome problems in data caused by missing values.  Missing values are a major problem in data analysis and not automatically handled well in R. 
+
+- Since there are many missing values, and in order to  get p-values, we need to look at each correlation in turn,  using a for( ) loop. 
+
+-  The variable HwManyMembershp is column 21 of WVS  i.e. WVS[,21]. The other variables can be accessed as WVS[, i]  where i=2,...,20.
+
+- Unfortunately R will not display output created in a for loop, so we need to save the output for each correlation in a list, which I have called corlist below.    The first line initiates the object corlist as having 20 null spaces, to receive the 20 outputs.
+
+- In order to aid interpretation I have named each piece of R output with the relevant name from WVS. 
+
+```{r }
+corlist=list(19,NULL)   # setting up a list for receive correlation output
+for(i in (2:20))  {    corlist[i-1]=list(cor.test(WVS[,i],WVS[,21]))   }
+names(corlist)=names(WVS[2:20])
+corlist
+```
+
+Look at the outputs and pick **three** where variables are significantly related to   HwManyMembershp, and **try to interpret these**. Do they make sense?  
+
+Comments: (shown below for all variables)
+
+*Family Important is not quite significant p=0.053. The negative correlation means that if people think family is not very important then they are less likely to be members of many groups.Similarly for other importance variables* 
+
+*Friends Important and Leisure Important are not related to How Many Memberships.* 
+
+*If a person thinks Politics is Important (e.g. very important is coded 1) this is very significantly related to How Many Memberships a person has (p=2.72E-7). Note the correlation itself is only -0.188, which is small, but this tends to be the case with grouped data. We still call it significant.  *
+
+*If the person thinks work is very important then they are more likely to have many group memberships  (p= 0.00012).*
+
+*If the person thinks religion is very important then they are more likely to have many group memberships. (p= 2.2E-16)*
+
+*If a person feels happy they are more likely to belong to many groups (p= 0.033)*
+
+*If a person is in good health they are more likely to belong to many groups (p=0.032)*
+
+*There is no clear relationship between life satisfaction and how many groups a person belongs to. (p=0.137)*
+
+*Similarly there is no relationship between the person's sex and how many groups they belong to.  (P= 0.6)*
+
+*Older people are likely to belong to more groups than younger people.  This is true whether Age is measured in years (p=0.0016) or in Agegroup4 values 1,2,3,4. (p=0.0017).*
+
+*People with higher education are likely to belong to more groups. (p=3.23E-7)*
+
+*People who regard themselves as having higher social class (category 1) are likely to belong to more groups (p=9.7E-5)*
+
+*There is no relationship between income and   belonging  to more groups (p=0.37)*
+
+*There is no relationship between size of the town a person lives in and the number of groups they belong to. (p = 0.89) *
+
+*There is no  relationship (p=0.121) between agreeing that "Most People can be Trusted" and How many memberships a person has. *
+
+*There is no relationship (p=0.073) between Marital Status (the three levels treated as a covariate) and how many groups a person is a member of. *
+
+**2. Fit a regression of HwManyMembershp on  all the variables. Check for evidence of multicollinearity from the summary output (compared to correlation output above), and the VIFs. **
+
+```{r}
+ lmAll = lm(HwManyMembershp ~ ., data=WVS)
+summary(lmAll)
+library(car)
+ vif(lmAll)
+```
+
+Comment:
+
+*The summary output shows only three significant variables, whereas there were several other very significant ones (e.g. PoltcsImp, SocialClass) according to the cor.test results. This suggests some of the variables' information is being expressed by other variables.  However the VIFs do not show this as multicollinearity.  The VIFs do show that Age,  AgeGroup4, FeelHappy and VeryHappy have high VIFs, which is  not surprising since AgeGroup and VeryHappy are derived from the other variables. * 
+
+**3. We will do a backwards elimination regression of HwManyMembershp on all the variables, and find the best model. **
+
+Technical issues: The step() function will fail to work properly as many of the variables 
+have missing values. 
+
+- To simplify matters we will eliminate all data rows where there is any missing value in any column.  This is called "listwise deletion", and is often criticised, as in the paper provocatively titled  "Listwise Deletion is Evil: What to Do About Missing Data in Political Science"  by King et al.  There are other approaches but we will do this to keep it simple. 
+
+- The following code illustrates one simple way to do listwise deletion.  
+
+- First I use the apply function to sum across all variables - any row with a missing value anywhere will give NA as the answer. This means we are going to lose 215 rows of data. If I excluded some columns such as social class or Income  which have many missing values, then we would lose less rows.  Often it is a tradeoff. 
+
+- Then I use the  is.na( ) function to identify those rows whose total is NA.  The output of is.na( ) is then TRUE for those rows.
+
+- Then ! means "not". i.e. !is.na(WVSrowsum)  equals FALSE for those rows which have missing values and equals TRUE if the row has complete data. Finally  WVS[!is.na(WVSrowsum), ]  selects only those rows with complete data, and all columns. 
+
+
+```{r }
+ 
+WVSrowsums = apply(WVS,1,sum)
+summary(WVSrowsums)
+WVSnotmiss = WVS[!is.na(WVSrowsums), ]
+ 
+attach(WVSnotmiss)
+```
+
+The code below regresses HwManyMembershp on all the other variables in the dataset (including ID?!)  But before we do that, we will set the variables AgeGroup4 and MaritalStatus to factors. This can be done using the mutate function (see computer lab 1B for more about this function and the glimpse function)
+
+```{r }
+WVSnotmiss %>% mutate(AgeGroup4 = factor(AgeGroup4) )  -> WVSnotmiss
+WVSnotmiss %>% mutate(MaritalStatus = factor(MaritalStatus) )  -> WVSnotmiss
+glimpse(WVSnotmiss)
+```
+
+Now for the regression:  for stepwise regression we are going to need a starting model.  For forward select we start with a null model. For backwards elimination we start with a full model. (We have to recompute this since the dataset has changed.) 
+
+```{r }
+lm.null=lm(HwManyMembershp~ 1,  data=WVSnotmiss)
+lm.full=lm(HwManyMembershp~ .,  data=WVSnotmiss)
+summary(lm.full)
+```
+
+```{r }
+lm.back= step(lm.full, scope =  ~1,  direction = "backward",   data=WVSnotmiss)
+summary(lm.back)
+
+``` 
+
+
+**4. Interpretation: **
+
+- 4a. How is the vif(lm.back) now? Is multicollinearity still a problem? 
+
+- 4b. The AIC criterion is not guaranteed to include only significant varaibles. Are there any that we shoud consider eliminating?
+
+- 4c. Try to interpret all the final predictors in lm.back
+
+```{r}
+vif(lm.back)
+```
+
+- *Multicollinearity is no longer a problem.  All the VIFs are close to 1. *
+
+- *StateofHlth and SizeTown are non-significant and could be considered for removal.* 
+
+- *People are more likely to belong to many groups if they consider Politics, Work and Religion important and if their health is very good. They are also more likely to belong to many groups if they are older and have high education level, and/or live in small towns or rural areas. *

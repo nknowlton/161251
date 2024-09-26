@@ -1,0 +1,139 @@
+---
+title: Massey University --- School of Mathematical and Computational Sciences
+subtitle: 161.251 Regression Modelling
+author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment="", dev="png")
+library(tidyverse)
+```
+
+  
+### Computer Laboratory Tutorial 11 A
+
+Investigating real survey data, and multicollinearity
+
+```{r}
+WVS <- read_csv("https://www.massey.ac.nz/~jcmarsha/161251/data/WVS2005NZmodif.csv")
+```
+
+One variable in the dataset is `HwManyMembrshp`.   This is a combined variable indicating how many organisations /clubs etc.  a person belongs to.    Low values= few memberships,  high values= many memberships.  
+
+*Why might this be worth researching?  Answer:  Sociologists have noticed that  western society is getting more individualistic and less committed to group activities, e.g.  Generation X and Y were less likely to commit to clubs and  organisations than earlier generations.  cf. the book "Bowling Alone: The Collapse and Revival of American Community" by Robert Putnam. Is true of Gen Z? Future data may tell.*
+
+We will try to work out variables that are predictive of  `HwManyMembrshp`  in the NZ context. 
+
+The following table will be helpful for interpreting the variables.  Note that several of them are coded counter-intuitively, e.g. a low value for `Family important` means very important, while a high value means not important. 
+
+Variable | Description | Coding |
+---|---|--- |
+ID	| Original respondent ID	| a number |
+FamilyImp |	Family important	| 1= Very important    …	4= not at all important|
+FrndsImp	|Friends important	| 1= Very important    …	4= not at all important|
+LesrImp|	Leisure time|	 1= Very important    …	4= not at all important|
+PoltcImp	|Politics important	| 1= Very important    …	4= not at all important|
+WorkImp|	Work important| 1= Very important    …	4= not at all important|
+RelgnImp	|Religion important	| 1= Very important    …	4= not at all important|
+FeelHappy|	Feeling of happiness|	1=very happy, 2=quite happy 	3=not happy,  4=not at all happy |
+StateofHlth	|State of health (subjective)	|1=Very good, 2=good,	3=fair,  4 =poor|
+SatisfLife|	How satisfied are you with your life?|	1=dissatisfied ….	10=satisfied|
+Sex|	Sex|	1= male        2=female	|
+Age|	Age	|Age in years	|
+HighEducLev|	Highest educational level attained|	1=no formal educ   …	9= university degree|
+SocialClass|	Social class (subjective)|	1=upper class, 2=upper middle	3=lower middle,   4=working,  5=lower class|
+IncomeSpecfc|	Income Decile|	1= poorest decile …	10= richest decile|
+SizeTown|	Size of Town|	1=rural, 2=small town	…,    7=large city|
+VeryHappy	|Indicator for Very Happy|	1 = very happy	0= quite,not or not at all|
+AgeGroup4	|Age Group|	1=18-34,      2=35-49	3=50-64,       4=65+|
+MostTrusted	|Most people can be trusted	|1= yes (most people  can be trusted)	0 = no (need to be very careful)|
+MaritalStatus |	Marital status |	1= single  2=married/partnered	3= separated/widowed/divorced|
+HwManyMembrshp|	How many groups respondent is a member of?|	1=none ...	15= maximum in dataset|
+| | |
+
+```{r}
+summary(WVS)
+```
+
+**1. Find out which variable are significantly correlated with `HwManyMembershp`, and interpret some of them.**
+
+One way to do this would be via `cor()`. Unfortunately there are a lot of missing values in these data (in different rows/columns) and removing them all will reduce information on pair-wise correlation (as you will remove rows for which you have variables A and B but not variable C for example).
+
+One common trick to do pair-wise comparisons across columns is to pivot the data longer to get name/value pairs so that pair-wise comparisons against `HwManyMembershp` can be done in one go via the new `value` column:
+
+```{r}
+WVS_long <- WVS |> pivot_longer(-c(HwManyMembershp, ID))
+WVS_long
+```
+
+Now we can do pairwise correlations by grouping by the `name` column, and arrange them in magnitude
+
+```{r}
+WVS_long |>
+  group_by(name) |>
+  summarise(correlation = cor(HwManyMembershp, value, use='complete.obs')) |>
+  arrange(desc(abs(correlation)))
+```
+
+2. Look at the outputs and pick **three** where variables are significantly related to   HwManyMembershp, and **try to interpret these**. Do they make sense?  
+
+
+
+
+2. Fit a regression of `HwManyMembershp` on  all the variables. Check for evidence of multicollinearity from the summary output (compared to correlation output above), and the VIFs.
+
+    *Add some notes to your markdown file about what might be going on.*
+
+We now want to do some step-wise regression. Unfortunately the missing values will be a problem.
+
+A simple and naive (and in many ways non-ideal) way to deal with this is row-wise deletion of any observation that has a missing value in any of the columns. The `complete.cases()` function can be used here:
+
+```{r}
+WVScomplete <- WVS[complete.cases(WVS),]
+```
+
+Finally, let's convert `AgeGroup4` and `MaritalStatus` to factors, then we'll do our regression:
+
+```{r}
+WVSfinal <- WVScomplete |> mutate(AgeGroup4 = factor(AgeGroup4),
+                      MaritalStatus = factor(MaritalStatus))
+
+WVSfinal |> glimpse()
+```
+
+Now for the regression:  for stepwise regression we are going to need a starting model.  For forward select we start with a null model. For backwards elimination we start with a full model. Note that the full model is a bit silly here as it contains `ID` (why is this a problem??)
+
+```{r, eval=F}
+lm.null=lm(HwManyMembershp~ 1,  data=WVSfinal)
+lm.full=lm(HwManyMembershp~ .,  data=WVSfinal)
+summary(lm.full)
+```
+
+```{r, eval=F}
+scope = list(lower=formula(lm.null), upper=formula(lm.full))
+lm.back= step(lm.full, scope = scope,  direction = "backward")
+summary(lm.back)
+``` 
+
+
+**4. Interpretation: **
+
+- 4a. How is the vif(lm.back) now? Is multicollinearity still a problem? 
+
+- 4b. The AIC criterion is not guaranteed to include only significant variables. Are there any that we should consider eliminating?
+
+- 4c. Try to interpret all the final predictors in lm.back
+
+```{r, eval=F}
+vif(lm.back)
+```
+
+Comments: 
+
+
+You should compare your work with the [solutions for this workshop.](https://stream.massey.ac.nz/mod/resource/view.php?id=4649265&redirect=1)
