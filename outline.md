@@ -13,10 +13,9 @@ Week 11
 29: Multicollinearity (DONE as ioslides)
 30: Weighted regression (DONE as ioslides)
 
-11A:
+11A: Multicollinearity (DONE!)
 11B:
 
-Workshop is available on multicollinearity.
 <No real lab on weighted regression ATM. A little bit available? Should add metaanalysis example.
 
 Week 12
