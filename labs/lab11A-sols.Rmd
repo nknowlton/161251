@@ -1,13 +1,11 @@
 ---
-title: "Massey University"
-subtitle: 161.251 Regression Modelling   
-author: " "
-date: "Last modified 14 April 2023"
+title: Massey University --- School of Mathematical and Computational Sciences
+subtitle: 161.251 Regression Modelling
+author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
 output:
   html_document:
-    mathjax: https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-MML-AM_CHTML
-  pdf_document: default
-
+    code_download: true
 ---
 
 
@@ -17,27 +15,21 @@ library(tidyverse)
 ```
 
   
+### Computer Laboratory Tutorial 11 A
 
+Investigating real survey data, and multicollinearity
 
+```{r}
+WVS <- read_csv("https://www.massey.ac.nz/~jcmarsha/161251/data/WVS2005NZmodif.csv")
+```
 
-### Computer Laboratory Tutorial 11 B Solutions
+One variable in the dataset is `HwManyMembrshp`.   This is a combined variable indicating how many organisations /clubs etc.  a person belongs to.    Low values= few memberships,  high values= many memberships.  
 
-An [R markdown template](https://stream.massey.ac.nz/mod/resource/view.php?id=4649263&redirect=1) is available for this tutorial solution. Copy and paste its content into a new R markdown file in RStudio.
+*Why might this be worth researching?  Answer:  Sociologists have noticed that  western society is getting more individualistic and less committed to group activities, e.g.  Generation X and Y were less likely to commit to clubs and  organisations than earlier generations.  cf. the book "Bowling Alone: The Collapse and Revival of American Community" by Robert Putnam. Is true of Gen Z? Future data may tell.*
 
+We will try to work out variables that are predictive of  `HwManyMembrshp`  in the NZ context. 
 
-### Investigating real survey data, and multicollinearity
-
-Open the dataset WVS2005NZmodif.csv . 
-
-One variable in the dataset is HwManyMembrshp.   This is a combined variable indicating how many organisations /clubs etc.  a person belongs to.    Low values= few memberships,  high values= many memberships.  
-
-*(Why might this be worth researching?  Answer:  Sociologists have noticed that  western society is getting more individualistic and less committed to group activities, e.g.  Generation X and Y were less likely to commit to clubs and  organisations than earlier generations.  cf. the book “Bowling Alone: The Collapse and Revival of American Community” by Robert Putnam. Is true of Gen Z? Future data may tell.)*
-
-We will try to work out variables that are predictive of  HwManyMembrshp  in the NZ context. 
-
-First we will correlate all the other variables with HwManyMembrshp.   Which variables appear to be significantly correlated with  HwManyMembrshp?
-
-The following table will be helpful for interpreting the variables.  Note that several of them are coded counter-intuitively, e.g. a low value for Family important means very important, while a high value means not important. 
+The following table will be helpful for interpreting the variables.  Note that several of them are coded counter-intuitively, e.g. a low value for `Family important` means very important, while a high value means not important. 
 
 Variable | Description | Coding |
 ---|---|--- |
@@ -64,35 +56,43 @@ MaritalStatus |	Marital status |	1= single  2=married/partnered	3= separated/wid
 HwManyMembrshp|	How many groups respondent is a member of?|	1=none ...	15= maximum in dataset|
 | | |
 
-Read in the data from WVS2005NZmodif.csv.    
-
-```{r }
-WVS= read.csv("WVS2005NZmodif.csv",header=TRUE)
+```{r}
 summary(WVS)
 ```
 
-**1. Find out  which variable are significantly correlated with HwManyMembershp, and interpret some of them.  **
+**1. Find out which variable are significantly correlated with `HwManyMembershp`, and interpret some of them.**
 
-Technical details: the following code  shows one way to overcome problems in data caused by missing values.  Missing values are a major problem in data analysis and not automatically handled well in R. 
+One way to do this would be via `cor()`, but that will give all pair-wise correlations, and we really only want correlations with `HwManyMembership`.
 
-- Since there are many missing values, and in order to  get p-values, we need to look at each correlation in turn,  using a for( ) loop. 
+One common trick to do pair-wise comparisons of a bunch of columns to some other one is to pivot the data longer to get name/value pairs so that pair-wise comparisons against `HwManyMembershp` can be done in one go via the new `value` column:
 
--  The variable HwManyMembershp is column 21 of WVS  i.e. WVS[,21]. The other variables can be accessed as WVS[, i]  where i=2,...,20.
-
-- Unfortunately R will not display output created in a for loop, so we need to save the output for each correlation in a list, which I have called corlist below.    The first line initiates the object corlist as having 20 null spaces, to receive the 20 outputs.
-
-- In order to aid interpretation I have named each piece of R output with the relevant name from WVS. 
-
-```{r }
-corlist=list(19,NULL)   # setting up a list for receive correlation output
-for(i in (2:20))  {    corlist[i-1]=list(cor.test(WVS[,i],WVS[,21]))   }
-names(corlist)=names(WVS[2:20])
-corlist
+```{r}
+WVS_long <- WVS |> pivot_longer(-c(HwManyMembershp, ID))
+WVS_long
 ```
 
-Look at the outputs and pick **three** where variables are significantly related to   HwManyMembershp, and **try to interpret these**. Do they make sense?  
+Now we can do pairwise correlations by grouping by the `name` column, and arrange them in magnitude
 
-Comments: (shown below for all variables)
+```{r}
+WVS_long |>
+  group_by(name) |>
+  summarise(correlation = cor(HwManyMembershp, value, use='complete.obs')) |>
+  arrange(desc(abs(correlation)))
+```
+
+We can use the same type of code to perform hypothesis tests for correlation as well, but we need to use a bit more machinery to get the info out of the test objects (`cor.test` returns an object of type `htest` which contains a list of stuff rather than just a single number like `summarise()` is expecting. But `summarise()` is happy to accept a tibble, which we can get via `broom::tidy()`. We then use `unnest()` to expand those tibbles out (each tibble is just one row, so this works nicely).
+
+You might want to run the pipeline line by line so you can figure out what is happening in each step.
+
+```{r}
+WVS_long |>
+  group_by(name) |>
+  summarise(tests = cor.test(HwManyMembershp, value) |> broom::tidy()) |>
+  unnest(tests) |>
+  arrange(p.value)
+```
+
+**2. Look at the outputs and pick THREE where variables are significantly related to `HwManyMembershp`, and try to interpret these. Do they make sense?**
 
 *Family Important is not quite significant p=0.053. The negative correlation means that if people think family is not very important then they are less likely to be members of many groups.Similarly for other importance variables* 
 
@@ -126,76 +126,51 @@ Comments: (shown below for all variables)
 
 *There is no relationship (p=0.073) between Marital Status (the three levels treated as a covariate) and how many groups a person is a member of. *
 
-**2. Fit a regression of HwManyMembershp on  all the variables. Check for evidence of multicollinearity from the summary output (compared to correlation output above), and the VIFs. **
+**3. Fit a regression of `HwManyMembershp` on all the variables. Check for evidence of multicollinearity from the `summary` output (compared to correlation output above), and by computing variance inflation factors.**
 
 ```{r}
- lmAll = lm(HwManyMembershp ~ ., data=WVS)
+lmAll = lm(HwManyMembershp ~ ., data=WVS)
 summary(lmAll)
 library(car)
- vif(lmAll)
+vif(lmAll)
 ```
 
-Comment:
+*The summary output shows only three significant variables, whereas there were several other very significant ones (e.g. PoltcsImp, SocialClass) according to the `cor.test` results. This suggests some of the variables' information is being expressed by other variables.  However the VIFs do not show this as multicollinearity.  The VIFs do show that `Age`,  `AgeGroup4`, `FeelHappy` and `VeryHappy` have high VIFs, which is  not surprising since `AgeGroup` and `VeryHappy` are derived from the other variables. * 
 
-*The summary output shows only three significant variables, whereas there were several other very significant ones (e.g. PoltcsImp, SocialClass) according to the cor.test results. This suggests some of the variables' information is being expressed by other variables.  However the VIFs do not show this as multicollinearity.  The VIFs do show that Age,  AgeGroup4, FeelHappy and VeryHappy have high VIFs, which is  not surprising since AgeGroup and VeryHappy are derived from the other variables. * 
+We now want to do some step-wise regression. Unfortunately the missing values will be a problem.
 
-**3. We will do a backwards elimination regression of HwManyMembershp on all the variables, and find the best model. **
-
-Technical issues: The step() function will fail to work properly as many of the variables 
-have missing values. 
-
-- To simplify matters we will eliminate all data rows where there is any missing value in any column.  This is called "listwise deletion", and is often criticised, as in the paper provocatively titled  "Listwise Deletion is Evil: What to Do About Missing Data in Political Science"  by King et al.  There are other approaches but we will do this to keep it simple. 
-
-- The following code illustrates one simple way to do listwise deletion.  
-
-- First I use the apply function to sum across all variables - any row with a missing value anywhere will give NA as the answer. This means we are going to lose 215 rows of data. If I excluded some columns such as social class or Income  which have many missing values, then we would lose less rows.  Often it is a tradeoff. 
-
-- Then I use the  is.na( ) function to identify those rows whose total is NA.  The output of is.na( ) is then TRUE for those rows.
-
-- Then ! means "not". i.e. !is.na(WVSrowsum)  equals FALSE for those rows which have missing values and equals TRUE if the row has complete data. Finally  WVS[!is.na(WVSrowsum), ]  selects only those rows with complete data, and all columns. 
-
-
-```{r }
- 
-WVSrowsums = apply(WVS,1,sum)
-summary(WVSrowsums)
-WVSnotmiss = WVS[!is.na(WVSrowsums), ]
- 
-attach(WVSnotmiss)
-```
-
-The code below regresses HwManyMembershp on all the other variables in the dataset (including ID?!)  But before we do that, we will set the variables AgeGroup4 and MaritalStatus to factors. This can be done using the mutate function (see computer lab 1B for more about this function and the glimpse function)
-
-```{r }
-WVSnotmiss %>% mutate(AgeGroup4 = factor(AgeGroup4) )  -> WVSnotmiss
-WVSnotmiss %>% mutate(MaritalStatus = factor(MaritalStatus) )  -> WVSnotmiss
-glimpse(WVSnotmiss)
-```
-
-Now for the regression:  for stepwise regression we are going to need a starting model.  For forward select we start with a null model. For backwards elimination we start with a full model. (We have to recompute this since the dataset has changed.) 
-
-```{r }
-lm.null=lm(HwManyMembershp~ 1,  data=WVSnotmiss)
-lm.full=lm(HwManyMembershp~ .,  data=WVSnotmiss)
-summary(lm.full)
-```
-
-```{r }
-lm.back= step(lm.full, scope =  ~1,  direction = "backward",   data=WVSnotmiss)
-summary(lm.back)
-
-``` 
-
-
-**4. Interpretation: **
-
-- 4a. How is the vif(lm.back) now? Is multicollinearity still a problem? 
-
-- 4b. The AIC criterion is not guaranteed to include only significant varaibles. Are there any that we shoud consider eliminating?
-
-- 4c. Try to interpret all the final predictors in lm.back
+A simple and naive (and in many ways non-ideal) way to deal with this is row-wise deletion of any observation that has a missing value in any of the columns. The `complete.cases()` function can be used here:
 
 ```{r}
+WVScomplete <- WVS[complete.cases(WVS),]
+```
+
+Finally, let's convert `AgeGroup4` and `MaritalStatus` to factors, then we'll do our regression:
+
+```{r}
+WVSfinal <- WVScomplete |> mutate(AgeGroup4 = factor(AgeGroup4),
+                      MaritalStatus = factor(MaritalStatus))
+
+WVSfinal |> glimpse()
+```
+
+Now for the regression: for stepwise regression we are going to need a starting model.  For forward select we start with a null model. For backwards elimination we start with a full model. Note that the full model is a bit silly here as it contains `ID` (why is this a problem??)
+
+```{r}
+lm.null=lm(HwManyMembershp~ 1,  data=WVSfinal)
+lm.full=lm(HwManyMembershp~ .,  data=WVSfinal)
+```
+**4. Perform a backward regression starting from `lm.full`, allowing `lm.null` to be an option.**
+
+```{r}
+scope = list(lower=formula(lm.null), upper=formula(lm.full))
+lm.back = step(lm.full, scope=scope, direction='backward')
+```
+
+**5. Have a think about and write comments on the following questions.**
+
+```{r}
+summary(lm.back)
 vif(lm.back)
 ```
 
