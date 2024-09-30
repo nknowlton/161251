@@ -22,7 +22,7 @@ We will explore how we might get an appropriate large model that includes intera
 ## Automatic Variable Selection for the Climate data
 
 ```{r}
-climate <- read_csv("../data/climate.csv")
+climate <- read_csv("https://www.massey.ac.nz/~jcmarsha/161251/data/climate.csv")
 climate
 ```
 
