@@ -311,7 +311,7 @@ lm5 |> summary()
 
 ##
 
-The `Rain` variable is not significant (P=0.1) and $S$ has gone up, which go against including `Rain`.  However the adjusted R-squared has gone up.  So we may decide that if our aim is to predict for new data, then we should include this variable in the model.
+The `Rain` variable is not significant (P=0.1) which goes against including `Rain`.  However $S$ has gone down and the adjusted R-squared has gone up.  So we may decide that if our aim is to predict for new data, then we should include this variable in the model.
 
 ## Adding Longitude
 
