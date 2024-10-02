@@ -25,12 +25,22 @@ The data frame `pv` has data on the amount of installed photovoltaic cells (sola
 
     ```{r}
     pv_final <- pv_final |>
-      mutate(Time = time_length(MonthEnd - min(MonthEnd), unit="day"))
+      mutate(Time = time_length(MonthEnd - min(MonthEnd), unit="month"))
     ```
 
     - Why is this important for a time series dataset like this?
 
+    A time variable is important so that we can adequately model trend
+    through time via a continuously increasing variable.
+
 2. Using `pv_final`, create separate models for `Capacity` in terms of `Time` with either a linear trend or a quadratic trend.
+
+```{r}
+pv.1 <- lm(Capacity ~ Time, data=pv_final)
+pv.2 <- lm(Capacity ~ poly(Time, 2), data=pv_final)
+summary(pv.1)
+summary(pv.2)
+```
 
     - Show summary output of each model.
 
@@ -40,8 +50,20 @@ The data frame `pv` has data on the amount of installed photovoltaic cells (sola
     - Consider how you might show the fitted values from both models on the chart.
     - You need not represent the uncertainty of the fitted values.
 
+```{r}
+library(broom)
+lst(pv.1, pv.2) |> map_dfr(augment, newdata=pv_final, .id='model') |>
+  ggplot() +
+  geom_point(aes(x=Time, y=Capacity)) +
+  geom_line(aes(x=Time, y=.fitted, col=model))
+```
 
 4. Perform an appropriate test, or provide evidence, to decide which model is best for modelling `Capacity` in terms of `Time`.
+
+```{r}
+anova(pv.1, pv.2)
+```
+The polynomial model is clearly superior.
 
 5. In November 2014, Contact Energy reduced the amount it would pay when customers sold PV-generated power back to the national grid, a move that was immediately followed by other companies. The following code adds an indicator variable for this.
     
@@ -54,12 +76,35 @@ The data frame `pv` has data on the amount of installed photovoltaic cells (sola
     
     - What is your conclusion about the effect of the Buy back amount reducing from this model? Include evidence.
 
+```{r}
+pv.3 <- lm(Capacity ~ poly(Time, 2) + PostNov2014, data=pv_change)
+summary(pv.3)
+```
+
+This suggests that uptake of PV *increased* after november 2014, though it is only moderately significant. This doesn't seem to make much sense.
+
 6. Adapt your model from part 5 to include an interaction between your quadratic in time and the `PostNov2014` variable.
 
     - What is the purpose of including the interaction in this way?
     - What is your conclusion about the rate of PV uptake in New Zealand before and after November 2014?
 
+```{r}
+pv.4 <- lm(Capacity ~ poly(Time, 2) * PostNov2014, data=pv_change)
+summary(pv.4)
+```
+
+The interaction allows all the terms in the polynomial trend to adjust after November 2014, rather than having just a "jump".
+
+This makes a bunch more sense: both the intercept term and the polynomial "slope" terms are decreased post 2014.
+
 7. Generate diagnostic plots from your model in part 6. Are there any problems with the linear model assumptions?
+
+```{r}
+par(mfrow=c(2,2))
+plot(pv.4)
+```
+
+There's clearly some patterns on the fitted vs residuals and scale-location plots. Normality is probably fine. The patterns are likely due to autocorrelation.
 
 
 ## Exercise 2 
@@ -70,25 +115,75 @@ The response variable we will focus on is called `StdCostRatio`,  which is a sta
 
 1. Fit a  linear regression of `StdCostRatio` on all variables excluding the first 4 columns (i.e.  from `SupplyBeds10000` to `Nocar`. Show the model output.
 
+```{r}
+nsw_reduc <- nsw |> select(-c(1:4))
+nsw.1 <- lm(StdCostRatio ~ ., data=nsw_reduc)
+summary(nsw.1)
+```
+
 2. Calculate variable inflation factors for the preceding regression.  Which variables have the highest VIFs?   Is multicollinearity a problem?
+
+```{r}
+library(car)
+vif(nsw.1)
+```
+
+Yes, lots of the VIF are very large.
 
 3. Use Backwards elimination to find a linear regression of `StdCostRatio` based on the columns from `SupplyBeds10000` to `Nocar` but with fewer variables.
 
     - Show a summary of the final model.
     - Which variable is the strongest predictor?
 
+```{r}
+nsw.null <- lm(StdCostRatio ~ 1, data=nsw_reduc)
+nsw.full <- lm(StdCostRatio ~ ., data=nsw_reduc)
+scope <- list(lower=formula(nsw.null), upper=formula(nsw.full))
+nsw.step <- step(nsw.full, scope=scope, direction="backward")
+summary(nsw.step)
+```
+
+Strongest predictor appears to be ARIAscore as that has the lowest P-value.
+
 4. Update your model from 3 to include the last variable removed in the stepwise regression, and compare the adjusted $R^2$ of these two models.
 
     - Which model would you prefer, and why?
+
+The last variable to be removed was `Overcrowded`. Let's add that in.
+
+```{r}
+nsw.step2 <- update(nsw.step,  ~ . + Overcrowded)
+summary(nsw.step)
+summary(nsw.step2)
+```
+
+The model with `Overcrowded` has a very slightly increased adjusted R^2. Very slightly. There's not a strong argument for preffering one over the other.
 
 5. The `StdCostRatio` is a summarised statistic computed based on different population sizes (available in `Population`). Re-fit the regression model chosen by the `step()` routine in part 3 with `weights` set to `Population`.
 
     - Give the model summary output and a brief explanation of the difference with the unweighted model.
 
+```{r}
+nsw.step.wt <- lm(formula(nsw.step), weight=Population, data=nsw_reduc)
+summary(nsw.step.wt)
+summary(nsw.step)
+```
+
 6. Plot the weighted residuals against fitted values for your weighted regression from 5.
 
     - You should find an observation that is somewhat unusual.
     - Which area is this observation from?
+
+```{r}
+nsw_resid <- augment(nsw.step.wt, nsw) |>
+  mutate(wtresid = .resid * sqrt(Population))
+
+nsw_resid |>
+  ggplot() +
+  geom_point(aes(x=.fitted, y=wtresid))
+
+nsw_resid |> filter(wtresid > 6000)
+```
 
 ## Exercise 3
 
@@ -107,11 +202,34 @@ We return to the model for `pv` capacity from Exercise 1.
     - Is there evidence of seasonality?
     - If so, what is the peak month for installation?
 
+```{r}
+pv.5 <- lm(Capacity ~ poly(Time, 2)*PostNov2014+Month, data=pv_month)
+anova(pv.5)
+summary(pv.5)
+```
+
 2. Assess the residuals of the model fit in part 1 for autocorrelation.
 
     - What do you conclude?
+    
+```{r}
+acf(resid(pv.5))
+```
+
+Lots of autocorrelation here.
 
 3. Use the `gls` function to fit a first-order autoregressive model based on the model in part 1.
 
     - What is your estimate of the first-order autocorrelation coefficient?
-    - Has modelling with an AR1 process removed the autocorrelation?
+    - Has modelling with an AR1 process removed the autocorrelation in the residuals?
+
+```{r}
+library(nlme)
+pv.6 <- gls(Capacity ~ poly(Time, 2)+PostNov2014+Month, correlation=corAR1(), data=pv_month)
+summary(pv.6)
+anova(pv.6)
+plot(pv.6)
+acf(resid(pv.6))
+```
+
+The acf plot is different, but we haven't really solved the underlying problem with just the AR1() process. It may be we need a stronger auto-correlation process for these data, as the coefficient was essentially 1.
