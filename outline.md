@@ -14,9 +14,7 @@ Week 11
 30: Weighted regression (DONE as ioslides)
 
 11A: Multicollinearity (DONE!)
-11B:
-
-<No real lab on weighted regression ATM. A little bit available? Should add metaanalysis example.
+11B: Weighted regression (DONE!)
 
 Week 12
 
