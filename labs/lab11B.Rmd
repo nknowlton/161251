@@ -1,0 +1,102 @@
+---
+title: Massey University --- School of Mathematical and Computational Sciences
+subtitle: 161.251 Regression Modelling
+author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+    html_document:
+      code_download: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment="", dev="png")
+library(tidyverse)
+library(broom)
+```
+
+  
+
+## Computer Laboratory Tutorial 11 B
+
+Today we are looking at summarised data on magazine reading by `Age` group and `Sex`.
+
+```{r, message=FALSE}
+mags <- read_csv("https://www.massey.ac.nz/~jcmarsha/161251/data/AveMags.csv")
+mags
+```
+
+1. We'll start by doing a plot of `Avemags` by `Age` and `Sex`. You should notice that there is initially an increasing trend, followed by a flat period and then a decreasing trend.
+    
+    ```{r}
+    mags |> ggplot(aes(x=Age, y=Avemags, col=as_factor(Sex))) +
+      geom_point()
+    ```
+
+    Eyeballing the chart, we see there is a change in slope around 20 and 50. We have the `Adult` variable available for the change at 20, but we'll need another one for 50+
+    
+    ```{r}
+    mags_change <- mags |> mutate(Older = if_else(Age >= 50, 1, 0))
+    ```
+
+2. Now we'll fit a linear regression for `Avemags` by `Age` and `Sex`, allowing the trend with `Age` to differ based on `Adult` or `Older`.
+
+    ```{r}
+    mod1 <- lm(Avemags ~ Age + Sex + Age*Adult + Age*Older, data=mags_change)
+    summary(mod1)
+    ```
+
+    - *Write some notes on what your conclusions are.*
+
+    - *Do you think there is evidence for a different slope between `Adult` and `Older`? You may need to fit another model to answer this.*
+
+3. We'll visualise the model in part 2 by using `broom::augment()` to add `.fitted` columns to the data.
+
+    ```{r}
+    augment(mod1) |>
+      ggplot(mapping = aes(x=Age, y=Avemags, col=as_factor(Sex))) +
+      geom_point() +
+      geom_line(aes(y=.fitted))
+    ```
+
+    Notice that the lines are parallel. This is something that we forced on the data.
+    
+    - *Why is this something forced and not something data-driven?*
+    
+4. Let's see if you can get an alternate model formulated.
+    
+    ```{r}
+    mod2 <- lm(Avemags ~ Age*Sex + Age*Adult*Sex + Age*Older*Sex, data=mags_change)
+    summary(mod2)
+    ```
+    
+    *Is this model better than the one we had before? Provide some statistical evidence.*
+    
+    *Try redoing the plot above. Do you think it fits better?*
+
+5. Produce diagnostic plots for your model in part 3 (i.e. not the one with the `Sex` interaction).
+
+    - *Are there any problems?*
+
+### Weighted regression
+
+6. Each of the observations in our dataset are *averages* across a bunch of individuals. So each point is not worth the same "weight": They are different both in terms of the number of individuals contributing to each observation AND the precision (standard deviations) of the observations. The following plot visualises the data with number of individuals
+
+    ```{r}
+    mags_change |>
+      ggplot(mapping = aes(x=Age, y=Avemags, size=N, col=StDev, shape=as_factor(Sex))) +
+      geom_point()
+    ```
+    
+    - *Where do we have the most evidence about average magazine use?*
+    
+7. Redo `mod1` and `mod2` using `weights = N/StDev^2`, and produce the same plots and comparisons.
+
+    - *What is your conclusion now?*
+
+8. Look in particular at the unweighted residuals from `mod2` and the weighted residuals from the corresponding model in part 7. Plot them versus `Age`, coloured by `Sex`.
+
+    - Weighted residuals can be computed as `.resid * sqrt(`(weights)`)` after `augment()`.
+    - *What do you notice?*
+
+9. What is your conclusion about the magazine reading habits of teenagers, adults, and older adults?
