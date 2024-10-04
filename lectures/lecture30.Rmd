@@ -192,7 +192,7 @@ The following plot shows the averaged data with the unweighted (dashed) and weig
 
 ```{r WLS vs OLS, message=FALSE}
 ggplot(data=CPS5grouped,
-       mapping=aes(x=AvWage, y=EDgroup)) +
+       mapping=aes(x=EDgroup, y=AvWage)) +
   geom_point(mapping=aes(size=N)) +
   geom_smooth(method='lm', mapping=aes(weight=N), col='red', se=FALSE) +
   geom_smooth(method='lm', linetype = 'dashed' , se=FALSE) +
