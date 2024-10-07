@@ -166,6 +166,29 @@ The details are beyond the scope of this paper, but you will meet maximum likeli
 Once $\phi$ is estimated, we can account for the AR1 nature of the
     errors by fitting the linear model using **generalized least
     squares**.
+    
+## Generalized Least Squares
+
+Once we have $\phi$ estimated, we can then estimate the regression coefficients $\beta$ by rearranging the regression equation to eliminate the autocorrelation:
+
+Suppose
+$$
+\begin{aligned}
+y_t &= \beta_0 + \beta_1 x_t + \varepsilon_t\\
+\varepsilon_t &= \phi \varepsilon_{t-1} + \eta_t
+\end{aligned}
+$$
+where $\eta_t \underset{\mathsf{iid}}\sim N(0, 1)$. Then
+$$
+\begin{aligned}
+y_t - \phi y_{t-1} &= \beta_0 + \beta_1 x_t + \varepsilon_t - \phi (\beta_0 + \beta_1 x_{t-1} + \varepsilon_{t-1})\\
+&= \beta_0(1 - \phi) + \beta_1 (x_t - \phi x_{t-1}) + \varepsilon_t - \phi \varepsilon_{t-1}\\
+&= \beta_0(1 - \phi) + \beta_1 (x_t - \phi x_{t-1}) + \eta_t
+\end{aligned}
+$$
+which is a standard linear regression in the new variables $Y_t = y_t - \phi y_{t-1}$, $X_t = x_t - \phi x_{t-1}$.
+
+Thus we can fit this with least squares. The "generalised" bit is the trick we use to transform something that is not regular least squares to a least squares situation - it turns out we can do this no matter what the covariance structure is among the predictors as long as the structure is estimable from the data.
 
 ## Generalized Least Squares in R
 
