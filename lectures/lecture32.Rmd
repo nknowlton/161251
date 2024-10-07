@@ -2,27 +2,22 @@
 title: "Lecture 32: Models with Autoregressive Errors"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Jonathan Marshall"  
-date: "Week 13 of Semester 1, `r lubridate::year(lubridate::now())`"
+date: "Week 12 of Semester 1, `r lubridate::year(lubridate::now())`"
 output:
-  slidy_presentation: 
-    mathjax: "https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-MML-AM_CHTML"
+  html_document:
+    code_download: true
     theme: yeti
     highlight: tango
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
   beamer_presentation: default
   word_document: default
-  html_document:
-    mathjax: "https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-MML-AM_CHTML"
+  slidy_presentation: 
     theme: yeti
     highlight: tango
-  ioslides_presentation: default
+  pdf_document: default
 ---
-
-
-```{r templateLink, echo=FALSE, eval=TRUE}
-xfun::embed_file("Lecture32.Rmd", name="Lecture32.Rmd", text ="Download the  R markdown file for this lecture.")
-```
-
-
 
 <!--- Data is on
 https://r-resources.massey.ac.nz/data/161251/
@@ -79,7 +74,7 @@ We can model serial correlation between these errors by making each
 
 ## ACF Plots for AR1 Processes
 
-To illustrate an ACF plot for a function demonstrating autocorrelation, we create two new variables from white noise 
+To illustrate an ACF plot for a function demonstrating autocorrelation, we create two variables from white noise 
 
 ```{r whiteNoise, fig.width=8, fig.height=8}
 Z1 = rnorm(1000)
@@ -108,19 +103,21 @@ N.B. More complex models are also possible. For example:
 
 ## Application to the Tourism Data
 
-`r xfun::embed_file(here::here("data/motel.csv"))`
+`r xfun::embed_file("../data/motel.csv")`
 
 
 ```{r getTourismData, echo=-1, eval=-2}
-Tourism <- read.csv(file=here::here("data/motel.csv"), header=TRUE)
-Tourism <- read.csv(file="motel.csv", header=TRUE)
-Tourism$Yr = Tourism$Year -1979 + Tourism$Month/12
-Tourism$Month <- factor(Tourism$Month)
+tourism <- read_csv(file="../data/motel.csv")
+tourism <- read_csv(file="motel.csv")
+tourism <- tourism |>
+  mutate(Time = round(time_length(Date - min(Date), unit="month")),
+         Month = factor(month(Date, label=TRUE), ordered=FALSE),
+         Year = year(Date))
 ```
 
 ```{r Tourism.lmResidACF}
-Tourism.lm <- lm(RoomNights~Yr + Month, data=Tourism)
-acf(resid(Tourism.lm))
+tourism.lm <- lm(RoomNights ~ Time + Month, data=tourism)
+acf(resid(tourism.lm))
 ```
 
 There is a suggestion of exponential decay in autocorrelations.
@@ -179,20 +176,14 @@ library(nlme)
 
 ## Generalized Least Squares and the Tourism Data
 
-`r xfun::embed_file(here::here("data/motel.csv"))`
-
-```{r Tourism.gls, echo=-1, eval=-2}
-Tourism <- read.csv(file=here::here("data/motel.csv"))
-Tourism <- read.csv(file="motel.csv")
-Tourism$Yr = Tourism$Year -1979 + Tourism$Month/12
-Tourism$Month <- factor(Tourism$Month)
-Tourism.gls <- gls(RoomNights~Yr + Month, correlation=corAR1(), data=Tourism) 
-anova(Tourism.gls)
+```{r Tourism.gls}
+tourism.gls <- gls(RoomNights ~ Time + Month, correlation=corAR1(), data=tourism) 
+anova(tourism.gls)
 ```
 
 
 ```{r summaryTourism.gls}
-summary(Tourism.gls)
+summary(tourism.gls)
 ```
 
 
@@ -209,25 +200,21 @@ Error variance and correlation estimated by REML (restricted
 Estimated value of AR1 correlation parameter is
     $\hat \phi = 0.393$.
 
-Both `Yr` and `Month` are associated with
+Both `Time` and `Month` are associated with
     RoomNights (*P*-value less than $0.0001$ in both
     cases).
 
-Comparison of the output from `summary(Tourism.gls)` with
+Comparison of the output from `summary(tourism.gls)` with
     the corresponding output from the earlier analysis (assuming
     independent errors) shows that the standard errors are usually
-    larger here, particularly for the intercept and the coefficient of    `Yr`.
+    larger here, particularly for the intercept and the coefficient of `Time`.
 
 The only remaining question is, was the use of `gls()` successful?
 
 ```{r getResids}
-acf(residuals(Tourism.gls, type="n"))
+acf(residuals(tourism.gls, type="n"))
 ```
-
 
 What might be the next step?  It looks like there is a significant 12-month correlation, which would also make sense. 
 
 We will have to leave the task of adjusting for more complicated correlation structures for another course.
-
-
-

@@ -18,8 +18,8 @@ Week 11
 
 Week 12
 
-31: Time series 1
-32: Time series 2
+31: Time series 1 (initial DONE!)
+32: Time series 2 (initial DONE!)
 
 12A:
 12B:

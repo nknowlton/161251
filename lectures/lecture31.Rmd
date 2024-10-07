@@ -8,9 +8,11 @@ output:
     code_download: true
     theme: yeti
     highlight: tango
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
   beamer_presentation: default
   word_document: default
-  ioslides_presentation: default
   slidy_presentation: 
     theme: yeti
     highlight: tango
@@ -59,31 +61,29 @@ Data are number of room nights occupied in hotels, motels and guesthouses in Vic
 Observations are monthly from January 1980 to December 1994.
 Data source: Australian Bureau of Statistics.
 
-![A motel room.](../graphics/motel.jpg) []()
+`r xfun::embed_file("../data/motel.csv")`
 
-
-`r xfun::embed_file("../../data/Motel.csv")`
-
-
-```{r getTourismData, echo=-1, eval=-2}
-Tourism <- read.csv(file="../../data/Motel.csv", header=TRUE)
-Tourism <- read.csv(file="Motel.csv", header=TRUE)
-str(Tourism)
-Tourism$Yr = Tourism$Year -1979 + Tourism$Month/12
-head(Tourism)
+```{r getTourismData, echo=-1, eval=-2, message=FALSE}
+tourism <- read_csv(file="../data/motel.csv")
+tourism <- read_csv(file="motel.csv")
+tourism <- tourism |>
+  mutate(Time = round(time_length(Date - min(Date), unit="month")),
+         Month = factor(month(Date, label=TRUE), ordered=FALSE),
+         Year = year(Date))
+head(tourism)
 ```
 
-Note that `Month` is coded `1, 2, ..., 12` and is currently an integer valued variable.
+Note that
 
-`Yr` is constructed to represent a "fractional year after 1979" (accounting for
-    month). 
+- `Time` is constructed so that it increases by 1 every month. This is to give us a nice easy integer valued time variable for interpretation.
 
+- `Year` is constructed from the date.
 
-We will use the average price variable in the practical exercise for this week.
+- `Month` is constructed from the date and converted to an unordered factor (for modelling).
 
 ```{r plotTourism, fig.cap="There is clear evidence of upward trend and seasonal (monthly) variation."}
-Tourism$NYear = 1979 + Tourism$Yr # to get nicely spaced points along x axis
-plot(RoomNights~NYear, xlab= "Year", type="l", data=Tourism)
+ggplot(tourism) +
+  geom_line(aes(x=Date, y=RoomNights))
 ```
 
 
@@ -102,8 +102,7 @@ Possible sources of variation in a time series are:
 
 ## Modelling A Time Series
 
-Time series data can be modelled using linear models (although there
-    are a number of alternative approaches).
+Time series data can be modelled using linear models (although there are a number of alternative approaches).
 
 - Long term trend can be modelled using polynomial regression.
 - Seasonal effects can be represented by specifying the seasons (e.g. months, quarters) as a factor in the model.
@@ -114,69 +113,60 @@ Time series data can be modelled using linear models (although there
 ### Model Fitting and ANOVA
 
 ```{r Tourism.lm}
-Tourism$Month <- factor(Tourism$Month)
-Tourism.lm <- lm(RoomNights~Yr + Month, data=Tourism)
-anova(Tourism.lm)
+tourism.lm <- lm(RoomNights ~ Time + Month, data=tourism)
+anova(tourism.lm)
 ```
 
 
 ```{r sumTourism.lm}
-summary(Tourism.lm)
+summary(tourism.lm)
 ```
 
 
 ```{r FitsPlotTourism.lm}
-plot(RoomNights~NYear, xlab="Year", data=Tourism)
-lines(Tourism$NYear, fitted(Tourism.lm), col="blue")
-title("Fitted Linear Model")
+augment(tourism.lm, tourism) |>
+  ggplot(mapping=aes(x=Date)) +
+  geom_point(mapping=aes(y=RoomNights)) +
+  geom_line(mapping=aes(y=.fitted), col='blue')
 ```
 
 ### Comments
 
-`Yr` (which is essentially time) is the appropriate
-    covariate to track trend (not `Year`, which would ignore
-    secular trend during a year).
+`Time` is the appropriate covariate to track trend (not using `Year`, which would ignore secular trend during a year).
 
-It is important to remember to code `Month` as a factor so as
-    to represent seasonal effects.
+It is important to remember to code `Month` as a factor so as to represent seasonal effects.
 
 There is strong evidence of trend ($P < 2.2 \times 10^{-16}$ for
-    `Yr`) and of seasonality ($P < 2.2 \times 10^{-16}$ for `Month`) in the data.
+    `Time`) and of seasonality ($P < 2.2 \times 10^{-16}$ for `Month`) in the data.
 
-As might be expected, room bookings tend to be low in the winter
-    months. The pattern over summer is less clear. Perhaps December is a
-    bad month because of the Christmas effect?
+As might be expected, room bookings tend to be low in the winter months. The pattern over summer is less clear. Perhaps December is a bad month because of the Christmas effect?
 
 We have assumed a linear secular trend. Would quadratic be better?
 
 ### More Model Fitting in R
 
 ```{r Tourism.lm.2}
-Tourism.lm.2 <- lm(RoomNights~poly(Yr,2)+Month, data=Tourism)
-anova(Tourism.lm, Tourism.lm.2)
+tourism.lm.2 <- lm(RoomNights ~ poly(Time,2) + Month, data=tourism)
+anova(tourism.lm, tourism.lm.2)
 ```
 
-No evidence that quadratic trend improves on linear (*P=0.1418*).
+No evidence that quadratic trend improves on linear (*P=0.1474*).
 
 ### Residuals Versus Time
 
-
 ```{r TourismPlot}
-plot(Tourism$Yr, resid(Tourism.lm), type="l", xlab="Year-1979")
+augment(tourism.lm, tourism) |>
+  ggplot(mapping = aes(x=Date, y=.resid)) +
+  geom_line()
 ```
 
 
 
-The time plot of residuals for the linear trend model suggests that
-    there are extended periods when the residuals are almost all
-    negative (1986-1988) and extended periods where the residuals are
-    almost all positive (1989-1990).
+The time plot of residuals for the linear trend model suggests that there are extended periods when the residuals are almost all negative (1986-1988) and extended periods where the residuals are almost all positive (1989-1990).
 
 Such behaviour should not be observed if the errors are independent.
 
-However, for time series data it is common for some residual
-    correlation between residuals to remain even when the trend and
-    seasonal variation has been removed.
+However, for time series data it is common for some residual correlation between residuals to remain even when the trend and seasonal variation has been removed.
 
 This type of correlation in the sequence of residuals is usually     called **autocorrelation**.
 
@@ -200,7 +190,7 @@ The ACF (autocorrelation against time lag) can be plotted in R using    the `acf
 ### Tourism Data: ACF Plot for Residuals
 
 ```{r TourismACF}
-acf(resid(Tourism.lm))
+acf(resid(tourism.lm))
 ```
 
 
