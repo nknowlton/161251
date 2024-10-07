@@ -18,8 +18,8 @@ Week 11
 
 Week 12
 
-31: Time series 1 (initial DONE!)
-32: Time series 2 (initial DONE!)
+31: Time series 1 (DONE as ioslides)
+32: Time series 2 (DONE as ioslides)
 
 12A:
 12B:

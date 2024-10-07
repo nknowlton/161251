@@ -36,9 +36,9 @@ library(broom)
 
 <!--- Do not edit anything above this line. --->
 
+##
 
-We saw previously that when linear models are fitted to time series data, the residuals can display autocorrelation. We also saw that autocorrelation 
-has consequences, in particular
+We saw previously that when linear models are fitted to time series data, the residuals can display autocorrelation. The consequences of autocorrelation are that
 
 - standard errors given by standard least squares theory (and
     hence by standard R output) will usually be smaller than the true
@@ -50,7 +50,7 @@ has consequences, in particular
 
 ## Accounting for Autocorrelation in the Errors
 
-The previous discussion indicates that we need to account for autocorrelation in the errors when it is present.
+The consequence of standard errors and p-values being out means that we need to account for autocorrelation in the errors when it is present.
 
 This will require two steps:
     
@@ -76,18 +76,24 @@ We can model serial correlation between these errors by making each
 
 To illustrate an ACF plot for a function demonstrating autocorrelation, we create two variables from white noise 
 
-```{r whiteNoise, fig.width=8, fig.height=8}
+```{r whiteNoise, fig.width=8, fig.height=3}
 Z1 = rnorm(1000)
 X1 = Z1[-1] + 0.85*Z1[-1000]
 X2 = Z1[-1] - 0.85*Z1[-1000]
-par(mfrow=c(2,2))
+par(mfrow=c(1,2), mai=rep(0.5, 4))
 plot(X1, type="l")
-acf(X1)
 plot(X2, type="l")
+```
+
+##
+
+```{r whiteNoise2, fig.width=8, fig.height=4}
+par(mfrow=c(1,2))
+acf(X1)
 acf(X2)
 ```
 
-The `X1` series has correlation of `r round(cor(X1[-1],X1[-999]),3)` at lag1, while the `X2` series has autocorrelation of `r round(cor(X2[-1],X2[-999]),3)` at lag1
+The `X1` series has correlation of `r round(cor(X1[-1],X1[-999]),3)` at lag 1, while the `X2` series has autocorrelation of `r round(cor(X2[-1],X2[-999]),3)` at lag1 
 
 
 ## Autoregressive Models for Errors in Linear Modelling
@@ -106,16 +112,19 @@ N.B. More complex models are also possible. For example:
 `r xfun::embed_file("../data/motel.csv")`
 
 
-```{r getTourismData, echo=-1, eval=-2}
+```{r getTourismData, echo=-1, eval=-2, message=FALSE}
 tourism <- read_csv(file="../data/motel.csv")
 tourism <- read_csv(file="motel.csv")
 tourism <- tourism |>
   mutate(Time = round(time_length(Date - min(Date), unit="month")),
          Month = factor(month(Date, label=TRUE), ordered=FALSE),
          Year = year(Date))
+tourism
 ```
 
-```{r Tourism.lmResidACF}
+##
+
+```{r Tourism.lmResidACF,fig.height=4.5}
 tourism.lm <- lm(RoomNights ~ Time + Month, data=tourism)
 acf(resid(tourism.lm))
 ```
@@ -123,20 +132,21 @@ acf(resid(tourism.lm))
 There is a suggestion of exponential decay in autocorrelations.
 - AR1 model (with positive $\phi$) for errors seems reasonable.
 
+##
 
 The model incorporating the AR1 error process, and written in regression format,
 is as follows: 
 
 $$\begin{aligned}
-Y_{t} &=& \beta_0 + \beta_1 \mbox{Yr} + \beta_2 z_{t,2} + \beta_3 z_{t,3} 
+Y_{t} &= \beta_0 + \beta_1 \mbox{Time} + \beta_2 z_{t,2} + \beta_3 z_{t,3} 
 + \ldots + \beta_{12} z_{t,12} + \varepsilon_t \\
-\varepsilon_t &=& \phi \varepsilon_{t-1} + \eta_{t}\end{aligned}$$ 
+\varepsilon_t &= \phi \varepsilon_{t-1} + \eta_{t}\end{aligned}$$ 
 
 where:
 
-- *Y~t~* is the *t*^th^ observation of `RoomNights`;
-- *z~t,j~ = 1* if observation *t* is taken in month *j*;
-- *z~t,j~ = 0* otherwise.
+- $Y_t$ is the $t$^th^ observation of `RoomNights`;
+- $z_{t,j} = 1$ if observation $t$ is taken in month $j$;
+- $z_{t,j} = 0$ otherwise.
 - $\eta_1, \ldots, \eta_n$ are independent and identically
     distributed normal random variables with mean zero.
 
@@ -151,8 +161,7 @@ To fit a model with AR1 errors, we must:
 The AR1 parameter, $\phi$, can be estimated by the method of
     (restricted) maximum likelihood.
 
-The details are beyond the scope of this paper, but you will meet
-    maximum likelihood estimation if you take 161.304.
+The details are beyond the scope of this paper, but you will meet maximum likelihood estimation if you take 161.304 or 161.331.
 
 Once $\phi$ is estimated, we can account for the AR1 nature of the
     errors by fitting the linear model using **generalized least
@@ -160,15 +169,11 @@ Once $\phi$ is estimated, we can account for the AR1 nature of the
 
 ## Generalized Least Squares in R
 
-The mathematical details of generalized least squares will not be     covered in this paper.
+In R, linear models can be fitted using this technique using the `gls()` command found in the `nlme` add-on package.
 
-In R, linear models can be fitted using this technique using the
-    `gls()` command found in the `nlme` add-on package. Call this package using `library(nlme)` before using the `gls()` command.
+Call this package using `library(nlme)` before using the `gls()` command.
 
-
-    
-
-```{r getLib, include=FALSE}
+```{r getLib, message=FALSE}
 library(nlme)
 ```
 
@@ -180,7 +185,13 @@ library(nlme)
 tourism.gls <- gls(RoomNights ~ Time + Month, correlation=corAR1(), data=tourism) 
 anova(tourism.gls)
 ```
+The use of an AR1 error process is obtained by setting `correlation=corAR1()` in the `gls()` command.
 
+Both `Time` and `Month` are associated with
+    RoomNights (*P*-value less than $0.0001$ in both
+    cases).
+
+##
 
 ```{r summaryTourism.gls}
 summary(tourism.gls)
@@ -188,33 +199,40 @@ summary(tourism.gls)
 
 
 
-### Comments on the Analysis
+## Comments on the Analysis
 
-The use of an AR1 error process is obtained by setting  
-    `correlation=corAR1()`  
-    in the `gls()` command.
-
-Error variance and correlation estimated by REML (restricted
-    maximum likelihood).
-
-Estimated value of AR1 correlation parameter is
-    $\hat \phi = 0.393$.
-
-Both `Time` and `Month` are associated with
-    RoomNights (*P*-value less than $0.0001$ in both
-    cases).
+The estimated value of AR1 correlation parameter is $\hat \phi = 0.393$.
 
 Comparison of the output from `summary(tourism.gls)` with
     the corresponding output from the earlier analysis (assuming
     independent errors) shows that the standard errors are usually
-    larger here, particularly for the intercept and the coefficient of `Time`.
+    larger here, particularly for the intercept and the coefficient of `Time`:
+
+```{r, echo=FALSE}
+library(broom.mixed)
+list(gls=tourism.gls |> tidy(),
+     lm=tourism.lm |> tidy()) |>
+  bind_rows(, .id="model") |>
+  filter(term == "Time") |>
+  select(model, term, estimate, std.error)
+```
 
 The only remaining question is, was the use of `gls()` successful?
 
-```{r getResids}
-acf(residuals(tourism.gls, type="n"))
+We can get the normalized residuals (i.e. 'decorrelated' residuals) with
+
+```{r, eval=FALSE}
+residuals(tourism.gls, type = "normalized")
 ```
 
-What might be the next step?  It looks like there is a significant 12-month correlation, which would also make sense. 
+##
 
-We will have to leave the task of adjusting for more complicated correlation structures for another course.
+```{r getResids}
+acf(residuals(tourism.gls, type="normalized"))
+```
+
+## Next steps?
+
+What might be the next step?  It looks like there is a significant 12-month correlation, which would also make sense.
+
+But we will leave the task of adjusting for more complicated correlation structures for another course.
