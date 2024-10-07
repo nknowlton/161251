@@ -21,7 +21,7 @@ Week 12
 31: Time series 1 (DONE as ioslides)
 32: Time series 2 (DONE as ioslides)
 
-12A:
+12A: Time series 1 (DONE!)
 12B:
 
 Workshops are available for this week. Need some work.

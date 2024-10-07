@@ -1,0 +1,85 @@
+---
+title: Massey University --- School of Mathematical and Computational Sciences
+subtitle: 161.251 Regression Modelling
+author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment="", dev="png")
+library(tidyverse)
+library(broom)
+library(nlme)
+```
+
+# Computer Laboratory Exercise 12A
+
+## Modelling Motel Use in Victoria
+
+In this exercise you will:
+
+  - gain more experience in fitting linear models with autocorrelated errors;
+
+  - Investigate whether room occupancy (as measured by `RoomNights`, your
+response variable) depends on `AvePrice`, having adjusted for seasonality
+and long term temporal trend, while  taking care to account for possible autocorrelation 
+in your model.
+
+
+1. The data we need for this exercise can be read in and assigned to the data frame
+`motel_raw`, with one of the following commands.
+
+```{r}
+motel_raw <- read_csv("https://www.massey.ac.nz/~jcmarsha/161251/data/motel.csv")
+motel_raw
+```
+
+2. Take a look at the data frame and make all the variables we need.
+
+    - We'll need a `Time` variable for the modelling which is an integer increase in months (Why?)
+    - We'll need a `Month` variable as an unordered factor (Why?)
+
+```{r}
+```
+
+3. Re-fit the models used in lectures (excluding the quadratic), including the model that accounts for autocorrelation in the residuals.
+
+```{r}
+```
+
+4. Add the potential predictor variable `AvePrice` to these models. What do we see?
+
+```{r}
+```
+
+5. Produce a plot of **standard** residuals against Time, and an ACF plot for the residuals for all the regression models (`lm` and `gls`). The standard residuals can be obtained just using `residuals()` or `resid()`
+
+```{r}
+```
+
+6. For the `gls` models only, produce a plot of **normalized** residuals against Time and an ACF plot for those residuals. The normalized residuals can be obtained using `type="normalized"` in `residuals()`. These should be uncorrelated in the `gls` models.
+
+```{r}
+```
+
+7. Do you think that there is evidence of autocorrelation in the error terms for the standard linear model, and is this resolved in the GLS model?
+
+8. Look at the model summaries for the models that you have fitted. Are
+their parameter estimates and/or standard errors markedly different?
+
+```{r}
+```
+
+9. Looking at the summary for the `gls` models, what is the
+estimated lag one correlation for the residuals?
+
+```{r}
+```
+
+10. To get an idea of the uncertainty in our estimate, you can generate confidence intervals for estimated model parameters by using the `intervals()` command.
+
+```{r}
+```
