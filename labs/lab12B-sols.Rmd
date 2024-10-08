@@ -1,0 +1,155 @@
+---
+title: Massey University --- School of Mathematical and Computational Sciences
+subtitle: 161.251 Regression Modelling
+author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment="", dev="png")
+library(tidyverse)
+library(broom)
+library(nlme)
+```
+
+# Computer Laboratory Exercise 12B
+
+## Modelling House Prices in Perth
+
+In this exercise you will:
+
+  - gain experience in fitting linear models with autocorrelated errors
+    in R;
+
+  - use linear modelling on house price data from Australia.
+
+This Exercise concerns quarterly data on house prices in Australian
+state and territory capital cities from the second quarter of 1986 to
+the second quarter 1997 (inclusive). The following variables are
+available:
+
+| Variable      | Description                                    |
+| :------------ | :--------------------------------------------- |
+|  `Quarter`    | Quarter, including year                        |
+|  `Sydney`     | Mean relative house price in Sydney            |
+|  `Melbourne`  | Mean relative house price in Melbourne         |
+|  `Brisbane`   | Mean relative house price in Brisbane          |
+|  `Adelaide`   | Mean relative house price in Adelaide          |
+|  `Perth`      | Mean relative house price in Perth             |
+|  `Hobart`     | Mean relative house price in Hobart            |
+|  `Darwin`     | Mean relative house price in Darwin            |
+|  `Canberra`   | Mean relative house price in Canberra          |
+|  `WtAve`      | Weighted average price over all eight capitals |
+
+The house prices are expressed as a percentage, relative to the average
+house price in Darwin in the second quarter of 1986 (which is therefore
+recorded as 100). The data source is the Australian Bureau of
+Statistics.
+
+Perth in Western Australia is rather isolated from the other cities
+(indeed, it claims to be the most isolated city in the world). As such,
+it is interesting to examine whether house prices in Perth can be
+predicted in terms of the overall Australian housing market. We will
+therefore seek to model `Perth` as the response, in terms of `WtAve`, taking account of any temporal trend.
+
+1. The data we need for this exercise can be read in and assigned to the data frame `hp_raw`, with the following:
+
+```{r, message=FALSE}
+hp_raw <- read_csv(file="https://R-Resources.massey.ac.nz/data/161251/hp.csv")
+hp_raw
+```
+
+2. We'll start by tidying up the (silly, but not atypical!) `Quarter` column to a friendly date object for charting etc. `lubridate` to the rescue!
+
+```{r}
+hp <- hp_raw |>
+  mutate(Quarter = my(Quarter)) # my is "month year" format. lubridate magically figures out how to split things up
+```
+
+3. Produce a time plot of the Perth prices. Comment as to whether there is seasonality,
+trend etc.
+
+```{r}
+ggplot(hp) +
+  geom_line(mapping=aes(x=Quarter, y=Perth))
+```
+
+*There is definitely trend, but seasonality doesn't appear to be that strong.*
+
+4. Create a variable `Time` recording the number of quarters from the start of the
+observational period. Use the code from Lab 12A or similar, noting that we have quarters
+rather than months (you could measure in months and then divide by 3).
+
+```{r}
+hp_final <- hp |>
+  mutate(Time = round(time_length(Quarter-min(Quarter), unit="month"))/3)
+```
+
+5. Use the method of least squares to fit a linear regression (i.e. with `lm` rather than `gls`) with `Perth` as response and `WtAve` and `Time` as predictors
+
+```{r}
+hp.lm <- lm(Perth ~ Time + WtAve, data=hp_final)
+summary(hp.lm)
+```
+
+6. Produce a plot of residuals against `Time` or `Date`, and an ACF plot for the residuals for this regression model.
+
+    - Do you think that there is evidence of autocorrelation in the error terms?
+
+```{r}
+augment(hp.lm, hp_final) |>
+  ggplot() +
+  geom_line(aes(x=Quarter, y=.resid))
+```
+
+*Yes, there is definitely autocorrelation here with runs of positive and negative residuals - we can see this from the ACF plot as well:*
+
+```{r}
+acf(residuals(hp.lm))
+```
+
+
+7. Load the `nlme` library, and then use the `gls()` function to fit a linear
+regression in which the error terms are assumed to follow an *AR1* process.
+
+```{r}
+library(nlme)
+hp.gls <- gls(Perth ~ Time + WtAve, correlation=corAR1(), data=hp_final)
+summary(hp.gls)
+```
+
+8. Look at the model summaries for the two models that you have fitted. Are
+their parameter estimates and/or standard errors markedly different?
+
+*The coefficient of `WtAve` is similar but the standard errors are about 2-3 times as large. The `Time` coefficient is a bit different but in either model is not significant.*
+
+9. You should be able to see from the summary for the second model that the
+estimated lag one correlation for the residuals is
+$\hat{\phi}$ = 0.914. This suggests strong autocorrelation, but
+estimates of the parameter $\phi$ can be very imprecise unless the
+time series is very long. To get an idea of the uncertainty in our
+estimate, generate a confidence interval with `intervals()`.
+
+```{r}
+intervals(hp.gls)
+```
+
+*There is a lot of uncertainty in $\phi$. This is often the case with small length time series.*
+
+10. Finally, look at the fitted GLS model.
+
+    - Is the Australian average house price a useful predictor of Perth house prices? 
+    - Is there evidence that the secular trend in Perth is different to that across the rest of the nation?
+
+*Yes, Perth houseprices are strongly associated with average house price as the P-value is very small. There's not much evidence that the trend in perth is different to other cities though as the time trend is non-significant, though we've only included a linear trend. Looking at the data it seems like there possibly is a difference. We may be able to capture this with a different trend time (quadratic, general smoother etc?)*
+
+```{r}
+hp_final |>
+  pivot_longer(c(Perth, WtAve), names_to="Which", values_to="Price") |>
+  ggplot() +
+  geom_line(aes(x=Quarter, y=Price, col=Which))
+```
+

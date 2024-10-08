@@ -22,6 +22,4 @@ Week 12
 32: Time series 2 (DONE as ioslides)
 
 12A: Time series 1 (DONE!)
-12B:
-
-Workshops are available for this week. Need some work.
+12B: Time series 2 (DONE!)
