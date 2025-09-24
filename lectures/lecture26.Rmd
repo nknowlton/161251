@@ -1,0 +1,395 @@
+---
+title: "Lecture 26: Comparison of General Linear Models"
+subtitle: 161.251 Regression Modelling
+author: "Nick Knowlton"
+output:
+  ioslides_presentation:
+    logo: ../graphics/660491-ls_black_whitoutunz.png
+    widescreen: true
+    smaller: false
+  slidy_presentation:
+    theme: yeti
+    highlight: tango
+  html_document:
+    code_download: true
+    theme: yeti
+    highlight: tango
+  beamer_presentation: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev = c("png","pdf"))
+opts_chunk$set(fig.height = 6, fig.width = 9, fig.path = "Figures/", fig.alt = "unlabelled")
+opts_chunk$set(comment = "", fig.align = "center", tidy = TRUE)
+options(knitr.kable.NA = '')
+
+# Core packages
+library(tidyverse)
+library(broom)
+library(car)          # Type I vs Type III ANOVA
+library(emmeans)      # Marginal means and trends
+library(kableExtra)   # Table styling
+library(patchwork)    # Plot composition
+library(scales)
+library(gridExtra)
+library(grid)
+```
+
+<!-- Do not edit anything above this line. -->
+
+## Learning objectives
+
+By the end of this in-class session you will be able to:
+
+1. Recall the five canonical GLM forms from Lecture 25 and how parameterization and contrasts affect interpretation.
+
+2. Map natural orderings of GLMs and identify which pairs are nested.
+
+3. Conduct partial F tests for nested GLMs and interpret RSS, df, F, and P.
+
+4. Explain why p-values can change when multiple models are passed to `anova()`.
+
+5. Compare three Samara models and select a defensible specification.
+
+6. Transfer the workflow to a second dataset on body fat with one covariate and one factor.
+
+
+## Quick recall of Lecture 25
+
+**Five canonical model forms for one factor `A` and one covariate `x`:**
+
+- Separate slopes: `Y ~ A + A:x` or equivalently `Y ~ A * x`
+- Parallel slopes: `Y ~ A + x`
+- Single regression line: `Y ~ x`
+- Intercepts only by level: `Y ~ A`
+- Null model: `Y ~ 1`
+
+**Equivalence of parameterizations:** two formulas can span the same model space even if coefficients differ. Same fitted values implies same residuals and identical SSE.
+
+**Centering covariates:** centering turns the intercept into the mean response at average `x`, which improves interpretability in interaction models.
+
+## Comparison on Nested Linear Models
+
+For any linear model $M0$ nested within $M1$, we can test:
+
+* $H_0$: $M0$ adequate vs
+
+* $H_1$: $M0$ not adequate.
+
+
+using an *F* test.
+
+The hypotheses can be stated in terms of parameters of model $M1$.
+
+The *F* test statistic is
+
+$$F = \frac{[RSS_{M0} - RSS_{M1}]/d}{RSS_{M1}/r}$$ where *d* is
+    the difference in the number of (regression) parameters between the
+    models, and *r* is the residual degrees of freedom for $M1$.
+
+
+If $H_0$ is correct then *F* has an *F* distribution with $d,r$
+    degrees of freedom.
+
+Extreme large values of the test statistic provide evidence against
+    $H_0$.
+
+Hence if $f_{obs}$ is the observed value of the test statistic,
+    and *X* is a random variable from an $F_{d,r}$ distribution,
+    then the *P*-value is given by $P= P(X \ge f_{obs})$
+
+This test can be carried out in R using `anova(M0, M1)` where `M0` and `M1` are respectively the $M0$ and $M1$ fitted models.
+
+## The Samara Data revisited
+
+Recall that we were modelling the mean speed of fall of samara
+    (fruit from a maple tree) as a function of the disk loading (a
+    covariate) and the tree from which it fell (a factor) for each
+    fruit.
+
+We fitted separate linear regressions for each of the three trees.
+
+We shall now consider simpler models:
+    
+- Parallel regressions for each tree (i.e. equal slope for `Load` for all trees);
+- A single regression model for every fruit (i.e. equal slope and intercept for each tree).
+    
+We shall compare these models with each other, and with the separate regressions model.
+
+
+Grab the data here:`r xfun::embed_file("../data/samara.csv",text = " samara.csv")`
+
+```{r SamaraReadData, echo=FALSE}
+Samara <- read_csv("../data/samara.csv",show_col_types = FALSE) |>
+  transform(Tree = factor(Tree))
+
+```
+
+```{r samara-plot, echo=FALSE}
+p_samara <- Samara |>
+  ggplot(aes(x = Load, y = Velocity, color = Tree, shape = Tree)) +
+  geom_point(size = 2.6, alpha = 0.9) +
+  labs(title = "Samara: Velocity vs Load by Tree",
+       x = "Load (disk loading)",
+       y = "Velocity") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom")
+p_samara
+```
+
+## Natural ordering of GLMs and nesting
+
+We focus on the nesting relations for one factor `Tree` and covariate `Load`:
+
+- Null ⊂ Intercepts-only ⊂ Parallel slopes ⊂ Separate slopes
+
+`Single line` vs `Intercepts-only` are not nested when groups differ in mean at `x = 0`. 
+Valid partial F tests require true nesting and common error variance.
+
+
+We fit:
+
+- M2: Separate regressions: `Velocity ~ Tree + Load + Tree:Load`
+- M1: Parallel regressions: `Velocity ~ Tree + Load`
+- M0: Single regression: `Velocity ~ Load`
+
+```{r samara-models}
+M2_sep <- lm(Velocity ~ Tree + Load + Tree:Load, data = Samara)  # separate slopes
+M1_par <- lm(Velocity ~ Tree + Load, data = Samara)              # parallel slopes
+M0_one <- lm(Velocity ~ Load, data = Samara)                     # single line
+```
+
+```{r samara-summaries, echo=FALSE,  results='asis'}
+summaries <- bind_rows(
+  glance(M2_sep) |> mutate(model = "Separate (Tree + Load + Tree:Load)"),
+  glance(M1_par) |> mutate(model = "Parallel (Tree + Load)"),
+  glance(M0_one) |> mutate(model = "Single (Load)")
+) |>
+  mutate(rss = map_dbl(list(M2_sep, M1_par, M0_one), ~ sum(residuals(.x)^2))) |>
+  transmute(model,
+            df_resid = df.residual,
+            rss,
+            r.sq = r.squared,
+            adj.r.sq = adj.r.squared,
+            AIC = AIC,
+            BIC = BIC) |>
+  arrange(AIC)
+
+```
+
+
+```{r tbl-summaries, echo=FALSE, fig.cap="Model summaries with RSS, df, R^2, AIC, BIC",fig.width=12, fig.height=4, out.width="90%", fig.align='center'}
+
+
+tbl <- summaries |>
+  mutate(across(c(rss, r.sq, adj.r.sq, AIC, BIC), ~round(., 3)))
+
+theme_tbl <- ttheme_minimal(
+  base_size = 16,                                  # font size
+  core    = list(padding = unit(c(6, 10), "pt")),  # cell padding
+  colhead = list(fg_params = list(fontface = "bold"))
+)
+
+tg <- tableGrob(tbl, rows = NULL, theme = theme_tbl)
+grid.newpage(); grid.draw(tg)
+```
+
+## Visualizing fitted lines
+
+Let's look at these fits visually to remind ourselves what the data looks like and how the models differ.
+
+```{r fittedlines, echo=FALSE, fig.width=14, fig.height=4, dpi=150, out.width="100%"}
+
+# Make a version of plot_lines that maps color for the predicted lines
+plot_lines_with_legend <- function(model, title) {
+  newdat <- tidyr::crossing(
+    Tree = factor(levels(Samara$Tree), levels = levels(Samara$Tree)),
+    Load = seq(min(Samara$Load), max(Samara$Load), length.out = 100)
+  )
+  newdat$Velocity_hat <- predict(model, newdata = newdat)
+  # Ensure both points and lines use the same color mapping (Tree)
+  p <- p_samara +
+    geom_line(data = newdat, aes(x = Load, y = Velocity_hat, color = Tree), linewidth = 1)
+  p + labs(title = title)
+}
+
+p1 <- plot_lines_with_legend(M2_sep, "Separate slopes")
+p2 <- plot_lines_with_legend(M1_par, "Parallel slopes")
+p3 <- plot_lines_with_legend(M0_one, "Single regression line")
+
+# Collect a single legend and put it at the bottom
+(p1 + p2 + p3) + plot_layout(ncol = 3, guides = "collect") & theme(legend.position = "bottom")
+
+```
+
+
+## Pairwise nested comparisons with partial F tests
+
+```{r samara-anovas}
+# M1 vs M2 tests the interaction
+anova(M1_par, M2_sep)
+```
+
+## Pairwise nested comparisons with partial F tests continued
+
+```{r samara-anovas-2}
+# M0 vs M1 tests Tree after Load
+anova(M0_one, M1_par)
+```
+
+
+## Pairwise nested comparisons with partial F tests continued
+```{r samara-anovas-3}
+# M0 vs M2 tests Tree and interaction together
+anova(M0_one, M2_sep)
+```
+
+## All models in one call and denominator effect
+
+```{r samara-anova-3}
+anova(M0_one, M1_par, M2_sep)
+```
+
+**Note:** The p-value for `M0` vs `M1` can change because the denominator uses the largest model in the call. Decide a maximal model ahead of time or clearly document the sequential plan.
+
+## Manual check of the F test
+
+We verify `M1` vs `M2` by hand.
+
+Remember \[ F = \frac{(RSS_{M1} - RSS_{M2})/d}{RSS_{M2}/r} \]
+
+```{r manual-F}
+rss_M1 <- sum(residuals(M1_par)^2)
+rss_M2 <- sum(residuals(M2_sep)^2)
+d      <- attr(logLik(M2_sep),"df") - attr(logLik(M1_par),"df")  # number of added parameters
+r      <- df.residual(M2_sep)                                    # residual df in larger model
+Fval   <- ((rss_M1 - rss_M2)/d) / (rss_M2/r)
+pval   <- pf(Fval, d, r, lower.tail = FALSE)
+
+```
+
+```{r manual-F-table, echo=FALSE}
+tibble(comparison = "M1 vs M2", d = d, r = r, F = Fval, `Pr(>F)` = pval) |>
+  kable(digits = 6, caption = "Manual partial F reproduces anova()") |>
+  kable_styling(full_width = FALSE)
+```
+
+
+
+## Diagnostics checklist for the chosen model
+
+```{r diagnostics}
+chosen <- M1_par
+p1 <- ggplot(data.frame(fitted = fitted(chosen), resid = resid(chosen)), aes(fitted, resid)) +
+  geom_point() + geom_hline(yintercept = 0, linetype = 2) +
+  labs(title = "Residuals vs Fitted") + theme_minimal(base_size = 13)
+p2 <- ggplot(data.frame(stdres = rstandard(chosen)), aes(sample = stdres)) +
+  stat_qq() + stat_qq_line() +
+  labs(title = "Normal Q-Q") + theme_minimal(base_size = 13)
+p1 | p2
+```
+
+
+## Body Fat case study
+
+In this section, we are concerned with modelling a small data set on human body fat.
+
+The response is percentage fat.  Age is a numerical covariate, gender is a factor.
+
+
+Grab the data here: `r xfun::embed_file("../data/fat.csv",text = " fat.csv")`
+
+```{r load-fat, echo=FALSE, message=FALSE}
+path_candidates <- c(
+  file.path("..","data","fat.csv"),  # knit from lectures/
+  file.path("data","fat.csv")        # knit from project root
+)
+
+fat_path <- path_candidates[file.exists(path_candidates)][1]
+
+if (is.null(fat_path) || !file.exists(fat_path)) {
+  stop("fat.csv not found. Looked in: ", paste(path_candidates, collapse = "; "))
+}
+
+Fat <- readr::read_csv(fat_path,show_col_types = FALSE)
+message("Loaded Fat from: ", fat_path)
+
+```
+
+Various model comparisons and model summaries are provided. Decide which is the best model, and write down the fitted model equation for males and females.
+
+Columns: `Percent.Fat` response, `Age` numeric, `Gender` factor.
+
+```{r fat-plot}
+p_fat <- ggplot(Fat, aes(x = Age, y = Percent.Fat, color = Gender, shape = Gender)) +
+  geom_point(size = 2.6, alpha = 0.9) +
+  labs(title = "Percent Body Fat vs Age by Gender",
+       x = "Age", y = "Percent Fat") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom")
+p_fat
+```
+
+## Three models and comparisons
+
+```{r fat-models}
+F0 <- lm(Percent.Fat ~ Age, data = Fat)
+F1 <- lm(Percent.Fat ~ Gender + Age, data = Fat)
+F2 <- lm(Percent.Fat ~ Gender + Age + Gender:Age, data = Fat)
+
+anova(F0, F1)
+anova(F1, F2)
+
+```
+Since we are talking about a one degree of freedom difference, the p-value from 
+anova(F1, F2) is the same as the p-value for the interaction term in F2, namely 0.0679. So we don't use the interaction model.  
+
+Similarly the difference between the first two models is one df, so the p-value from anova(F0, F1) would be the same as for the coefficient of GenderM, namely 0.0182. 
+
+So we need to use the second model.  
+
+## Selected model terms
+
+```{r fat-summaries}
+
+summary(F1)
+
+```
+
+
+## Fitted equations for the selected model
+
+If we select the parallel slopes `F1` with treatment contrasts and `Gender` coded with F as reference:
+
+- Females: `E[Fat] = β0 + β_Age * Age`
+
+- Males: `E[Fat] = (β0 + β_GenderM) + β_Age * Age`
+
+```{r fat-equation}
+co <- coef(F1)
+beta0 <- unname(co["(Intercept)"])
+beta_age <- unname(co["Age"])
+beta_male <- unname(co["GenderM"])
+tibble(
+  model = c("Females", "Males"),
+  equation = c(
+    sprintf("Fat = %.2f + %.2f * Age", beta0, beta_age),
+    sprintf("Fat = %.2f + %.2f * Age", beta0 + beta_male, beta_age)
+  )
+) |>
+  kable(caption = "Fitted equations by Gender (parallel slopes model)") |>
+  kable_styling(full_width = FALSE)
+```
+
+
+
+
+## Reporting template
+
+- State the model forms, nesting, and the scientific contrast.
+- Report RSS, df, F, and p with the denominator model identified.
+- Add a sentence on diagnostics and effect interpretation.
+- If two models are close, prefer the simpler one for clarity unless the complex model adds needed scientific nuance.
