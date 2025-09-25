@@ -1,22 +1,25 @@
 ---
 title: "Lecture 27: Variable Selection"
 subtitle: 161.251 Regression Modelling
-author: "Presented by Jonathan Marshall <J.C.marshall@massey.ac.nz>"  
-date: "Week 10 of Semester 2, `r lubridate::year(lubridate::now())`"
+author: "Presented by Nick Knowlton <nknowlton@massey.ac.nz>"  
 output:
-  ioslides_presentation:
-    widescreen: true
-    smaller: true
-  beamer_presentation: default
+  slidy_presentation: 
+    theme: yeti
+    highlight: tango
   word_document: default
   html_document:
     code_download: true
     theme: yeti
     highlight: tango
-  slidy_presentation: 
-    theme: yeti
-    highlight: tango
-  pdf_document: default
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+  pdf_document:
+    latex_engine: xelatex
+header-includes:
+  - \usepackage{fontspec}
+  - \setmainfont{Noto Sans}
+  - \newfontfamily\emoji{Noto Color Emoji}
 ---
 
 <!--- Data is on
@@ -40,7 +43,7 @@ library(broom)
 
 In previous lectures we have looked at tests for single explanatory variables and groups of explanatory variables.
 
-Often, however, a statistician will simply want to know what is the     best group of explanatory variables for describing the response.
+Often, however, a statistician will simply want to know what is the best group of explanatory variables for describing the response.
 
 In this lecture we will consider various criteria for model selection, and cover an example on finding a suitable variable set "by hand".
 
@@ -241,7 +244,7 @@ ggplot(climate) +
   coord_equal()
 ```
 
-## Climate: Latitude/Longitude and North vs South
+## 📊 Climate: Latitude/Longitude and North vs South
 
 Ok, so we can see that the temperature is being driven by latitude (further north is warmer) - the longitude effect is possibly just due to orientation. It's clear there's an elevation (height) effect as well, though that is possibly confounded with whether the town is close to the sea (it can't really be both!)
 
@@ -252,22 +255,22 @@ We'll start with Latitude, then add in Height and Sea:
 ```{r}
 lm1 = lm( MnJlyTemp ~ Lat, data=climate)
 lm2 = lm( MnJlyTemp ~ Lat + Height, data=climate)
-lm3 = lm( MnJlyTemp ~ Lat + Height+ Sea, data=climate)
+lm3 = lm( MnJlyTemp ~ Lat + Height + Sea, data=climate)
 ```
 
-## Climate: model output
+## Climate: model 1 output
 
 ```{r}
 lm1 |> summary()
 ```
 
-##
+## Climate: model 2 output
 
 ```{r}
 lm2 |> summary()
 ```
 
-##
+## Climate: model 3 output
 
 ```{r}
 lm3 |> summary()
@@ -290,11 +293,9 @@ This makes sense - sea level towns will mostly have a very low height, but there
 ## Climate: Adding island
 
 ```{r fourth variable}
-lm4 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland, data=climate)
+lm4 = lm( MnJlyTemp ~ Lat+ Height + Sea + NorthIsland, data=climate)
 lm4 |> summary()
 ```
-
-##
 
 Same conclusions as before, we should include `NorthIsland`
 
@@ -302,26 +303,83 @@ Including it has induced big changes in the coefficients (especially `Lat`) whic
 
 **Why do you think adding North vs South island is useful over and above Latitude? Wouldn't Latitude do everything here??**
 
-## Adding Rain
+## Climate: Adding Rain
 
 ```{r fifth variable}
-lm5 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland+ Rain, data=climate)
+lm5 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland + Rain, data=climate)
 lm5 |> summary()
 ```
 
-##
 
 The `Rain` variable is not significant (P=0.1) which goes against including `Rain`.  However $S$ has gone down and the adjusted R-squared has gone up.  So we may decide that if our aim is to predict for new data, then we should include this variable in the model.
 
-## Adding Longitude
+## Climate: Adding Longitude
 
-```{r sixth variable}
+```{r sixth variable, warning=FALSE}
 lm6 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland+ Rain + Long, data=climate)
 lm6 |> summary()
 ```
 
-##
-
 At this point all the indications are bad:  The P-value for `Long` is >0.5, the adjusted R-squared has gone down and S has gone up.
 
-In conclusion we should include the first four variables, and optionally the fifth one, `Rain`.
+So we should not include `Long` in the model.
+
+## 📊 Climate Data Case Study — Key Takeaways
+
+**Goal:** Predict NZ July temperature from location and climate covariates
+
+**Final model path:**  `MnJlyTemp ~ Lat + Height + Sea + NorthIsland + Rain`
+
+**Model progression**
+
+| Model | Variables                     | \(R^2_{\text{Adj}}\) | \(S\)  | Key variable \(p\) |
+|:-----:|-------------------------------|:--------------------:|:------:|:------------------:|
+| 1     | Lat                           | 0.570                | 1.82   | < 0.001            |
+| 2     | + Height                      | 0.837                | 1.12   | < 0.001            |
+| 3     | + Sea                         | 0.865                | 1.02   | < 0.001            |
+| 4     | + NorthIsland                 | 0.883                | 0.95   | < 0.001            |
+| 5     | + Rain                        | 0.889                | 0.92   | 0.10               |
+| 6     | + Long                        | 0.886                | 0.93   | 0.54               |
+
+## 📊 Climate Data Case Study — Key Takeaways Continued
+
+🔍 **What to watch for**
+
+- Coefficient shifts after adding variables indicate possible bias correction
+- Look for agreement among criteria, not just \(p\) values
+- Longitude rejected: \(p>0.5\), \(R^2_{\text{Adj}}\downarrow\), \(S\uparrow\)
+
+🚨 **Warning signs**
+
+- Large coefficient changes when adding or removing variables → potential bias
+- Sole reliance on \(p<0.05\) can miss important predictors
+- Ignoring \(R^2_{\text{Adj}}\) and \(S\) gives an incomplete picture
+- Criteria in conflict → justify with domain knowledge and prediction error
+
+**Recommendation:**  
+
+Retain `Lat`, `Height`, `Sea`, `NorthIsland`. Retain `Rain` when prediction accuracy is the goal, as it is here.
+
+## 🤔 Done? 🤔
+
+Not so fast! We now have a model, but is it any good? Does it meet our LINE assumptions? 
+
+After variable selection, you must check if the final model satisfies the assumptions of linear regression. Let's check the diagnostics for our chosen model: 
+
+`lm(MnJlyTemp ~ Lat + Height + Sea + NorthIsland + Rain, data = climate)`.
+
+## Final Model Diagnostics
+```{r diagnostic plots, echo=FALSE}
+# Generate the 4 standard diagnostic plots
+par(mfrow = c(2, 2))
+plot(lm5)
+```
+
+### Interpretation of Diagnostic Plots:
+
+- Residuals vs. Fitted: The red line is nearly flat and the points are randomly scattered around 0. This looks good and suggests the linearity assumption holds. No obvious patterns.
+- Normal Q-Q: The points fall very closely along the dashed line except one point (9). This indicates the residuals are normally distributed, which is great.
+- Scale-Location: The points are randomly scattered and the red line is relatively flat. This confirms the assumption of equal variance (homoscedasticity).
+- Residuals vs. Leverage: No points appear outside of the dashed Cook's distance lines, meaning we don't have any single data points that are overly influential on our results.
+
+**Conclusion**: Our final model not only makes intuitive sense but also passes the standard diagnostic checks! It appears to be a robust and reliable model.
