@@ -3,14 +3,15 @@ Plan for 2025
 
 Week 9
 
-26: 
+26: Comparing GLMs (done)
+
 Week 10
 
-27: Variable selection manual
-28: Auto variable selection 
+27: Variable selection manual (done)
+28: Auto variable selection (done)
 
-10A: Automatic variable selection on Swiss data 
-10B: Automatic variable selection on Climate data 
+10A: Automatic variable selection on Swiss data (done)
+10B: Automatic variable selection on Climate data (done)
 
 Week 11
 

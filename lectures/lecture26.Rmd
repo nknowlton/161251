@@ -3,18 +3,19 @@ title: "Lecture 26: Comparison of General Linear Models"
 subtitle: 161.251 Regression Modelling
 author: "Nick Knowlton"
 output:
-  slidy_presentation:
+  html_document:
+    code_download: true
     theme: yeti
     highlight: tango
   ioslides_presentation:
     logo: ../graphics/660491-ls_black_whitoutunz.png
     widescreen: true
     smaller: false
-  html_document:
-    code_download: true
+  beamer_presentation: 
+    toc: true
+  slidy_presentation:
     theme: yeti
     highlight: tango
-  beamer_presentation: default
   word_document: default
   pdf_document: default
 ---

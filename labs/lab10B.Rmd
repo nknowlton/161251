@@ -1,7 +1,7 @@
 ---
 title: Massey University --- School of Mathematical and Computational Sciences
 subtitle: 161.251 Regression Modelling
-author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
+author: "Nick Knowlton nknowlton@massey.ac.nz"
 date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
 output:
   html_document:
@@ -15,7 +15,15 @@ library(tidyverse)
 
 # Computer Laboratory Exercise 10B
 
-The purpose of this exercise is to gain more familiarity with the `step()` function for stepwise regression for the `climate` data.
+## Learning Objectives:
+
+  - Understanding stepwise regression with interactions
+  - Interpreting interaction effects in small datasets
+  - Recognizing when models may be overspecified
+  - Understanding how interaction terms can affect main effect interpretation
+
+
+Let's begin this exercise by gaining more familiarity with the `step()` function for stepwise regression for the `climate` data.
 
 We will explore how we might get an appropriate large model that includes interactions, noting that the dataset is very small, and that AIC as a selection criteria tends to favour larger models over small ones.
 
@@ -26,7 +34,7 @@ climate <- read_csv("https://www.massey.ac.nz/~jcmarsha/161251/data/climate.csv"
 climate
 ```
 
-We're interested in exploring a model for these data thta potentially includes interactions. This dataset is probably too small for this, but we do have some binary indicators so that including interactions might not be too severe in terms of the number of variables included.
+We're interested in exploring a model for these data that potentially includes interactions. This dataset is probably too small for this, but we do have some binary indicators so that including interactions might not be too severe in terms of the number of variables included.
 
 It is also worth thinking about whether the variables make sense. Is there a logical order for the variables? 
 
@@ -78,8 +86,8 @@ We see we end up with a model containing `Long`, `Sea`, `NorthIsland` and an int
 5. Just for fun, let's add in the other climate variables to our `climate.geo2` model. We setup the `scope` so the largest possible model is the one with all possible interactions (a hilariously overspecified model given the data we have!)
     
     ```{r}
-    climate.insane <- lm(Sun ~ Lat * Long * Height * Sea * NorthIsland * MnJanTemp * MnJlyTemp * Rain, data=climate)
-    scope = list(lower=formula(climate.geo2), upper=formula(climate.insane))
+    climate.fullinteraction <- lm(Sun ~ Lat * Long * Height * Sea * NorthIsland * MnJanTemp * MnJlyTemp * Rain, data=climate)
+    scope = list(lower=formula(climate.geo2), upper=formula(climate.fullinteraction))
     climate.geo3 = step(climate.geo2, scope = scope, direction="both")
     ```
 

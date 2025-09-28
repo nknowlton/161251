@@ -1,7 +1,7 @@
 ---
 title: Massey University --- School of Mathematical and Computational Sciences
 subtitle: 161.251 Regression Modelling
-author: "Staff member responsible for this workshop: Jonathan Marshall j.c.marshall@massey.ac.nz"
+author: "Nick Knowlton nknowlton@massey.ac.nz"
 date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
 output:
   html_document:
@@ -15,7 +15,15 @@ library(tidyverse)
 
 # Computer Laboratory Exercise 10B
 
-The purpose of this exercise is to gain more familiarity with the `step()` function for stepwise regression for the `climate` data.
+## Learning Objectives:
+
+  - Understanding stepwise regression with interactions
+  - Interpreting interaction effects in small datasets
+  - Recognizing when models may be overspecified
+  - Understanding how interaction terms can affect main effect interpretation
+
+
+Let's begin this exercise by gaining more familiarity with the `step()` function for stepwise regression for the `climate` data.
 
 We will explore how we might get an appropriate large model that includes interactions, noting that the dataset is very small, and that AIC as a selection criteria tends to favour larger models over small ones.
 
@@ -26,7 +34,7 @@ climate <- read_csv("https://www.massey.ac.nz/~jcmarsha/161251/data/climate.csv"
 climate
 ```
 
-We're interested in exploring a model for these data thta potentially includes interactions. This dataset is probably too small for this, but we do have some binary indicators so that including interactions might not be too severe in terms of the number of variables included.
+We're interested in exploring a model for these data that potentially includes interactions. This dataset is probably too small for this, but we do have some binary indicators so that including interactions might not be too severe in terms of the number of variables included.
 
 It is also worth thinking about whether the variables make sense. Is there a logical order for the variables? 
 
@@ -54,7 +62,7 @@ So it makes logical sense to let the geographic variables explain as much of the
     summary(climate.geo1)
     ```
     
-    *The null model includes only the intercept, the full model includes all the geographic terms with only Longitude being significant. The stepwise model includes Longitude, whether the town is seaside or whteher it is in the north island, noting that the Sea term in this model is only borderline significant, while north island is not significant.*
+    *The null model includes only the intercept, the full model includes all the geographic terms with only Longitude being significant. The stepwise model includes Longitude, whether the town is seaside or whether it is in the north island, noting that the Sea term in this model is only borderline significant, while north island is not significant.*
 
 2. Next, let's consider models that include possibly all interactions between the geographic variables. We can do this by starting with our null model and going to one where we replace all the `+` with `*` in the formula:
 
@@ -92,13 +100,13 @@ So it makes logical sense to let the geographic variables explain as much of the
     ```{r}
     climate |> slice_max(Sun, n=10)
     ```
-    *Looking at the top 10 sunshine towns we see 7 are in the north island. The effect for `NorthIsland` in `climate.geo2` is negative, though not significant. The reason for this is not due to the insignificance though! The reason is that the North Island is to the east of the south island, i.e. it has increased longitude. And the longitude effect is reasonably strong for sea side towns (which all the top North Island towns are!)*
+    *Looking at the top 10 sunshine towns we see 7 are in the north island. The effect for `NorthIsland` in `climate.geo2` is negative, though not significant. The apparent contradiction occurs because of confounding. While North Island towns dominate the top 10 for sunshine hours, the stepwise model adjusts for other geographic factors, particularly longitude and the sea effect. When we control for these factors, North Island status itself appears to have a small negative effect (though not significant). This is similar to Simpson's paradox - the raw association differs from the conditional association after adjusting for confounding variables.*
 
 5. Just for fun, let's add in the other climate variables to our `climate.geo2` model. We setup the `scope` so the largest possible model is the one with all possible interactions (a hilariously overspecified model given the data we have!)
 
     ```{r}
-    climate.insane <- lm(Sun ~ Lat * Long * Height * Sea * NorthIsland * MnJanTemp * MnJlyTemp * Rain, data=climate)
-    scope = list(lower=formula(climate.geo2), upper=formula(climate.insane))
+    climate.fullinteraction <- lm(Sun ~ Lat * Long * Height * Sea * NorthIsland * MnJanTemp * MnJlyTemp * Rain, data=climate)
+    scope = list(lower=formula(climate.geo2), upper=formula(climate.fullinteraction))
     climate.geo3 = step(climate.geo2, scope = scope, direction="both")
     ```
 
@@ -132,4 +140,11 @@ So it makes logical sense to let the geographic variables explain as much of the
     visreg(climate.geo3, "Rain", by="Long")
     ```
     
-    *This is a little strange! The model output suggests a positive `Rain` effect generally (with exception of the small coefficient for the `Rain:Long` interaction) yet the effect of `Rain` here tends to be negative rather than positive! We note it's the `Long` variable that moderates the `Rain` effect the most, with the `Rain` effect only being positive for smaller longitudes (west most locations). While it had the lowest coefficient, remember that `Long` is on the order of 160-180, so multiplies things up quite a bit, resulting in an overall positive trend for `Rain`.*
+    The positive main Rain coefficient (11.36) appears counterintuitive given that we expect more rain to be associated with fewer sunshine hours. However, this main effect is misleading when interpreted in isolation because Rain interacts with several other variables in the model.
+
+    The actual Rain effect for any location is:
+    11.36 + (-0.0680 × Long) + (0.134 × Sea) + (0.195 × NorthIsland)
+
+    The negative Long:Rain interaction (-0.0680) means that as longitude increases (moving eastward), the Rain effect becomes more negative. Since most New Zealand locations have longitudes > 167°E, the Long:Rain interaction often overwhelms the positive main effect, resulting in an overall negative relationship between Rain and Sun for most towns.
+
+    The Sea:Rain and NorthIsland:Rain interactions are both positive, partially offsetting the negative longitude effect for coastal and North Island towns respectively. This explains why the visreg plots show predominantly negative Rain effects despite the large positive main coefficient - the interactions modify the relationship differently across different types of locations, but the longitude effect dominates for most towns in our dataset.*
