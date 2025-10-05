@@ -3,8 +3,7 @@ title: "Lecture 30: Weighted regression"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Nick Knowlton <nknowlton@massey.ac.nz>"  
 output:
-  html_document:
-    code_download: true
+  slidy_presentation: 
     theme: yeti
     highlight: tango
   ioslides_presentation:
@@ -12,7 +11,8 @@ output:
     smaller: true
   beamer_presentation: default
   word_document: default
-  slidy_presentation: 
+  html_document:
+    code_download: true
     theme: yeti
     highlight: tango
   pdf_document: default
@@ -40,13 +40,17 @@ library(broom)
 
 ## Introduction
 
+The key idea in this topic is that not all datapoints in the dataset need have the same information value.  Some data rows may contain very precise data, while data in the other rows may be less precise.
+
+We therefore adjust our regression analysis to give more "weight" to those datapoints which are more reliable or informative. 
+
 - Weighting by sample size.
 - Interpretation of output.
 - Weighting to counter heteroscedasticity.
 
-The key idea in this topic is that not all datapoints in the dataset need have the same information value.  Some data rows may contain very precise data, while data in the other rows may be less precise.
 
-We therefore adjust our regression analysis to give more "weight" to those datapoints which are more reliable or informative. 
+
+
 
 ## Weighting by Sample Size 
 
@@ -89,9 +93,11 @@ summary(grouped.lm)
 
 ##
 
-However note that the left-hand points represent only a few individuals compared to some of the right-hand points, represented by the size of the circles scaling with the number of individuals $N$ contributing to the average. We would like the regression line to be closer to those points that represent far more people.
+However note that the left-hand points represent only a few individuals compared to some of the right-hand points, represented by the size of the circles scaling with the number of individuals $N$ contributing to the average. 
+We would like the regression line to be closer to those points that represent far more people.
 
-The line is close to the first category (which has only three people in it) and far from the 12, 14, 16-year categories which have the most people. This doesn't really make sense. 
+The line is close to the first category (which has only three people in it) and far from the 12, 14, 16-year categories which have the most people. 
+This doesn't really make sense. 
 
 If we use the ungrouped data the relationship between Wage and Education is much weaker in terms of goodness of fit of the model.
 
@@ -223,7 +229,6 @@ augment(cps.wls, CPS5grouped) |>
   labs(y="Pearson (weighted) residuals", x="Education group (years)")
 ```
 
-##
 
 This has given a proper sense of importance to each residual. We see that the low-weight points on the left are not particularly important. 
 
@@ -238,7 +243,8 @@ This still fits with the idea that Weight represents the  amount of information 
 
 ### Supervisors and Workers
 
-The following data is on the number of supervisors $Y$ (e.g. team leaders) and the number of workers $X$ at a number of industrial establishments.   The data are from the book by Chatterjee and Price "Regression Analysis by Example"
+The following data is on the number of supervisors $Y$ (e.g. team leaders) and the number of workers $X$ at a number of industrial establishments.   
+The data are from the book by Chatterjee and Price "Regression Analysis by Example"
 
 `r xfun::embed_file("../data/supervisors.csv")`
 
@@ -260,7 +266,9 @@ ggplot(supervisors,
 
 ##
 
-Note that the line is overshooting the cluster of points on the left.  The residual plots show curvature and heteroscedasticity.  The fourth graph shows a simple linear model is highly influenced by the points at the right, which have very large residuals.
+Note that the line is overshooting the cluster of points on the left.  
+The residual plots show curvature and heteroscedasticity.  
+The fourth graph shows a simple linear model is highly influenced by the points at the right, which have very large residuals.
 
 ```{r Supervisor residuals, fig.height=4}
 sup.lm <- lm(Y ~ X, data=supervisors)
@@ -270,7 +278,9 @@ plot(sup.lm, which=c(1,5))
 
 ##
 
-Considering the heteroscedasticity, look at the amount of vertical spread of residuals when $x$= 400, 800 and 1600. As $X$ doubles, the spread roughly doubles.  This suggests that $\mbox{sd}(\varepsilon) \propto x$,  or in other words $\sigma = k x$ for some constant $k$.
+Considering the heteroscedasticity, look at the amount of vertical spread of residuals when $x$= 400, 800 and 1600. 
+As $X$ doubles, the spread roughly doubles.  
+This suggests that $\mbox{sd}(\varepsilon) \propto x$,  or in other words $\sigma = k x$ for some constant $k$.
 
 Now let us suppose we want to fit a straight-line model $$y_i = \beta_0 + \beta_1 x_i  + \varepsilon_i ~   $$
 We would ordinarily solve this by minimising the 
@@ -323,7 +333,7 @@ augment(sup.wls) |>
   mutate(pearson = .resid/X) |>
   ggplot(mapping = aes(x=X, y=pearson)) +
   geom_point() +
-  geom_hline(yintercept=0, linetype="dotted")
+  geom_hline(yintercept=0, linetype="dotted") +
   labs(y="Pearson (weighted) residuals", x="Number of workers (X)")
 ```
 
