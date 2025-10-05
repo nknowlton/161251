@@ -1,10 +1,9 @@
 ---
-title: "Lecture 46: Time Models with Independent Errors"
+title: "Lecture 31: Time Models with Independent Errors"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
-date: "Week 12 of Semester 2, `r lubridate::year(lubridate::now())`"
 output:
-  html_notebook:
+  slidy_presentation: 
     code_download: true
     theme: yeti
     highlight: tango
@@ -12,7 +11,8 @@ output:
     widescreen: true
     smaller: true
   word_document: default
-  slidy_presentation: 
+  html_notebook:
+    code_download: true
     theme: yeti
     highlight: tango
   pdf_document: default
@@ -57,11 +57,11 @@ Often time series show some form of seasonal variation.  One way to handle this 
 
 We consider data on Ski equipment sales versus PDI (personal disposable income).  In the following data, both Ski Sales and PDI increased as time went by, but there appears to be a seasonal aspect to sales (which makes sense). 
 
-`r xfun::embed_file("../../data/SkiSales.csv")`
+`r xfun::embed_file("../data/SkiSales.csv")`
 
 ```{r Ski Sales, eval=-1, echo=-2}
-SkiSales = read.csv("SkiSales.csv",header=TRUE)
-SkiSales = read.csv("../../data/SkiSales.csv",header=TRUE)
+#SkiSales = read.csv("SkiSales.csv",header=TRUE)
+SkiSales = read.csv("../data/SkiSales.csv",header=TRUE)
 SkiSales |> head() |> kable()
 ```
 
@@ -110,11 +110,11 @@ One might expect the electricity bill to be higher in winter months, and in late
 
 The focus *for us* is how to adjust the analysis for the effect of season (month)  on the bill.  To examine this, we consider the residuals of Bill after adjusting for the non-weather-related variables.
 
-`r xfun::embed_file("../../data/Electricity.csv")`
+`r xfun::embed_file("../data/Electricity.csv")`
 
 ```{r Electricity vs weather, eval=-1, echo=-2}
-Electricity= read.csv("Electricity.csv",header=TRUE)
-Electricity = read.csv("../../data/Electricity.csv",header=TRUE) 
+#Electricity= read.csv("Electricity.csv",header=TRUE)
+Electricity = read.csv("../data/Electricity.csv",header=TRUE) 
 Electricity |> head() |> kable()
 Electricity.lm1 =lm(Bill~Days + Estimate+ Guestwks + Time , data=Electricity)
 resids =Electricity.lm1$residuals

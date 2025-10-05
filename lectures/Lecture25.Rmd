@@ -1,0 +1,229 @@
+---
+title: "Lecture 25: The General Linear Model"
+subtitle: 161.251 Regression Modelling
+author: "Presented by Nick Knowlton <nknowlton@massey.ac.nz>"   
+output:
+  slidy_presentation: 
+    theme: yeti
+    highlight: tango
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+  word_document: default
+  html_notebook:
+    code_download: true
+    theme: yeti
+    highlight: tango
+  pdf_document: default
+---
+
+
+
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+We have mostly focused on (i) models containing just numerical covariates (linear regression models) and (ii) models containing just factors (‘ANOVA type’ models).
+
+Naturally there will be situations in which we wish to model a response in terms of **both** numerical covariates and factors. We saw this in the case of the English Exam data.
+
+Generalizing factorial and regression models to include models with potentially both factors and numerical covariates produces the class of models (historically) referred to as **G**eneral **L**inear **M**odels.
+
+The abbreviation GLM was used for these models for many years, and still is in some software. R uses this acronym to refer to **generalised linear models** which are covered in another course. As a consequence, we  often find some confusion, but all linear models fit into the wider group of generalised linear models  
+
+We will look at general linear models in this lecture.
+
+## General Linear Models as Regressions
+
+As we saw when we looked at factorial models, any factor can be coded using dummy variables so as to produce a linear regression model.
+
+It follows that any general linear model can be fitted as a linear regression.
+
+All the ideas about least squares estimation, fitted values and residuals remain unchanged.
+
+## Models with a Single Factor and Covariate
+
+In order to understand how to use and interpret models with a  combination of factors and numerical covariates, consider the simple  case where we have a response variable, *y*, a covariate *x* and  a factor *A*.
+
+There are a number of different models that we could fit.
+    
+- differently sloped regressions for each level of *A*,
+- parallel regressions at different levels of *A*,
+- single regression model,
+- model with zero slope, but distinct intercept for each Level of *A*, and
+- a null model having zero slope and common intercept.
+
+
+
+![](../graphics/glm.png)
+
+## Separate Regressions at Different Levels of *A*
+
+$$Y_{ij} = \mu + \alpha_i + \beta_i x_{ij} + \varepsilon_{ij}$$
+
+Note: intercept and slope depends on factor level *i*.  
+Treatment constraint fixes $\alpha_1 = 0$.
+
+R formula is `Y ~ A + A:x`
+
+Here the notation of an interaction between the covariate and the factor
+is telling R to allow the regression slope to depend on the factor
+level.
+
+![](../graphics/glm.png)
+
+## Parallel Regressions at Different Levels of *A*
+
+$$Y_{ij} = \mu + \alpha_i + \beta x_{ij} + \varepsilon_{ij}$$
+
+Note: constant slope, but intercept depends on factor level *i*.  
+Treatment constraint sets $\alpha_1 = 0$.
+
+R formula is `Y ~ A + x`
+
+![](../graphics/glm.png)
+
+## Single Regression Model
+
+$$Y_{ij} = \mu + \beta x_{ij} + \varepsilon_{ij}$$
+
+Note: factor *A* plays no role here.
+
+R formula is the familiar `Y ~ x`
+
+![](../graphics/glm.png)
+
+*Technical aside:*  
+
+Another possible model would be different regression slopes but a common
+intercept, but this is not commonly used.
+
+## Interpretation of Linear Model Formulae
+
+The ideas just presented can be extended in a natural fashion to
+models with two or more factors and covariates.
+
+Suppose that the R formula is `Y ~ A + A:B + A:x + z`, where `A` and `B` are factors, and `x` and `z` are covariates. Then the model is defined by:
+
+$$Y_{ijk} = \mu +\alpha_i + \beta_{ij} + \gamma_i x_{ijk} + 
+     \delta z_{ijk} + \varepsilon_{ijk}.$$
+
+
+Suppose that the R formula is `Y ~ A*B + A:x`
+    
+This model is defined by $Y_{ijk} = \mu +\alpha_i + \beta_j + (\alpha\beta)_{ij} + 
+    \gamma_i x_{ijk} + \varepsilon_{ijk}.$
+
+Suppose that the R formula is   `Y ~ A + A:x + B + B:z `
+    
+This model is defined by $Y_{ijk} = \mu +\alpha_i + \beta_j + \gamma_{i} x_{ijk} + \delta_j z_{ijk} + \varepsilon_{ijk}.$
+
+## Samara
+
+Samara are small winged fruit on maple trees.
+
+In Autumn these fruit fall to the ground, spinning as they go.
+
+Research on the aerodynamics of the fruit has applications for helicopter design.
+
+![](../graphics/samara.jpg){width=80%}
+
+## Linear Models for Samara Data
+
+
+In one study the following variables were measured on individual samara:
+
+1. `Velocity`: speed of fall
+2. `Tree`: data collected from 3 trees
+3. `Load`: ‘disk loading’ (an aerodynamical quantity based on each
+        fruit’s size and weight).
+
+The aim of this Case Study is to model `Velocity` in terms of `Load` (a numerical    covariate) and `Tree` (a factor).
+
+## Samara Data: R Code
+
+
+`r xfun::embed_file("../data/samara.csv")`
+
+```{r getSamara, echo=-1, eval=-2}
+Samara <- read.csv(file="../data/samara.csv", header=TRUE)
+#Samara <- read.csv(file="samara.csv", header=TRUE)
+str(Samara)
+Samara |> mutate(TreeF = factor(Tree)) ->  Samara
+```
+
+N.B. It might prove useful to have the values of `Tree` as both a numeric and a factor variable.
+
+## Samara Data: Plot of Data
+
+```{r SamaraPlot, fig.cap="Scatter plot of data with different colours and plotting symbols used to distinguish data from different trees."}
+Samara |>
+ggplot(mapping = aes(y=Velocity, x=Load)) + 
+geom_point(mapping = aes(col=TreeF, pch=TreeF))
+```
+
+
+## Model Fitting
+
+
+We will fit a model with separate regression lines at different levels of TreeF.  
+The following shows the effect  parameterising the model two ways:
+
+The first way gives estimates for the intercept and slope for each line separately. We do this by excluding the Load term from the model formula, and including only the interaction between TreeF and Load.
+ 
+```{r Samara.lm}
+Samara.lm <- lm(Velocity ~ TreeF + TreeF:Load, data=Samara) 
+summary(Samara.lm)
+```
+
+Note the first model has TreeF1:Load, and the coefficients for TreeF2:Load and TreeF3.
+Load are tested against the hypotheses that the slope is zero for each of those trees. 
+This may not be a sensible hypothesis.
+
+## 
+
+The second way specifies a baseline (for TreeF1),  and then adjustments to the intercept and slope for the second and third line.  The second way gives us insight into where there are significant differences to the baseline, (if any). 
+ 
+```{r}
+Samara.lm2 <- lm(Velocity ~ TreeF * Load, data = Samara)
+summary(Samara.lm2)
+```
+
+As usual, the treatment constraint is used by default for `TreeF` (the factor version of `Tree`). Hence the `Intercept` listed under the coefficients is the intercept for `TreeF1`,      with adjustments for treeF2 and 3 given in the summary table.     The relevant hypothesis tests are for whether the intercepts and slopes are the same or different to that of the baseline. 
+
+## Conclusions
+
+Either way we get the fitted model is as follows: 
+
+$$\begin{aligned}
+    &\mbox{Tree 1}&~~~E[ \mbox{Velocity}] =  0.541 + 3.06  \mbox{Load}\\
+    &\mbox{Tree 2}&~~~E[ \mbox{Velocity}] = -0.299 + 6.80  \mbox{Load}\\
+    &\mbox{Tree 3}&~~~E[ \mbox{Velocity}] =  0.242 + 3.88  \mbox{Load}\end{aligned}$$
+    
+Check that you can get the same numbers with either parameterisation.
+
+### Checking models
+
+Two different parameterisations of the same model will have different coefficients in the `summary()` output. 
+They will have to have the same number of coefficients though.
+
+
+If you need to convince yourself that two different parameterisations lead to the same underlying model, look at the fitted values for each parameterisation.
+
+Same fitted values means same residuals etc.
+
+
