@@ -33,6 +33,7 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(patchwork)
 ```
 
 
@@ -65,21 +66,34 @@ SkiSales = read.csv("../data/SkiSales.csv",header=TRUE)
 SkiSales |> head() |> kable()
 ```
 
-```{r PlotSkiSales}
-SkiSales |> mutate(Quarter =  as.factor(Quarter)) |> ggplot(aes(y=Sales, x= PDI)) +
-geom_point(aes(pch=Quarter, col= Quarter))
+## Ski Sales and Residuals
 
-SkiSales.lm1 = lm(Sales ~ PDI, data=SkiSales)
-Residuals =  SkiSales.lm1$residuals
-SkiSales |> mutate(Quarter = as.factor(Quarter)) |> ggplot(aes(x=PDI, y=Residuals)) +
-geom_point(aes(pch=Quarter, col= Quarter)) +
-geom_abline(h=0)
+```{r PlotSkiSales}
+a <- SkiSales |>
+  mutate(Quarter = as.factor(Quarter)) |>
+  ggplot(aes(y = Sales, x = PDI)) +
+  geom_point(aes(pch = Quarter, col = Quarter))
+
+SkiSales.lm1 <- lm(Sales ~ PDI, data = SkiSales)
+Residuals <- resid(SkiSales.lm1)
+
+b <- SkiSales |>
+  mutate(Quarter = as.factor(Quarter)) |>
+  ggplot(aes(x = PDI, y = Residuals)) +
+  geom_point(aes(pch = Quarter, col = Quarter)) +
+  geom_hline(yintercept = 0, color = "blue", linewidth = 0.7, linetype = "dashed")
+
+# Side by side
+(a | b) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
 ```
 
 The residual plot shows that residuals tended to be positive in the first and fourth quarter of the year
-(plotted using o,x) and negative in second and third quarter (plotted using triangle,+).    It therefore
-seems reasonable to create an indicator variable for winter
- (first and   fourth quarter). 
+(plotted using 🔴,➕) and negative in second and third quarter (plotted using 🟦 , \blacktriange), I
+t therefore seems reasonable to create an indicator variable for winter (first and   fourth quarter). 
+ 
+## Winter Indicator
  
 ```{r winterIndicator}
 SkiSales |> mutate(Winter =as.numeric( (Quarter ==1)+ (Quarter ==4))) -> SkiSales
@@ -91,6 +105,8 @@ plot(SkiSales.lm2$residuals ~ PDI,  pch=Quarter, col= Quarter, data=SkiSales)
 The regression shows ski sales are significantly higher in winter, as expected, and the residuals do not show any particular pattern with Quarter.   
 
 However, for completeness, we will just check whether there is any tendency for ski sales to be higher or lower in the first half of winter (Christmas??) or summer. 
+
+## Quarter Indicators
 
 ```{r Q4Q2Indicator}
 SkiSales |> mutate(Q4=as.numeric(  Quarter ==4 ),
@@ -116,17 +132,27 @@ The focus *for us* is how to adjust the analysis for the effect of season (month
 #Electricity= read.csv("Electricity.csv",header=TRUE)
 Electricity = read.csv("../data/Electricity.csv",header=TRUE) 
 Electricity |> head() |> kable()
+```
+
+## Electricity Plot
+
+```{r Electricity lm1}
 Electricity.lm1 =lm(Bill~Days + Estimate+ Guestwks + Time , data=Electricity)
 resids =Electricity.lm1$residuals
-plot(resids~ Time, data=Electricity)
-lines(resids~ Time, lty=1,col=4, data=Electricity)
-abline(h=0, lty=2)
+# ggplot residuals vs Time (points + line + y=0 reference)
+Electricity |>
+  dplyr::mutate(Residuals = resid(Electricity.lm1)) |>
+  ggplot2::ggplot(ggplot2::aes(x = Time, y = Residuals)) +
+  ggplot2::geom_point() +
+  ggplot2::geom_line() +
+  ggplot2::geom_hline(yintercept = 0, color = "blue", linewidth = 0.7, linetype = "dashed") +
+  ggplot2::labs(x = "Time", y = "Residuals from Bill ~ Days + Estimate + Guestwks + Time")
 ```
 
 
 Although the effect of season is not clear, there are portions of the graph with several positive residuals in sequence, and several negative residuals. Time starts here at month=5 (May).
 
-### Indicator variables
+## Indicator variables
 
 One way of modelling seasonality would be to estimate an effect for each Month.  The dataset here is really too short for such an approach, but we can try it for purposes of illustration.
 
@@ -168,6 +194,8 @@ $\sin(x)$ and $\cos(x)$  will automatically calculate the slope parameters $A_1$
 
 If we find out later the extra cos() term is  not needed, then we can stick with our guess of April. 
 
+##
+
 ```{r sinusoidal first guess}
 Electricity |> mutate(SinTime = sin((Time-4)*2*3.1415927 /12),
 CosTime = cos((Time-4)*2*3.1415927 /12)) -> Electricity
@@ -177,7 +205,9 @@ summary(Electricity.lm3)
 
 The regression shows that the coefficient of CosTime is definitely non-zero.  If it had been zero then this would mean  $\sin(\phi)=0$  and hence $\phi=0$  or in other words that there was no need for any further adjustment from my guess of April as the “average” month.       
 
-Since the CosTime is highly significant it looks as if my guess was wrong.  Let’s plot the fitted values on the same graph as my working ‘response’ variable.The plot below shows that the fitted values equal zero close to the first data point, at Time =5. 
+##
+
+Since the CosTime is highly significant it looks as if our guess was wrong.  Let’s plot the fitted values on the same graph as my working ‘response’ variable.The plot below shows that the fitted values equal zero close to the first data point, at Time =5. 
 
 ```{r plotSinusoidal}
 plot(resids~ Time, data=Electricity)
@@ -187,7 +217,7 @@ abline(h=0, lty=2)
 ```
 
  
-So we will try with 5 as the adjustment. The working below shows success. 
+So we will try with 5 as the adjustment. 
 
 ```{r second sinusoidal}
 Electricity |> mutate(SinTime = sin((Time-5)*2*3.1415927 /12),
@@ -195,8 +225,10 @@ CosTime = cos((Time-5)*2*3.1415927 /12)) -> Electricity
 Electricity.lm4 = lm(resids ~ SinTime  + CosTime, data=Electricity)
 summary(Electricity.lm4)
 ```
- 
-### Adding more sin and cos terms
+
+Success! The coefficient of CosTime is now not significantly different from zero.
+
+## Adding more sin and cos terms
 
 Now considering again the plot, I am not convinced  that the
 relationship between resids and month is  a simple
@@ -235,7 +267,7 @@ The graph suggests:  first, that  the peak in power costs in winter is steeper t
 
 The only way to check would be to add in even more terms such as sines and cosines with 3 times the frequency.  However we do not have a lot of data so we will stop here. 
 
-### Putting it together
+## Putting it together
 
 Finally one should put all the variables together into the same model: 
  
