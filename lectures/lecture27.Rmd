@@ -3,17 +3,17 @@ title: "Lecture 27: Variable Selection"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Nick Knowlton <nknowlton@massey.ac.nz>"  
 output:
+  slidy_presentation: 
+    theme: yeti
+    highlight: tango
+  word_document: default
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
   html_document:
     code_download: true
     theme: yeti
     highlight: tango
-  word_document: default
-  slidy_presentation: 
-    theme: yeti
-    highlight: tango
-  ioslides_presentation:
-    widescreen: true
-    smaller: true
   pdf_document:
     latex_engine: xelatex
 header-includes:

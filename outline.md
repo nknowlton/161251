@@ -17,6 +17,7 @@ Week 11
 
 29: Multicollinearity 
 30: Weighted regression 
+31: Serial Correlation
 
 11A: Multicollinearity 
 11B: Weighted regression 
@@ -28,3 +29,4 @@ Week 12
 
 12A: Time series 1
 12B: Time series 2
+

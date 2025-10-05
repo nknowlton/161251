@@ -1,8 +1,7 @@
 ---
 title: "Lecture 29: Multicollinearity"
 subtitle: 161.251 Regression Modelling
-author: "Presented by Jonathan Marshall <J.C.marshall@massey.ac.nz>"  
-date: "Week 11 of Semester 2, `r lubridate::year(lubridate::now())`"
+author: "Presented by Nick Knowlton <nknowlton@massey.ac.nz>"  
 output:
   ioslides_presentation:
     widescreen: true
