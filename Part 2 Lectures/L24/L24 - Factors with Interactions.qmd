@@ -1,0 +1,284 @@
+---
+title: "Lecture 24 - Factors with Interactions"
+author: "Sergio Sclovich"
+format: 
+  revealjs:
+    embed-resources: true
+    slide-number: true
+    incremental: false
+    highlight-style: zenburn
+    highlight-lines: true
+    ratio: "4:3"
+    progress: true
+    slideNumberFormat: "%current%/%total%"
+    theme: moon
+    css: "../format.css"
+execute:
+  output: true
+  eval: true
+  code-fold: true   # enable code folding
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, echo=FALSE}
+library(broom)
+library(knitr)
+library(ggplot2); theme_set(theme_bw(base_size=15))
+library(patchwork)
+library(tidyverse)
+library(kableExtra)
+library(car)
+library(DescTools)
+
+# Ensure the plot options are set correctly
+#opts_chunk$set(dev.args=list(bg='transparent'), comment="", warning=FALSE, echo=FALSE)
+opts_chunk$set(comment="", warning=FALSE, echo=FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.dim=c(8,5), out.width="70%", fig.retina=2)
+
+```
+
+
+## learning outcomes
+
+-- Design and interpret a factor model with interactions.
+
+&nbsp;
+
+-- Implement a factor model with interactions in R.
+
+## An Intuitive Introduction to Interactions
+
+-- So far, we have considered that the overall treatment effect is purely the addition of the main effects of the factors.
+
+&nbsp;
+
+-- Sometimes this will not be the case because the factors `interact`.
+
+## An Intuitive Introduction to Interactions
+
+Suppose
+
+- Drug 1 on its own reduces blood pressure by 3 units.
+
+  - Factor *A*: drug 1 absent, and drug 1 present.
+
+- Drug 2 on its own reduces blood pressure by 5 units.
+
+  - Factor *B* has two levels: drug 2 absent, and drug 2 present.
+
+
+
+## An Intuitive Introduction to Interactions
+
+The `main effects` model for two factors is
+
+$$Y_{ijk} = \mu + \alpha_i + \beta_j + \varepsilon_{ijk}$$
+
+For the two drug example we would have $\alpha_2 = -3$ and $\beta_2 = -5$.
+
+According to the main effects model, the treatment effect with both drugs (relative to the baseline level) is $\alpha_2 + \beta_2 = -8$.
+
+## An Intuitive Introduction to Interactions
+
+To represent an interactive effect between the drugs we need to  introduce an extra term in the model:
+
+$$Y_{ijk} = \mu + \alpha_i + \beta_j + (\alpha\beta)_{ij} + \varepsilon_{ijk}$$
+
+Here $(\alpha\beta)_{ij}$ is the so-called `interaction term` in the model.
+
+The notation $(\alpha\beta)_{ij}$ represents new parameters  (`NOT` a multiplication of the $\alpha$ and $\beta$  parameters).
+
+## An Intuitive Introduction to Interactions
+
+-- It is necessary to impose constraints on the interaction parameters to avoid overparameterization.
+
+-- The treatment constraint sets all $(\alpha\beta)_{ij}=0$ when either *i* or *j* is one.
+
+-- Hence, in the two drug example, only $(\alpha\beta)_{22}$ is non zero.
+
+## An Intuitive Introduction to Interactions
+
+For the model with interaction, the treatment effect in the presence of both drugs is
+
+$$\alpha_2 + \beta_2 + (\alpha\beta)_{22} = -8 + (\alpha\beta)_{22}$$
+
+so that $(\alpha\beta)_{22}$ here represents the change from the  main effects model that is caused by the interaction of the drugs.
+
+## Two-Way Model with Interaction
+
+For a general model with two factors, the model with interaction is
+
+$$Y_{ijk} = \mu + \alpha_i + \beta_j + (\alpha\beta)_{ij} + \varepsilon_{ijk}$$
+
+## Two-Way Model with Interaction
+
+-- Both the main effects parameters ($\alpha_i$, $\beta_j$) and the interaction parameters $(\alpha\beta)_{ij}$ must be constrained.
+
+&nbsp;
+
+-- We assume use of the treatment constrained (all  parameters indexed by level 1 of either factor are zero).
+
+## Two-Way Model with Interaction
+
+-- If factor *A* has *K* levels and factor *B* has *L* levels  then there are *(K-1)(L-1)* unconstrained interaction parameters.
+
+&nbsp;
+
+-- Modelling with an interaction term allows any pattern of means between the different factor levels (no particular structure).
+
+## Inference for the Two-Way Model with Interaction
+
+-- Parameter estimation is done by the method of least squares. Fitted values and residuals continue to be defined in the usual way.
+
+-- The first test that is commonly done with the interaction model is to assess whether the interaction term in the model is statistically  significant.
+
+-- In the *F* test, if the interaction term is important, then no more testing is necessary.
+
+## Inference for the Two-Way Model with Interaction
+
+::: callout-important
+
+If a model contains an interaction term then it must also contain the corresponding main effects (even if these appear to be non-significant).
+
+:::
+
+## Testing for an Interaction Between Factors
+
+Testing for the importance of the interaction is equivalent to  comparing models
+
+$$M0:~~~Y_{ijk} = \mu + \alpha_i + \beta_j + \varepsilon_{ijk}$$
+
+$$M1:~~~Y_{ijk} = \mu + \alpha_i + \beta_j + (\alpha\beta)_{ij} + \varepsilon_{ijk}$$
+
+## Testing for an Interaction Between Factors
+
+Hypothesis tests for parameters
+
+*H~0~*: $$(\alpha\beta)_{ij} = 0~\mbox{for all}~i, j$$
+
+*H~1~*: $$(\alpha\beta)_{ij}~\mbox{not zero for all}~i, j$$
+
+## Testing for an Interaction Between Factors
+
+The *F* test statistic is
+
+$$F = \frac{[RSS_{M0} - RSS_{M1}]/[(K-1)(L-1)]}{RSS_{M1}/(n-KL)}$$
+
+with the corresponding *P*-value computed in the usual manner.
+
+## ANOVA Table for the Interaction Model
+
+<div style="font-size:smaller;"> 
+
+|                           |       Df       |    Sum Sq |   Mean Sq |     F value |     P value |
+| :------------------------ | :------------: | --------: | --------: | ----------: | ----------: |
+| Factor *A*              | $K-1$     | $SSA$ | $MSA$ | $f_a$ | $P_A$ |
+| Factor *B* (adj.*A*) | $L-1$     | $SSB|A$ | $MSB|A$ | $f_{B|A}$ | $P_{B|A}$ |
+| Interaction               | $(K-1)(L-1)$ | $SSI$ | $MSI$ | $f_I$ | $P_I$ |
+| Residual                  | $n-KL$    | $RSS$ | $RMS$ |             |             |
+| Total                     | $n-1$     |   $TSS$ |           |             |             |
+
+</div>
+
+## ANOVA Table for the Interaction Model
+
+The sum of squares for the interaction ($SSI$ in the table) can be computed by  subtraction (difference in RSS for models *M0* and *M1*).
+
+&nbsp;
+
+The *F* test statistic for the interaction is $f_I = MSI/RMS$
+
+## Example: rat diet
+
+This task concerns a complete and balanced experiment into rat weight gain.
+
+Two factors:
+
+1. Protein: either beef or cereal;
+2. Amount: either low or high.
+
+We have ten replicates at each treatment.
+
+## Example: rat diet
+
+```{r, echo=-1}
+RatDiet <- read.csv(file="./ratdiet.csv", header=TRUE)
+table(RatDiet$Protein, RatDiet$Amount)
+```
+
+## Example: rat diet
+
+Additive model
+
+```{r, echo=FALSE}
+RatDiet$Amount <- factor(RatDiet$Amount, levels = c("Low", "High"))
+levels(factor(RatDiet$Amount))
+```
+
+
+```{r RatDiet.add.lm}
+RatDiet.add.lm <- lm(Gain ~ Amount + Protein, data=RatDiet)
+anova(RatDiet.add.lm)
+```
+
+What can you conclude (if anything) about the effect of `Protein` ignoring the effects of `Amount`?
+
+## Example: rat diet
+
+Interaction model
+
+```{r RatDiet.lm}
+RatDiet.lm <- lm(Gain ~ Amount * Protein, data=RatDiet)
+```
+
+The syntax `A*B` for factors `A` and `B` indicates the main effects of the factors themselves and their  interaction, which is written `A:B`.
+
+  Gain ~ Amount `*` Protein
+  
+  and  
+  
+  Gain ~ Amount + Protein `+ Amount:Protein`
+
+are the same formula.
+
+## Example: rat diet
+
+```{r anovaRatDiet.lm}
+anova(RatDiet.lm)
+```
+
+
+ *P*-value for interaction between `Protein` and `Amount` is *P=0.055* (marginal), from an *F*-statistic of *3.95* on *1, 36*  degrees of freedom.
+
+Weak evidence of the existence of an interaction.
+
+## Example: rat diet
+
+Summary Table:
+
+```{r summaryRatDiet.lm}
+summary(RatDiet.lm)$coefficients
+```
+
+## Example: rat diet
+
+```{r}
+
+interaction.plot(RatDiet$Amount, RatDiet$Protein, RatDiet$Gain,
+                 fun = mean,
+                 col = c("darkgreen", "orange"), xlab = "Feed Amount", ylab = "Mean Gain",
+                 trace.label = "Protein")
+```
+
+## Fitted Values 
+
+In the previous example, write down the fitted values for each of the four possible treatments.
+
+Obtain these using R code.
+
+```{r}
+cbind(RatDiet, RatDiet.lm$fitted.values)
+```

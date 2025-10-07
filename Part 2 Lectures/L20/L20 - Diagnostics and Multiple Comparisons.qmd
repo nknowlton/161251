@@ -1,0 +1,315 @@
+---
+title: "Lecture 20 - Diagnostics and Multiple Comparisons"
+author: "Sergio Sclovich"
+format: 
+  revealjs:
+    embed-resources: true
+    slide-number: true
+    incremental: false
+    highlight-style: zenburn
+    highlight-lines: true
+    ratio: "4:3"
+    progress: true
+    slideNumberFormat: "%current%/%total%"
+    theme: moon
+    css: "../format.css"
+execute:
+  output: true
+  eval: true
+  code-fold: true   # enable code folding
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, echo=FALSE}
+library(broom)
+library(knitr)
+library(ggplot2); theme_set(theme_bw(base_size=15))
+library(patchwork)
+library(tidyverse)
+library(kableExtra)
+library(car)
+library(DescTools)
+
+# Ensure the plot options are set correctly
+#opts_chunk$set(dev.args=list(bg='transparent'), comment="", warning=FALSE, echo=FALSE)
+opts_chunk$set(comment="", warning=FALSE, echo=FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.dim=c(8,5), out.width="70%", fig.retina=2)
+
+```
+
+
+## learning outcomes
+
+-- Interpret diagnostic tools for factor models.
+
+-- Interpret post hoc multiple comparisons.
+
+-- Implement diagnostics and multiple comparisons in R.
+
+
+
+## Diagnostics for Caffeine Data
+
+-- We have tested whether the speed of students finger tapping is related to the caffeine dose received.
+
+-- The validity of our conclusions is contingent on the adequacy of the fitted model.
+
+## Diagnostics for Caffeine Data
+
+```{r, echo = 0}
+Caffeine <- read.csv(file="./caffeine.csv", header=TRUE)
+```
+
+
+```{r Caffeine plot, echo=-1}
+Caffeine.lm= lm(Taps~factor(Dose),data= Caffeine)
+par(mfrow=c(2,2))
+plot(Caffeine.lm)
+```
+
+The diagnostic plots do not provide any reason to doubt the appropriateness of the fitted model.
+
+<!-- ## Comments on the Diagnostic Plots -->
+
+<!-- -- A `balanced` factor  design exists when the same number of observations are taken at each factor level. -->
+
+<!-- -- When the data are balanced the leverage is constant, so a plot of the leverage would be pointless. -->
+
+<!-- -- As a result, R produces a plot of standardized residuals against factor levels for balanced factor  models in place of the usual residuals versus leverage plot. -->
+
+## Comments on the Diagnostic Plots
+
+-- For factor models, it is particularly important to scrutinize the plots for `heteroscedasticity`.
+
+-- When heteroscedasticity is present, assumption A3 fails and conclusions based on *F* tests become unreliable.
+
+## Tests for Heteroscedasticity
+
+These are the same as for binary variables.  The hypotheses for this test are:
+
+$H_0$:  error variance constant across groups.
+
+$H_1$:  error variance not constant across groups.
+
+Rejecting the null means that the equal variance assumption is violated.
+
+## Tests for Heteroscedasticity
+
+As before, we can check using Bartlett's test (if we think the residuals look reasonably normal)  or Levene's test.
+
+```{r Caffeine.bt}
+Caffeine.bt = bartlett.test(Taps ~ Dose, data = Caffeine)
+Caffeine.bt
+Caffeine.lv = leveneTest(Taps~  factor(Dose), data = Caffeine) #car package
+Caffeine.lv
+```
+
+
+## Multiple Comparisons
+
+-- In a factor model, the overall importance of the factor should be assessed by performing an *F* test.
+
+-- If a factor is found to be significant, we might be interested in comparing the relative outcomes between many pairs of factor levels.
+
+&nbsp;
+
+This is sometimes referred to as **post hoc testing**.
+
+    Post hoc means "after this" in Latin. Thus it is something you do after establishing that the means are not all equal. This should be done with care.
+
+## Caffeine Data Revisited
+
+The parameter estimates for the caffeine data model were as follows:
+    
+
+```{r Caffeine.lm }
+Caffeine$Dose <- factor(Caffeine$Dose, levels=c("Zero",
+"Low", "High"))
+Caffeine.lm <- lm(Taps~Dose, data=Caffeine) 
+summary(Caffeine.lm)$coefficients
+```
+    
+
+Due to the treatment constraint, the estimates $\hat \alpha_2 = 1.6$ and $\hat \alpha_3 = 3.5$ represent     respectively the difference in mean response between the low dose and control groups, and between the high dose and control groups.
+
+## Caffeine Data Revisited
+
+Having found that `Dose` is statistically significant, we can investigate *where* the differences in mean response lie.
+
+We could compare factor level means by formal tests:
+    
+1.  Is the mean response at low level different from the control group? A t-test of $H_0$: $\alpha_2 = 0$ versus $H_1$: $\alpha_2 \ne 0$ retains $H_0$ ($P=0.12$); i.e. no difference between low dose and control groups
+
+## Caffeine Data Revisited
+    
+2.  Is the mean response at high level different from the control group?   A t-test of $H_0$: $\alpha_3 = 0$ versus $H_1$: $\alpha_3 \ne 0$ rejects $H~0$ ($P=0.002$); 
+ie. there is a difference between high and control groups.
+
+## Caffeine Data Revisited
+
+In the analysis below, the intercept has been dropped from the model. That means the confidence intervals for the coefficients are in fact confidence intervals for the mean Taps at each dose level.  
+
+```{r Caffeine.lm0}
+Caffeine.lm0 <- lm(Taps~0+Dose, data=Caffeine) 
+#summary(Caffeine.lm0)
+confint(Caffeine.lm0)
+```
+
+We see that the CIs for $\mu_1$ and for $\mu_2$ overlap, but the CIs for $\mu_1$ and $\mu_3$ do not overlap. 
+So can we conclude that this is where the significant *F*-value comes from?
+
+## The Multiple Comparisons Problem
+
+Imagine each pairwise test like buying a raffle ticket.
+
+-- With 3 groups -> 3 tickets -> ~15% chance of a false win.
+
+-- With 20 groups -> 190 tickets -> expect ~10 false wins just by luck.
+
+-- More groups gives a higher chance of false positives.
+
+## The Multiple Comparisons Problem
+
+From all this we see that the conclusion from CIs for the means may not match up with the conclusion from an F test:
+
+--	if we have two non-overlapping confidence intervals then this **usually (but not always)** indicates that the two group  means $\mu_i$ and $\mu_j$ are different.
+
+--	if we have overlapping confidence intervals then this **usually (but not always)** indicates that two group means $\mu_i$ and $\mu_j$   do not differ.
+
+## Solution to the multiple comparisons problem
+
+We need to adjust our comparisons to account for this problem.
+
+There are several methods, we are going to work with:
+
+-- Bonferroni Correction for error inflation.
+
+-- Tukey honestly significant difference.
+
+-- Dunnett intervals.
+
+## Bonferroni Correction for error inflation
+
+This is the most common approach. It adjust the significance levels for each individual test by the number of test *N*.
+
+$$\alpha/N$$
+
+For example,  for a factor with 5 levels the number of comparisons is given by
+
+$$N= \frac{K(K-1)}{2} =10$$
+
+## Bonferroni Correction for error inflation
+
+To keep the overall type I error to 5% (at most), the Bonferroni  correction says reject the null hypothesis for any individual test only if the *P*-value is below a significance level of *0.05/10 = 0.005 = 0.5%*.
+
+However, the Bonferroni correction is very conservative, in the sense that the overall significance level may be much lower than $\alpha$. This can mean that it is hard to spot significant  effects.
+
+## Bonferroni Correction for error inflation
+
+::::{.columns}
+
+
+:::{.column with="50%"}
+
+```{r}
+summary(Caffeine.lm)$coefficients
+```
+:::
+
+:::{.column with="50%"}
+
+```{r}
+pvals <- pairwise.t.test(Caffeine$Taps, Caffeine$Dose, p.adjust.method = "none")$p.value
+pvals
+```
+
+:::
+
+::::
+
+```{r}
+p.adjust(pvals, method = "bonferroni")
+```
+
+```{r}
+pairwise.t.test(Caffeine$Taps, Caffeine$Dose, p.adjust.method = "bonferroni")
+```
+
+
+## Bonferroni Correction for error inflation
+
+```{r}
+library(ggpubr)
+
+ggplot(Caffeine, aes(x = Dose, y = Taps)) +  geom_boxplot() +
+  stat_compare_means(method = "t.test", label = "p.signif",
+    comparisons = list(
+      c("Zero", "Low"),
+      c("Zero", "High"),
+      c("Low", "High")
+    ), p.adjust.method = "bonferroni")
+```
+
+
+## Tukey HSD intervals
+
+John Tukey  developed an adjusted multiplier that works for all two group comparisons.  He called his method Honest Statistical Differences (The name leaves no doubt about what he thought of other people's approaches).   
+
+$$ \bar X_i - \bar X_j  \pm \mbox{multiplier} \times
+\mbox{standard error} $$
+
+## Tukey HSD intervals
+
+In R works off the output of an old ANOVA function called aov().
+
+&nbsp;
+
+```{r Tukey}
+tmc =TukeyHSD(aov(Taps~factor(Dose), data=Caffeine))
+tmc$`factor(Dose)`
+```
+
+
+## Tukey HSD intervals
+
+```{r}
+plot(tmc)
+```
+
+If the CI includes zero then the means are not significantly different.
+
+
+## Dunnett intervals
+
+-- Dunnett intervals just compare each group to a control level.
+
+-- For the Caffeine analysis that is just two comparisons instead of three.
+
+-- Dunnett intervals has narrower intervals than Tukey, since we don't have to adjust for so many chance 'significant' results.
+
+
+## Dunnett intervals
+
+In R one needs to load the package DescTools.
+
+```{r DunnettTest}
+library(DescTools)
+DunnettTest(Taps ~ factor(Dose), control ="Zero", data=Caffeine)
+```
+
+## Discussion
+
+Post hoc comparisons can be tricky because:
+
+-- More tests, higher chance of false positives (Type I error).
+
+-- Harder to interpret many p-values correctly.
+
+-- We can adjust significance levels to reduce false positives (e.g., Bonferroni).
+
+-- Sometimes it is better to look at the estimated group differences directly.
+
+Always interpret multiple comparisons with caution. Results are suggestive, not definitive.

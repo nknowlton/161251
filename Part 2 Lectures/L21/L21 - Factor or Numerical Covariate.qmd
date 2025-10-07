@@ -1,0 +1,203 @@
+---
+title: "Lecture 21 - Factor or Numerical Covariate?"
+author: "Sergio Sclovich"
+format: 
+  revealjs:
+    embed-resources: true
+    slide-number: true
+    incremental: false
+    highlight-style: zenburn
+    highlight-lines: true
+    ratio: "4:3"
+    progress: true
+    slideNumberFormat: "%current%/%total%"
+    theme: moon
+    css: "../format.css"
+execute:
+  output: true
+  eval: true
+  code-fold: true   # enable code folding
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, echo=FALSE}
+library(broom)
+library(knitr)
+library(ggplot2); theme_set(theme_bw(base_size=15))
+library(patchwork)
+library(tidyverse)
+library(kableExtra)
+library(car)
+library(DescTools)
+
+# Ensure the plot options are set correctly
+#opts_chunk$set(dev.args=list(bg='transparent'), comment="", warning=FALSE, echo=FALSE)
+opts_chunk$set(comment="", warning=FALSE, echo=FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.dim=c(8,5), out.width="70%", fig.retina=2)
+
+```
+
+
+## learning outcomes
+
+-- Differentiate between a categorical variable used as factor or covariate.
+
+-- implement and compare both models in R.
+
+## Factor or Covariate?
+
+When we have a categorical variable expressed as measured levels we can consider the question:
+
+&nbsp;
+
+"Is it better to use it as a factor or a numerical covariate?"
+
+&nbsp;
+
+For example, should the effect of a drug be modelled using a four level factor (zero, low, medium and high doses) or as a numeric variable (0, 10, 20, 30 ml doses)?
+
+## Nesting of Linear Effects
+
+Consider a one factor experiment in which all individuals at factor level *j* take the same value of *x* for this variable ($j=1,2,\ldots,K$).
+
+We could fit a simple linear regression model to the data:
+
+$$M0: Y_i = \beta_0 + \beta_1 x_i + \varepsilon_i~~~~~~(i=1,2,\ldots,n)$$
+
+We could also fit a standard one-way factorial model which can be written as a multiple regression model:
+
+$$M1: Y_i = \mu + \alpha_2 z_{i2} + \cdots + \alpha_K z_{iK}+\varepsilon_i~~~~~~(i=1,2,\ldots,n)$$
+
+where $z_{ij}$ is the indicator variable for unit *i* being at  factor level *j* as usual.
+
+## Nesting of Linear Effects
+
+-- $M0$ assumes that the expected values (means) of the response for each level of the factor follow a straight line.
+
+&nbsp;
+
+-- $M1$ allows the mean response to vary arbitrarily across the levels of the factor.
+
+&nbsp;
+
+Therefore, the $M0$ model will be preferred if the relationship between the factor and the response is linear. The $M1$ model will be preferred if their relationship is not linear.
+
+## Nesting of Linear Effects
+
+-- We can show that model $M0$ `is nested within` model $M1$.
+
+-- We can compare models $M0$ (the simpler one) and $M1$ (the more complex one) using an *F* test:
+
+  -- *H~0~*: model $M0$ adequate.
+  
+  VS
+
+  -- *H~1~*: model $M0$ not adequate.
+ 
+## Nesting of Linear Effects
+ 
+ using the *F* test statistic:
+
+$$F = \frac{[RSS_{M0} - RSS_{M1}]/(K-2)}{RSS_{M1}/(n-K)}.$$
+
+
+-- The *F*-statistic has *K-2, n-K* degrees of freedom.
+
+## Nesting of Linear Effects
+
+-- Retention of *H~0~* indicates that a simple linear regression model is adequate; i.e. the effect of the variable *x* is adequately modelled as linear.
+
+-- Rejection of *H~0~* indicates that any association between *y* and *x* is non-linear.
+
+
+## Vitamin C and Tooth Growth experiment
+
+-- 30 guinea pigs were divided (at random) into three groups of ten and dosed with different ammounts of vitamin C in mg (administered in orange juice).
+
+  -- Group 1: low (0.5mg).
+  
+  -- Group 2: medium (1mg).
+  
+  -- Group 3: high (2mg).
+
+-- Length of odontoblasts (teeth) was measured as response variable.
+
+## Vitamin C and Tooth Growth experiment
+
+```{r boxplotLengthDose}
+data(ToothGrowth)
+TG = ToothGrowth |>  filter(supp == "VC")
+plot(len ~ as.factor(dose), data=TG, col="grey")
+```
+
+## Vitamin C and Tooth Growth experiment
+
+
+The box plot is slightly suggestive of a change of dispersion in the response between the groups.
+
+```{r}
+bartlett.test(len ~ as.factor(dose), data=TG)
+```
+
+The test does not provide clear evidence of heteroscedasticity (*P*-value is *P=0.1048*).
+
+## Vitamin C and Tooth Growth experiment
+
+Could the dependence of tooth growth on vitamin C be adequately modelled by:
+
+-- a linear regression of `len` on `dose`
+
+&nbsp;
+
+or
+
+&nbsp;
+
+-- a factorial model with `len` and `as.factor(dose)` to be preferred?
+ 
+## Vitamin C and Tooth Growth experiment
+
+::::{.columns}
+
+
+:::{.column with="45%"}
+
+```{r Tooth.lm.0}
+Tooth.lm.0 <- lm(len ~ dose, data=TG)
+summary(Tooth.lm.0)$coefficients
+summary(Tooth.lm.0)$fstatistic
+```
+
+<span style="font-size:smaller;"> *p*-value: 1.509e-11  </span>  
+
+:::
+
+:::{.column with="45%"}
+
+```{r Tooth.lm.1}
+Tooth.lm.1 <- lm(len ~  as.factor(dose), data=TG)
+summary(Tooth.lm.1)$coefficients
+summary(Tooth.lm.1)$fstatistic
+```
+
+<span style="font-size:smaller;"> *p*-value: 3.357e-11  </span> 
+
+:::
+
+::::
+
+## Vitamin C and Tooth Growth experiment
+
+```{r anova1}
+anova(Tooth.lm.0, Tooth.lm.1)
+```
+
+-- We would retain *H~0~* at the 5% significance level (*p*-value:0.058).
+
+-- but there is certainly some evidence to doubt that the relationship should be modelled as a linear effect.
+ 
+
+

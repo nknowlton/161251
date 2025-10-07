@@ -1,0 +1,219 @@
+---
+title: "Lecture 23 - Orthogonal Factorial Models"
+author: "Sergio Sclovich"
+format: 
+  revealjs:
+    embed-resources: true
+    slide-number: true
+    incremental: false
+    highlight-style: zenburn
+    highlight-lines: true
+    ratio: "4:3"
+    progress: true
+    slideNumberFormat: "%current%/%total%"
+    theme: moon
+    css: "../format.css"
+execute:
+  output: true
+  eval: true
+  code-fold: true   # enable code folding
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, echo=FALSE}
+library(broom)
+library(knitr)
+library(ggplot2); theme_set(theme_bw(base_size=15))
+library(patchwork)
+library(tidyverse)
+library(kableExtra)
+library(car)
+library(DescTools)
+
+# Ensure the plot options are set correctly
+#opts_chunk$set(dev.args=list(bg='transparent'), comment="", warning=FALSE, echo=FALSE)
+opts_chunk$set(comment="", warning=FALSE, echo=FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.dim=c(8,5), out.width="70%", fig.retina=2)
+
+```
+
+
+## learning outcomes
+
+-- Recognize and interpret an orthogonal factorial design.
+
+-- Implement an orthogonal factorial design in R.
+
+## What is an Orthogonal Factorial Design?
+
+-- An `orthogonal factorial design` is a particular case of experimental designs, with interesting properties from a statistical point of view.
+
+&nbsp;
+
+-- A `factorial design` is when the number of observations in the different level groups of the different factors are chosen by an experimenter. 
+
+## What is an Orthogonal Factorial Design?
+
+-- A factorial design is `orthogonal` if the sum of squares attributable to one factor is the same whether or not the other factor has been included in the model.
+
+&nbsp;
+
+-- In terms of ANOVA tables, this means that *SSA* will be the same  whether *A* appears on the first or second line of the ANOVA table.
+
+&nbsp;
+
+--In terms of experimental design a `balanced` and `complete` factorial design is orthogonal.
+
+## What is a balanced and complete factorial design?
+
+- A factorial design is `complete` if observations are made at every possible combination of factor levels, or  treatment.
+
+  - For example, if factor *A* has 3 levels, and factor *B* has 4 levels, then a complete design requires that we observe responses at each of the possible $3\times4 = 12$ treatments.
+
+## What is a balanced and complete factorial design?
+
+- A factorial design is `balanced` if the same number of  experimental units are observed at each treatment.
+
+  - $n_{ij}$ = r `(number of replications is constant)`.
+  
+  
+| Factor A \ Factor B | B1             | B2             | B3             |
+|---------------------|----------------|----------------|----------------|
+| A1                  | * * *          | * * *          | * * *          |
+| A2                  | * * *          | * * *          | * * *          |
+
+
+## What is a balanced and complete factorial design?
+
+
+::: callout-important
+
+**Balance and completeness need to be achieved by design (they will not usually be the case in an observational study or survey).**
+
+:::
+
+## Consequences of an Orthogonal Factorial Design
+
+In a two-way orthogonal design:
+
+-- The *P*-values for each factor in the ANOVA table remain precisely the same irrespective of the order in which the factors are listed.
+
+&nbsp;
+
+-- In considering the importance of factor *B* it does not matter whether or not we have adjusted for *A* (and vice versa).
+
+&nbsp;
+
+-- The idea of orthogonality can be extended to three or more factor models.
+
+
+## Example: A Designed Experiment for Dairy Cattle
+
+::: {.columns}
+:::{.column width="65%"}
+
+```{r Cows.lm.1, echo=-1}
+Cows <- read.csv(file="./cows.csv", header=TRUE)
+table(Cows$Breed, Cows$Age)
+```
+
+:::
+:::{.column width="35%"}
+**Design summary**
+<div style="font-size:smaller;">
+- Cells: \(5 * 2 = 10\)  
+- Replicates per cell: \(r = 10\)
+- Total observations: \(N = 10 * 10 = 100\)  
+</div>
+:::
+:::
+
+- The design is `complete` and `balanced`, therefore `orthogonal`.
+
+## Analysis of Dairy Cattle Data
+
+::: {.columns}
+:::{.column width="50%"}
+
+```{r, echo=-1}
+Cows.lm.1 <- lm(Butterfat ~ Breed + Age, data=Cows)
+anova(Cows.lm.1)
+```
+
+:::
+:::{.column width="50%"}
+
+```{r Cows.lm.2, echo = -1}
+Cows.lm.2 <- lm(Butterfat ~ Age + Breed, data=Cows)
+anova(Cows.lm.2)
+```
+:::
+:::
+
+-- There is overwhelming evidence of a breed effect (*P*-value smaller than $2 \times 10^{-16}$) on mean butterfat content.
+    
+-- There is no evidence of an age effect.
+
+## Summary Table
+
+```{r summariesCows}
+summary(Cows.lm.1)$coefficients
+summary(Cows.lm.2)$coefficients
+```
+
+Note that by default, level one of `Age` (2 years old) and level one of `Breed`, Ayrshire,
+    are set as the reference levels for the treatment constraint.
+
+The Jerseys seem to provide the highest butterfat concentration.
+
+You should look at model diagnostics.
+
+## summary factorial models so far
+
+Remember the `one-way` model in multiple regression form
+
+$$Y_i = \mu + \alpha_2 z_{i2} + \ldots + \alpha_K z_{iK} + \varepsilon_i\\(i=1,2,\ldots,n)$$
+can be written as $$\boldsymbol{Y_{ij} = \mu + \alpha_i + \varepsilon_{ij}}$$
+
+## summary factorial models so far
+
+-- $Y_{ij}$ is the response of the $j$th unit at the $i$th level
+    of the factor $(i=1,\ldots,K;~j=1,\ldots,n_i)$;
+
+-- $K$ denotes the number of levels, and $n_i$ the number of
+    observations at level $i$ of the factor.
+
+## summary factorial models so far
+
+- Assume treatment constraint $\alpha_1=0$.
+
+- $\varepsilon_{11}, \varepsilon_{12}, \ldots, \varepsilon_{Kn_K}$ are random errors
+    satisfying assumptions ***A1*** to ***A4***.
+
+## summary factorial models so far
+
+A `two-way` model with factors *A* and *B* in multiple regression form
+$$Y_i = \mu + \alpha_2 z_{Ai2} + \ldots + \alpha_K z_{AiK} 
++ \beta_2 z_{Bi2} + \ldots + \beta_L z_{BiL} + \varepsilon_i~~~~~(i=1,2,\ldots,n)$$
+becomes:
+$$\boldsymbol{Y_{ijk} = \mu + \alpha_i + \beta_j + \varepsilon_{ijk}}$$
+
+where $Y_{mji}$ is the response for the $k$th unit at level $m$ of factor *A* and level $j$ of factor *B* ($m=1,\ldots,K;~j=1,\ldots,L;~i=1,\ldots,n_{mj}$).
+
+## summary factorial models so far
+
+- $\alpha_1, \ldots, \alpha_K$ and $\beta_1, \ldots, \beta_L$ are parameters describing the `main effects` of *A* and *B* respectively.
+
+&nbsp;
+
+- Assume treatment constraints, $\alpha_1 = 0$ and $\beta_1 = 0$.
+
+&nbsp;
+
+- $\varepsilon_{111}, \varepsilon_{112}, \ldots, \varepsilon_{KLn_{KL}}$, are error
+    terms satisfying assumptions ***A1*** to ***A4***.
+
+

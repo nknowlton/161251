@@ -1,0 +1,343 @@
+---
+title: "Lecture 19 - One-way (factor) Models"
+author: "Sergio Sclovich"
+format: 
+  revealjs:
+    embed-resources: true
+    slide-number: true
+    incremental: false
+    highlight-style: zenburn
+    highlight-lines: true
+    ratio: "4:3"
+    progress: true
+    slideNumberFormat: "%current%/%total%"
+    theme: moon
+    css: "../format.css"
+execute:
+  output: true
+  eval: true
+  code-fold: true   # enable code folding
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, echo=FALSE}
+library(broom)
+library(knitr)
+library(ggplot2); theme_set(theme_bw(base_size=15))
+library(patchwork)
+library(tidyverse)
+library(kableExtra)
+#library(car)
+
+# Ensure the plot options are set correctly
+#opts_chunk$set(dev.args=list(bg='transparent'), comment="", warning=FALSE, echo=FALSE)
+opts_chunk$set(comment="", warning=FALSE, echo=FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.dim=c(8,5), out.width="70%", fig.retina=2)
+
+```
+
+
+## learning outcomes
+
+-- Interpret and build a one-way (or facotr) model.
+
+-- Implement a one-way model in R.
+
+
+## The One-Way Model
+
+-- The one-way (or one factor) model is used when a continuous numerical response **Y** is dependent on a single factor (categorical explanatory variable).
+
+&nbsp;
+
+-- In such models, the categories defined by a factor are called the **levels** of the factor.
+
+
+## Mathematical Formulation of the One-Way Model
+
+It is common to express the One-way model as
+
+$$y_{ij} = \mu_j + \varepsilon_{ij}~~~~~~~~(j=1,\ldots,K~~~~~i=1,\ldots,n_j)$$ 
+
+-- $y_{ij}$: is the response of the *i*^th^ unit at the *j*^th^ level of the factor; *K* denotes the number of levels.
+
+-- $\mu_j$: is the (unknown) population mean for level $j$.
+
+-- $n_{j}$: the number of observations (replications) at level *j* for the factor.
+
+-- $\varepsilon_{11},..,\varepsilon_{Kn_K}$: random errors satisfying assumptions (A1)-(A4).
+
+
+## Mathematical Formulation of the One-Way Model
+
+The null hypothesis is then expressed as 
+
+$$H_0:  ~~~ \mu_1 = \mu_2 = ... =\mu_K $$
+and the alternative hypothesis is 
+
+$$H_1: ~~~\mbox{ means not all equal.}$$
+
+
+## Mathematical Formulation of the One-Way Model
+
+Another way of writing it 
+$$y_{ij} = \mu + \alpha_j + \varepsilon_{ij}~~~~~~~~(j=1,\ldots,K,~~~~~i=1,\ldots,n_i)$$ 
+
+where $\alpha_j = \mu_j - \mu$ (mean difference to the baseline)  for  $j=1,...,K$.  
+
+The mean response is $$E[Y_{ij}] = \mu + \alpha_j$$
+
+## Parameterisation of the One-Way Model
+
+We have $K$ means and we are trying to estimate *K+1* parameters $\mu,\alpha_1,...,\alpha_K$
+
+We cannot estimate *K+1* numbers from *k* bits of information. 
+
+As it stands, the model is  **overparameterised**.
+
+## Solution to Overparameterisation
+
+We impose a constraint on the parameters  $\alpha_1, \alpha_2, \ldots, \alpha_K$.
+
+-- Sum constraints: $\sum_{j=1}^K \alpha_j = 0$:
+
+In this case $\mu$ can be interpreted as a kind of "grand mean", and $\alpha_1, \alpha_2, \ldots, \alpha_K$ measure deviations from this grand mean.
+    
+## Solution to Overparameterisation
+
+-- Treatment constraint: $\alpha_1 = 0$:
+
+Level 1 of the factor is regarded as the baseline or reference level, and $\alpha_2, \alpha_3 \ldots, \alpha_K$ measure deviations from this baseline. This is highly appropriate if level 1 corresponds to a
+control group
+
+&nbsp;
+
+We will work with the treatment constraint. It is also used by  default for factors in R.
+
+## Expressing Factor Models as Regression Models
+
+We can express a one-way factor model as a regression model by using dummy (indicator) variables.
+
+Define dummy variables $z_{11}, z_{12}, \ldots, z_{n K}$ by
+    $$z_{ij} = 
+    \left \{ 
+    \begin{array}{ll}
+    1 & \mbox{unit i observed at factor level j}\\
+    0 & \mbox{otherwise.}
+    \end{array}
+    \right .$$
+
+
+
+## Regression form of one-way factor model
+
+A one-way factor model can be expressed as a regregression as follows:
+$$y_i = \mu + \alpha_1 z_{i1} + \alpha_2 z_{i2} + \ldots + \alpha_K z_{iK} + \varepsilon_i~~~~~(i=1,2,\ldots,n)$$
+
+The parameter $\mu$ is the regression intercept and, under the treatment constraint ($\alpha_1 = 0$), the mean baseline (factor level  1) response.
+
+## Expressing Factorial Models using Matrices
+
+For a one-way factorial model with treatment constraint:
+$${\boldsymbol{y}} = X {\boldsymbol{\beta}} + \varepsilon$$ 
+    
+$$
+\small
+\boldsymbol{y} =
+\begin{bmatrix}
+Y_1 \\
+Y_2 \\
+\vdots \\
+Y_n
+\end{bmatrix},
+\quad
+X =
+\begin{bmatrix}
+1 & z_{12} & \ldots & z_{1K} \\
+1 & z_{22} & \ldots & z_{2K} \\
+\vdots & \vdots & \ddots & \vdots \\
+1 & z_{n2} & \ldots & z_{nK}
+\end{bmatrix},
+\small
+\boldsymbol{\beta} =
+\begin{bmatrix}
+\mu \\
+\alpha_2 \\
+\vdots \\
+\alpha_K
+\end{bmatrix},
+\quad
+\boldsymbol{\varepsilon} =
+\begin{bmatrix}
+\varepsilon_1 \\
+\varepsilon_2 \\
+\vdots \\
+\varepsilon_n
+\end{bmatrix}.
+$$
+
+<span style="font-size:smaller;"> No $\alpha_1$ in the parameter vector and row for $z_{i1}$ in the design matrix, due to the treatment constraint. </span>   
+
+## Example: stimulating Effects of Caffeine
+
+Does caffeine stimulation affect the rate at which individuals can tap their fingers?
+
+Thirty male students randomly allocated to three treatment groups of 10 students each. Groups treated as follows:
+
+-- Group 1: zero caffeine dose
+    
+-- Group 2: low caffeine dose
+    
+-- Group 3: high caffeine dose
+
+Blind treatment allocation (subjects did not know their caffeine dosage). Two hours after treatment, each subject tapped fingers as quickly as possible for a minute.
+
+## Example: stimulating Effects of Caffeine
+
+```{r getCaffeineData, echo=-1}
+Caffeine <- read.csv(file="./caffeine.csv", header=TRUE)
+boxplot(Taps~Dose, data=Caffeine) 
+```
+
+## Modelling the Caffeine Data
+
+Our one-way factor model, where the factor has three levels, can be expressed as follows:
+
+$$y_i = \mu + \alpha_2 z_{i2} + \alpha_{3} z_{i3} + \varepsilon_i$$
+
+where:
+
+-- *y~i~* is the number of taps recorded for the *i*th subject;
+
+-- *z~i2~ = 1* if subject *i* is on low dose; *z~i2~ = 0* otherwise;
+
+-- and *z~i3~ = 1* if subject *i* is on high dose; *z~i3~ = 0* otherwise.
+
+-- $\mu$ is mean response for a subject on zero dose;
+
+-- $\alpha_2$ is the effect of low dose in contrast to zero dose;
+
+-- and, $\alpha_3$ is the effect of high dose in contrast to zero dose.
+
+## Modelling the Caffeine Data
+
+This are first lines of the **design matrix** for the one-way model for the caffeine data.
+
+```{r getModelMatrix, echo=FALSE}
+Caffeine.lm <- lm(Taps~Dose, data=Caffeine) 
+Caffeine.lm |> model.matrix() |> head() |> knitr::kable()
+```
+
+
+## R Code considerations
+
+We fix up the order of the factor levels (default is alphabetical).
+
+```{r getCaffeineData 2 }
+levels(factor(Caffeine$Dose))
+Caffeine$Dose <- factor(Caffeine$Dose, levels=c("Zero",
+"Low", "High"))
+levels(Caffeine$Dose)
+```
+The second line reorders the factor levels so that zero, low and high dose are interpreted as levels 1, 2 and 3 respectively.
+
+
+## Fitting the Model
+
+We can use the `lm()` function in R to fit model in the same manner as for regression models.
+
+```{r Caffeine.lm}
+Caffeine.lm <- lm(Taps~Dose, data=Caffeine) 
+summary(Caffeine.lm)
+```
+
+## Fitting the Model
+
+Using the notation introduced earlier, the parameter estimates are
+    $\hat \mu = 244.8$, $\hat \alpha_2 = 1.6$ and
+    $\hat \alpha_3 = 3.5$.
+
+
+Dose (level) | mean response      | fitted value 
+--- | --- | --- 
+Zero (1)   | $\mu$            | 244.8        
+Low (2)      | $\mu + \alpha_2$ | 246.4        
+High (3)     | $\mu + \alpha_3$ | 248.3    
+
+
+
+## Hypothesis tests
+
+There are three ways we can think of the hypothesis test. 
+
+**First** the model (with $H_0:  ~~~ \mu_1 = \mu_2 = ... =\mu_K$) can be tested with the $F$ test at the bottom of the summary(lm)  output, or applying the anova() command to the output.
+
+```{r anova version}
+anova(Caffeine.lm)
+```
+
+## Hypothesis tests
+
+**Second** using the treatment constraint the model can be written as multiple linear regression models, using dummy variables:
+
+$$Y_i = \mu + \alpha_2 z_{i2} + \ldots + \alpha_K z_{iK} + \varepsilon_i \quad(i=1,2,\ldots,n)$$
+
+## Hypothesis tests
+
+The F test for the hypothesis that all slopes are zero gives the same omnibus F test. 
+$$H_0: \alpha_2 = ...=\alpha_K = 0$$
+
+```{r regression version}
+z2 =   Caffeine$Dose == "Low"
+z3 =   Caffeine$Dose == "High" 
+Caffeine.lm2 = lm( Caffeine$Taps ~ z2 + z3 )
+summary(Caffeine.lm2)$coefficients
+```
+
+
+## Hypothesis tests
+
+**Finally** we can consider the problem as a comparison of two models  
+
+   $$M0:~~~~ Y_i = \mu + \varepsilon_i \quad (i=1,2,\ldots,n)$$
+   
+   and
+    $$M1:~~~~ Y_i = \mu + \alpha_2 z_{i2} + \ldots + \alpha_K z_{iK} + \varepsilon_i  \quad (i=1,2,\ldots,n)$$
+
+## Hypothesis tests
+
+```{r comparison}
+Caffeine.M0 = lm(Caffeine$Taps ~ 1)
+Caffeine.M1 = lm(Caffeine$Taps ~ z2 + z3)
+anova(Caffeine.M0, Caffeine.M1)
+```
+
+## Hypothesis tests
+
+The observed *F*-statistic for testing for the significance of caffeine dose is *f* = `r round(summary(Caffeine.lm)$fstatistic["value"], 3)` on *K-1* = `r summary(Caffeine.lm)$fstatistic["numdf"]` and *n-K* = `r summary(Caffeine.lm)$fstatistic["dendf"]` degrees of freedom.
+
+&nbsp;
+
+The corresponding *P*-value is *P*=`r round(anova(Caffeine.lm)["Dose", "Pr(>F)"], 4)`; There is strong evidence against *H~0~*; i.e. Finger tapping speed does seem to be related to caffeine dose. 
+
+## Conclusions from the ANOVA table
+
+```{r}
+coef(Caffeine.lm)
+```
+
+The coefficients shows that the mean response difference between the high dose and control groups is a little more than twice as big as the difference between low dose and control group.
+
+## Hypothesis tests
+
+**Important**:
+    
+-- In a multiple linear regression model it makes sense to add or remove a single explanatory variable.
+
+-- In a factor model it (usually) only makes sense to add or remove a whole factor, not single levels of a factor.
+
+-- This will usually require *F* tests (not just t-tests for single parameters).
+
