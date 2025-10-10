@@ -1,8 +1,7 @@
 ---
 title: "Lecture 33: Modeling with Autoregressive Errors"
 subtitle: 161.251 Regression Modelling
-author: "Presented by Jonathan Marshall"  
-date: "Week 12 of Semester 1, `r lubridate::year(lubridate::now())`"
+author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"
 output:
   html_document:
     code_download: true
@@ -35,6 +34,11 @@ library(broom)
 
 
 <!--- Do not edit anything above this line. --->
+
+##  2026
+
+Add ACF and PACF plots together. explain difference of partial removes the indirect effects and is easier to interpret.
+
 
 ##
 

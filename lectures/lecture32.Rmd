@@ -1,22 +1,25 @@
 ---
-title: "Lecture 32: Autocorrelated Errors"
+title: 'Lecture 32: Autocorrelated Errors'
+author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"
 subtitle: 161.251 Regression Modelling
-author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
 output:
-  html_notebook:
+  html_document:
+    df_print: paged
     code_download: true
-    theme: yeti
-    highlight: tango
   ioslides_presentation:
     widescreen: true
     smaller: true
   word_document: default
-  slidy_presentation: 
+  slidy_presentation:
     theme: yeti
     highlight: tango
   pdf_document: default
-editor_options: 
-  markdown: 
+  html_notebook:
+    code_download: true
+    theme: yeti
+    highlight: tango
+editor_options:
+  markdown:
     wrap: 72
 ---
 
@@ -38,7 +41,7 @@ library(broom)
 
 <!--- Do not edit anything above this line. --->
 
-```{r extraLibs}
+```{r extraLibs, warning=FALSE, include=FALSE}
 library(DescTools)
 library(lmtest)
 ```
@@ -67,6 +70,8 @@ patterns, compare to plots in different areas. Or district-by-district
 medical data may show autocorrelation in cases of disease, again because
 of weather or because of similarity of ethnic background and lifestyle
 of people in adjacent districts.
+
+##
 
 *Temporal autocorrelation* (i.e. in time) in stock or exchange rate
 prices may also be because of omitted variables. For example, prices may
@@ -137,6 +142,8 @@ You can also get negative autocorrelation. This is where figures
 oscillate above average (or above the trend), below average, above ,
 below, above, ...
 
+##
+
 For example (purely hypothetical?!) Suppose by chance there are far more
 car accident fatalities than usual one month. This would generally lead
 to a police blitz on speed/drink driving etc.\
@@ -174,6 +181,8 @@ two weeks).
     significance level etc). This is a consequence of the previous
     point.
 
+##
+
 In summary, if we have autocorrelation then we need to take action. What
 action we take depends on whether the autocorrelation is apparent (due
 to omitted variables) or “pure autocorrelation”. The former is something
@@ -193,11 +202,11 @@ $$y = \alpha + \beta x + \varepsilon$$
 where the so-called multiplier, $\beta$, is a quantity of considerable
 importance to fiscal and monetary policy.
 
-`r xfun::embed_file("../../data/MoneyStock.csv")`
+`r xfun::embed_file("../data/MoneyStock.csv")`
 
 ```{r read MoneyStock, eval=-1, echo=-2}
-MoneyStock = read.csv("MoneyStock.csv",header=TRUE)
-MoneyStock = read.csv("../../data/MoneyStock.csv",header=TRUE)
+#MoneyStock = read.csv("MoneyStock.csv",header=TRUE)
+MoneyStock = read.csv("../data/MoneyStock.csv",header=TRUE)
 MoneyStock  |> head() |> kable()
 ```
 
@@ -205,11 +214,18 @@ MoneyStock  |> head() |> kable()
 pairs(MoneyStock[3:5])
 ```
 
+##
+
 A regression seems to give us quite a good estimate of $\beta$:
 
 ```{r MoneyStock regression}
 MoneyStock.lm1= lm(ConsExp~ MoneyStk, data=MoneyStock)
 summary(MoneyStock.lm1)
+```
+
+##
+
+```{r Mondaystock_resid}
 plot(residuals(MoneyStock.lm1),type='b')
 abline(h=0,lty=2)
 ```
@@ -295,89 +311,6 @@ autocorrelation.
 
 -   For short series and simple regression-type problems, we can use a
     transformation method called the Cochrane-Orcutt method.
-
-### Cochrane-Orcutt method (details can be omitted `r lubridate::year(lubridate::now())`)
-
-The following method can be applied to models with more than one
-predictor variable.
-
-Suppose the errors in the model
-$$ Y_t = \alpha + \beta X_t + \varepsilon_t$$
-
-are AR(1) i.e. a *first-order autoregressive series*
-
-$$\varepsilon_t = \phi \varepsilon_{t-1} + \eta_t$$
-
-This represents that the errors $\varepsilon_t$ at one time point $t$
-“remember” where they were the previous time point, $\varepsilon_{t-1}$,
-but then there is an additional independent error component $\eta_t$
-specific to that time point.\
-(Independent essentially means we can’t predict any specific component
-from any previous component.)
-
-The multiplier $\phi$ is a number between -1 and +1, that ensures that
-the effect of previous years gradually dies out, so that the series
-should eventually return to around the long-term trend. It turns out
-that $\phi$ equals the autocorrelation coefficient,\
-$$\phi = \mbox{Corr}(Y_t, Y_{t-1})  = \mbox{Corr}( \varepsilon_t,\varepsilon_{t-1})~.$$
-
-Now suppose we let $y_t^*= y_t - \phi y_{t-1}$ and
-$x_t^* = x_t - \phi x_{t-1}$.\
-Now
-
-$$y_t^* = (\alpha + \beta X_t + \varepsilon_t) - \phi( \alpha + \beta X_{t-1} + \varepsilon_{t-1})$$
-$$=  \alpha(1-\phi) + \beta (x_t-\phi x_{t-1}) +  (\varepsilon_t - \phi \varepsilon_{t-1}) =  \alpha^* + \beta^* x_t^* + \eta_t ~~~~ (*)$$
-where $\alpha^* = \alpha(1-\phi)$, $\beta^* = \beta$ and the errors
-$\eta_t$ are uncorrelated, so that the model (\*) satisfies the general
-linear model assumptions.
-
-However $\phi$ is not known. So we need to plug in an estimate, which we
-can get from Time Series Analysis or the Durbin-Watson test. We can fit
-the model, then, using the Cochrane-Orcutt Iterative Method. The steps
-are:
-
-1.  Calculate $\alpha$ and $\beta$ by ordinary least squares.
-
-2.  Calculate the residuals $e_t$, and from these estimate $\rho$.
-
-3.  Fit the regression model (\*) by least squares, using transformed
-    variables $y^*$ and $x^*$.
-
-Estimate $\alpha^*$ and $\beta^*$.
-
-4.  Compute residuals and examine again for autocorrelation. If there is
-    none, then stop; if there is still autocorrelation then repeat from
-    step 2 using residuals from step 3.
-
-In practice Chatterjee and Price advise that if the one-step procedure
-doesn’t remove the autocorrelation then one should look for alternative
-methods, since further iteration is not likely to give much improvement.
-
-### Example
-
-For the MoneyStock problem, $r=0.751$ by the dwt output. We use this as
-an estimate of $\phi$.
-
-```{r cochrane}
-r= 0.751
-y=MoneyStock$ConsExp
-yStar = y[2:20] - r*y[1:19]
-x = MoneyStock$MoneyStk
-xStar = x[2:20] - r*x[1:19]
-lmstar= lm(yStar ~ xStar)
-
-dwtest(lmstar)
-summary(lmstar)
-confint(lmstar)
-```
-
-The transformed series has a non-significant Durbin-Watson test, so it
-looks that the first-order autocorrelation has been fixed.
-
-The confidence interval for the regression coefficients show that
-$\beta$ is in the wider interval (2.0, 3.29). So our real knowledge of
-$\beta$ is much less precise than the earlier misleading regression
-model have told us.
 
 ### Conclusion
 
