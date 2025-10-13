@@ -86,6 +86,7 @@ rather than months (you could measure in months and then divide by 3).
 ```{r}
 hp_final <- hp |>
   mutate(Time = round(time_length(Quarter-min(Quarter), unit="month"))/3)
+hp_final[,c(1,11)]
 ```
 
 5. Use the method of least squares to fit a linear regression (i.e. with `lm` rather than `gls`) with `Perth` as response and `WtAve` and `Time` as predictors
@@ -124,6 +125,14 @@ summary(hp.gls)
 8. Look at the model summaries for the two models that you have fitted. Are
 their parameter estimates and/or standard errors markedly different?
 
+```{r}
+library(broom.mixed)
+lst(hp.lm, hp.gls) |>
+  map_dfr(tidy, .id='model') |>
+  arrange(term)
+```
+
+
 *The coefficient of `WtAve` is similar but the standard errors are about 2-3 times as large. The `Time` coefficient is a bit different but in either model is not significant.*
 
 9. You should be able to see from the summary for the second model that the
@@ -147,9 +156,18 @@ intervals(hp.gls)
 *Yes, Perth houseprices are strongly associated with average house price as the P-value is very small. There's not much evidence that the trend in perth is different to other cities though as the time trend is non-significant, though we've only included a linear trend. Looking at the data it seems like there possibly is a difference. We may be able to capture this with a different trend time (quadratic, general smoother etc?)*
 
 ```{r}
-hp_final |>
-  pivot_longer(c(Perth, WtAve), names_to="Which", values_to="Price") |>
-  ggplot() +
-  geom_line(aes(x=Quarter, y=Price, col=Which))
+ggplot(hp_final) +
+  geom_line(aes(x=Quarter, y=Perth)) +
+  geom_line(aes(x=Quarter, y=WtAve), col='red')
+```
+
+
+```{r}
+augment(hp.gls, hp_final) |>
+  ggplot(aes(x = Quarter)) +
+  geom_line(aes(y = .fitted), linetype = "dashed") +
+  geom_line(aes(y = Perth), color = "blue") +
+  geom_line(aes(x=Quarter, y=WtAve), col='red')
+
 ```
 
