@@ -1,8 +1,7 @@
 ---
 title: "Lecture 45: Appendix: Nonlinear least squares"
 subtitle: 161.251 Regression Modelling
-author: "Presented by Jonathan Godfrey <a.j.godfrey@massey.ac.nz>"  
-date: "Week 8 of Semester 2, `r lubridate::year(lubridate::now())`"
+author: "Presented by Jonathan Godfrey <a.j.godfrey@massey.ac.nz>"
 output:
   html_document:
     code_download: true

@@ -1,8 +1,8 @@
 ---
-title: "Lecture 41: Appendix: Introduction to R and RStudio"
+title: "Lecture 35: Linear Modelling for Time Series Data"
 subtitle: 161.251 Regression Modelling
-author: "Presented by Jonathan Godfrey <a.j.godfrey@massey.ac.nz>"  
-date: "Week 0 of Semester 2, `r lubridate::year(lubridate::now())`"
+author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
+date: "Week 12 of Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
     code_download: true
@@ -42,436 +42,231 @@ library(broom)
 
 <!--- Do not edit anything above this line. --->
 
-```{r extraLibs}
-library(MASS)
+
+```{r extraLib, include=FALSE} 
+library(nlme)        
+library(broom.mixed)
 ```
 
 
-In this lecture we will look at:
+We saw previously that when linear models are fitted to time series data, the residuals can display autocorrelation. The consequences of autocorrelation are that
 
-  - What is R?
-
-  - Basic R syntax
-
-- Use of R via RStudio.
-
-
-## What is R?
-
-  - R is a statistical software system.
-
-  - R is a programming language that has many "inbuilt" statistical
-    commands (e.g. to fit a linear regression).
-
-  - R started life as a quasi-clone of commercial package S-Plus, but
-    development of R and S-Plus now slowly diverging.
-
-  - Advantages over other statistics packages include flexibility,
-    power, and quality of graphical display.
-
-  - R is open-source software, and part of GNU project. It can be
-    downloaded from `http://cran.r-project.org/` and used for free.
-
-  - There are versions of R for all common operating systems --- Windows, Linux, and MacOS.
-
-## A Little R History
-
-|                                       |                                           |
-| :-----------------------------------: | :---------------------------------------: |
-| ![photo of Ross Ihaka](../graphics/ihaka.jpg) | ![photo of Robert Gentleman](../graphics/gentleman.jpg) |
-
-  
- Ross Ihaka (left) and Robert Gentleman.
-
-  - R is a New Zealand invention\!
-
-  - R originally developed by Ross Ihaka and Robert Gentleman in the
-    Department of Statistics, University of Auckland.
-
-  - First (test) version of R released in public domain in 1995.
-
-  - R Development Core Team took over supervision of R in 1997.
-
- - This Team includes about 20 statisticians worldwide.
-
-## Starting R in the Computing Labs
-
-- Start R for the first time via the Start menu (or desktop icon if available).
-- Select R (version `r version$major`) from the appropriate program group.
-- RGui (**R G**raphical **U**ser **I**nterface) should appear as displayed.
-
-![RGUI v3.3.0](../graphics/RGui.jpg)
-
-N.B. Check the version number. Ideally we want to be sure that we are running the latest version, but do not change versions partway through the semester unless it is truly necessary.
-
-## Starting RStudio in the Computing Labs
-
-- Start RStudio for the first time via the Start menu (or desktop icon if available).
-- You should see the window split into sub-windows. Please note that RStudio is undergoing constant development. Your version may not look quite like the image  displayed below.
-
-
-![RStudio using R 3.4.1](../graphics/RStudio.png) 
-
-N.B. the contents of the RGUI are all available in RStudio. We will work in RStudio because it offers many extra features.
-
-
-## Working directory
-
-  - When you quit R you will get a pop-up asking "Save workspace
-    image?".
-
-  - If you click yes, then the *R workspace* that you have
-    created will be saved in your *working directory*.
-
-  - You can find out where your working directory is by typing the
-    command `getwd()` at the R prompt.
-
-  - The working directory can be changed using the Change
-    dir... command from the R File menu.
-
-Note the command `getwd()` is in typewriter font. This font
-is used in lectures for R input and output (amongst other things). The parentheses are included to show you that this is a command; typing `getwd` alone will not give you what you want!
-
-## Save your work using scripts!
-
-  - Please get into the habit of writing all your R commands in a
-    *R script* before you run it in the console.
-
-  - An R script is a text file containing code which can be run directly
-    by highlighting then hitting `CTRL-R`.
+- standard errors given by standard least squares theory (and
+    hence by standard R output) will usually be smaller than the true
+    standard deviations of the parameter estimates.
     
-      - Comments following `#` symbols in script files are not executed.
-
-  - To create a new script use the New script command from
-    the R File menu or New File\>R Script from
-    the RStudio File menu.
-
-  - To save your script, click on the scripts pane, and then go to
-    File \> Save As in the menu bar.
-
-  - Scripts allow you to rerun your entire analysis without re-writing
-    all the commands, it also helps editing and proofreading your code.
-
-## Managing Your Code
-
-
-
-![Screen shot of R Script in R](../graphics/Rscript.jpg)
-
-
-
-![Screen shot of R Script in RStudio](../graphics/RStudioscript.png)
-
-
-## An even better way
-
-Putting your R commands into the file that becomes your end-use document will make your workflow even more efficient. When we use RStudio, we can make use of the extensive features to create these documents.
-
-Look out for the tutorial sheets introducing you to what we call ***R markdown*** documents. The lecture material you are viewing now was produced using R markdown. 
-
-More on this later...
-
- 
-
-## A First Dip into R
-
-### Expressions and Assignments
-
-Elementary commands are either *expressions* or
-*assignments*.
-
-  - An *expression* simply displays result of a
-    calculation; not retained in the computer's memory.
-
-  - An *assignment* passes the result of a calculation to a
-    variable name (or 'object') which is stored; the result is not
-    displayed.
-
-
-### Examples (for you to try)
-
-```{r}
-3+4
-```
-
-- The symbol `>` is the command prompt. This is where you would type the `3+4`. The answer will come back when you hit the `<Enter>` key.
-
-- Don't worry too much at this stage about the `[1]`.
-
-```{r}
-x <- 3 + 4
-x
-```
-
-- The `<-` is called the "left assignment" operator which assigns from right (`3+4`) to left (`x`)
-- Yes, it takes two keys to get it; there cannot be space between the `<` and the `-` and it is best practice to put space on either side of `<-` in your work.
-- It is equivalent to `x=3+4`, but many R users prefer the `<-` because it always means something is created in your workspace. (not always true for `=`)
-- A right assignment operator also exists but is not commonly used.
-
-## R Objects
-
-  - All assigned variables (or any other R *objects*) are
-    stored until overwritten or explicitly removed (deleted) by the
-    command `rm()`.
-
-  - To list stored objects type `ls()` or `objects()`.
-
-```{r}
-x <- 8
-y <- 3.1415
-ls()
-rm(x)
-objects()
-```
-
-## R Syntax
-
-  - R commands, e.g. `ls()`, `rm()`, are followed by parentheses which may
-    contain additional information for the function.
-
-  - Writing a command name without parentheses returns the R source code
-    for the function. Try one...
-
-
-## Vectors in R
-
-  - The command `c()` (for *concatenate*) creates vectors.
-
-```{r}
-x <- c(2.3,1.2,2.4)
-x
-c(x,9.0,x)
-```
-
-### Regular Sequences
-
-  - The expression `1:n` denotes the **sequence**
-1, 2,... *n*. 
-
-  - The expression `seq(i,j,by=k)` is a sequence from *i*) to *j* in
-    steps of *k*.
-
-```{r}
-1:5
-y <- seq(3,10,by=2)
-y
-```
-## Vector Arithmetic in R
-
-- R uses `+`, `-`, `*` and `/` for the basic arithmetic
-    operations, and `^` for exponentiation (raising to a power).
-
-  - Vector operations are done element by element, with
-    recycling of short vectors if required.
-
-
-```{r}
-x <- c(2,3)
-y <- c(1,4,5,6)
-2*x
-2 + x
-y^2
-x + y
-```
-
-## Types of vector
-
-  - All the vectors we have seen so far have been
-    *numeric*; some were *integer* which is a special type of number.
-
-- R also understands vectors of:
+- the result is that *t*-test statistics will be inflated, p-values too small, and 
+    confidence intervals will be too narrow.
     
-      - characters: letters, numerals, spaces, and other text.
-      - logical values `TRUE` and `FALSE`; abbreviations `T`, `F` are often used.
-      - factors (i.e. categorical variables); these may "look" like characters.
 
-```{r}
-MyWords <- c("This","is","a","character")
-MyWords
-c(F,T,F,F)
-factor(c("Low","Low","Medium","High","High"))
+## Accounting for Autocorrelation in the Errors
+
+The consequence of standard errors and p-values being out means that we need to account for autocorrelation in the errors when it is present.
+
+This will require two steps:
+    
+- Definition of an appropriate model for autocorrelated errors;
+- Fitting the linear model with autocorrelated errors.
+
+We now consider modeling the  errors using autoregressive models.
+
+## Autoregressive Models
+
+In a time series, the errors $\varepsilon_1, \varepsilon_2, \ldots, \varepsilon_n$
+    can be thought of as a realization of a random process (in time).
+
+We can model serial correlation between these errors by making each
+    one explicitly dependent on the previous one:
+    $$\varepsilon_t = \phi \varepsilon_{t-1} + \eta_t$$ where $\eta_t~(t=1,2,\ldots,n)$ is **white  noise**, that is, a sequence of independent and identically distributed  (normal) random variables with zero mean.
+
+- This equation  is a first order autoregressive (or     **AR1**) model for $\varepsilon_t$.
+- Under this model, $\mbox{Corr}(\varepsilon_t, \varepsilon_{t-1}) = \phi$.
+- Consequently, more generally, $\mbox{Corr}(\varepsilon_t, \varepsilon_{t-k}) = \phi^k$
+
+## ACF Plots for AR1 Processes
+
+To illustrate an ACF plot for a function demonstrating autocorrelation, we create two variables from white noise 
+
+```{r whiteNoise, fig.width=8, fig.height=3}
+Z1 = rnorm(1000)
+X1 = Z1[-1] + 0.85*Z1[-1000]
+X2 = Z1[-1] - 0.85*Z1[-1000]
+par(mfrow=c(1,2), mai=rep(0.5, 4))
+plot(X1, type="l")
+plot(X2, type="l")
 ```
 
-N.B. All of these data types can be used in linear models, although character values are usually converted to factors.
+##
 
-## Logical Comparisons
-
-  - Numerical vectors can be compared by inequalities.
-
-  - `==` denotes equality; the `=` states what something is.
-
-  - `!=` denotes 'not equal'.
-
-  - `>`, `>=` etc. for inequalities.
-
-
-```{r}
-(1:5) == (5:1)
-(1:5) > (5:1)
+```{r whiteNoise2, fig.width=8, fig.height=4}
+par(mfrow=c(1,2))
+acf(X1)
+acf(X2)
 ```
 
-You might like to play with these comparisons. Testing the need for the brackets is  worth testing.
+The `X1` series has correlation of `r round(cor(X1[-1],X1[-999]),3)` at lag 1, while the `X2` series has autocorrelation of `r round(cor(X2[-1],X2[-999]),3)` at lag1 
 
-## Indexing Vectors
 
-  - To index components of a vector `x`, use the form
-    `x[...]`.
+## Autoregressive Models for Errors in Linear Modelling
 
-  - The square brackets can contain:
+If residuals in a linear model for time series data display autocorrelation then we change the model to allow for an AR1 correlation structure for the residuals in our model to account for this.
+
+N.B. More complex models are also possible. For example:
     
-      - numeric vector specifying elements;
-    
-      - logical vector: only `TRUE` elements required.
+- AR models of order *q>1*, where $\varepsilon_t$ is modelled as explicitly dependent on the previous *q* errors;
+- moving average (MA) models and autoregressive moving average (ARMA) models.
+- For the purposes of this course we will focus on AR1 models for the
+    error process.
+
+## Application to the Tourism Data
+
+`r xfun::embed_file("../../data/motel.csv")`
 
 
-```{r}
-x <- c(1.1,3.2,4.3,7.4)
-x[c(2,4)]
-x[-2]
-x[x > 3.5]
-which(x > 3.5)
+```{r getTourismData, echo=-1, eval=-2, message=FALSE}
+tourism <- read_csv(file="../../data/motel.csv")
+tourism <- read_csv(file="motel.csv")
+tourism <- tourism |>
+  mutate(Time = round(time_length(Date - min(Date), unit="month")),
+         Month = factor(month(Date, label=TRUE), ordered=FALSE),
+         Year = year(Date))
+tourism
 ```
 
-## Data Frames
+##
 
-  - A data frame is a collection of column vectors each of
-    the same length.
-
-  - The vectors may be numeric, factor, or whatever.
-
-  - Each particular column and row of a data frame is given a name which
-    can be chosen by the user, or assigned a default by R.
-
-
-```{r}
-employee <- c("Dilbert", "Wally", "Catbert", "TheBoss")
-job<-factor(c("Engineer","Engineer","Manager","Manager"))
-x <- c(8,1,NA,-2)
-dilbert <- data.frame(employee, job, competence=x)
-dilbert
+```{r Tourism.lmResidACF,fig.height=4.5}
+tourism.lm <- lm(RoomNights ~ Time + Month, data=tourism)
+acf(resid(tourism.lm))
 ```
 
-### Attaching and Detaching
+There is a suggestion of exponential decay in autocorrelations.
+- AR1 model (with positive $\phi$) for errors seems reasonable.
 
-  - To access variables (columns) of a data frame:
-    
-      - First `attach` data frame; or
-    
-      - Use `data.frame$variable` syntax.
+##
 
-```{r showAttach, error=TRUE}
-rm(employee,job,x) 
-dilbert$competence 
-job
-attach(dilbert)
-job
-detach(dilbert)
+The model incorporating the AR1 error process, and written in regression format,
+is as follows: 
+
+$$\begin{aligned}
+Y_{t} &= \beta_0 + \beta_1 \mbox{Time} + \beta_2 z_{t,2} + \beta_3 z_{t,3} 
++ \ldots + \beta_{12} z_{t,12} + \varepsilon_t \\
+\varepsilon_t &= \phi \varepsilon_{t-1} + \eta_{t}\end{aligned}$$ 
+
+where:
+
+- $Y_t$ is the $t$^th^ observation of `RoomNights`;
+- $z_{t,j} = 1$ if observation $t$ is taken in month $j$;
+- $z_{t,j} = 0$ otherwise.
+- $\eta_1, \ldots, \eta_n$ are independent and identically
+    distributed normal random variables with mean zero.
+
+## Model Fitting with Autoregressive Errors
+
+To fit a model with AR1 errors, we must:
+
+- Estimate the size of the autocorrelation parameter, $\phi$.
+- Account for the autocorrelation in errors when estimating the
+        regression coefficients.
+
+The AR1 parameter, $\phi$, can be estimated by the method of
+    (restricted) maximum likelihood.
+
+The details are beyond the scope of this paper, but you will meet maximum likelihood estimation if you take 161.304 or 161.331.
+
+Once $\phi$ is estimated, we can account for the AR1 nature of the
+    errors by fitting the linear model using **generalized least
+    squares**.
+    
+## Generalized Least Squares
+
+Once we have $\phi$ estimated, we can then estimate the regression coefficients $\beta$ by rearranging the regression equation to eliminate the autocorrelation:
+
+Suppose
+$$
+\begin{aligned}
+y_t &= \beta_0 + \beta_1 x_t + \varepsilon_t\\
+\varepsilon_t &= \phi \varepsilon_{t-1} + \eta_t
+\end{aligned}
+$$
+where $\eta_t \underset{\mathsf{iid}}\sim N(0, 1)$. Then
+$$
+\begin{aligned}
+y_t - \phi y_{t-1} &= \beta_0 + \beta_1 x_t + \varepsilon_t - \phi (\beta_0 + \beta_1 x_{t-1} + \varepsilon_{t-1})\\
+&= \beta_0(1 - \phi) + \beta_1 (x_t - \phi x_{t-1}) + \varepsilon_t - \phi \varepsilon_{t-1}\\
+&= \beta_0(1 - \phi) + \beta_1 (x_t - \phi x_{t-1}) + \eta_t
+\end{aligned}
+$$
+which is a standard linear regression in the new variables $Y_t = y_t - \phi y_{t-1}$, $X_t = x_t - \phi x_{t-1}$.
+
+Thus we can fit this with least squares. The "generalised" bit is the trick we use to transform something that is not regular least squares to a least squares situation - it turns out we can do this no matter what the covariance structure is among the predictors as long as the structure is estimable from the data.
+
+## Generalized Least Squares in R
+
+In R, linear models can be fitted using this technique using the `gls()` command found in the `nlme` add-on package.
+
+Call this package using `library(nlme)` before using the `gls()` command.
+
+```{r getLib, message=FALSE}
+library(nlme)
+```
+
+- The `gls()` command uses the same model formula as `lm()`, but also accepts an additional argument to describe    the correlation structure for the errors.
+
+## Generalized Least Squares and the Tourism Data
+
+```{r Tourism.gls}
+tourism.gls <- gls(RoomNights ~ Time + Month, correlation=corAR1(), data=tourism) 
+anova(tourism.gls)
+```
+The use of an AR1 error process is obtained by setting `correlation=corAR1()` in the `gls()` command.
+
+Both `Time` and `Month` are associated with
+    RoomNights (*P*-value less than $0.0001$ in both
+    cases).
+
+##
+
+```{r summaryTourism.gls}
+summary(tourism.gls)
 ```
 
 
-N.B. Using `attach()` without `detach()` can lead to trouble. All is fine when things are done correctly, but the consequences of not using these commands correctly is seldom seen at the time they are used. When the errors come up it will be difficult to diagnose the problem. It is quite unusual to need to use these commands if you use modern ways of working. It is important to know how the `attach()` and `detach()` commands work, but do look to avoid their use.
 
-## Importing Data
+## Comments on the Analysis
 
-- The `scan()` command reads in text from a file as a single variable. You should use this command very infrequently.
+The estimated value of AR1 correlation parameter is $\hat \phi = 0.393$.
 
-- The `read.table()` command is more flexible, importing data in tabular form and storing the result as a data frame.
+Comparison of the output from `summary(tourism.gls)` with
+    the corresponding output from the earlier analysis (assuming
+    independent errors) shows that the standard errors are usually
+    larger here, particularly for the intercept and the coefficient of `Time`:
 
-- other commands exist for importing `csv` files, and a host of other file formats.
-
-
-- The comma separated values (csv) file format is extremely common and is used often in the course. You should not need to use `scan()` or `read.table()`.
-
-```{r getIBMData, error=TRUE, echo=-1, eval=-2}
-IBM <- scan(file="../../data/ibm.txt")
-IBM <- scan(file="ibm.txt")
-ibm
-IBM
+```{r, echo=FALSE}
+library(broom.mixed)
+list(gls=tourism.gls |> tidy(),
+     lm=tourism.lm |> tidy()) |>
+  bind_rows(, .id="model") |>
+  filter(term == "Time") |>
+  select(model, term, estimate, std.error)
 ```
 
-N.B. R is case sensitive so `ibm` is different to `IBM`. Windows is not case sensitive so the filename can be misspecified without any trouble; other operating systems are case sensitive though. 
+The only remaining question is, was the use of `gls()` successful?
 
+We can get the normalized residuals (i.e. 'decorrelated' residuals) with
 
-```{r getLifeData, error=TRUE}
-Life <- read.csv(file="../../data/life.csv", header=TRUE)
-head(Life) # shows only the first six rows
+```{r, eval=FALSE}
+residuals(tourism.gls, type = "normalized")
 ```
 
-The `../../data/` in this command is called a relative file path. The `..` means to look up one level from the current working directory; the  file requested is in a subfolder called `data`; the `/` is how we separate folders from subfolders or filenames. This may seem strange to Windows users who want to use a backslash instead. Get used to using the forward slash in R because it works for all operating systems.
+##
 
-The `read.csv()` command makes a number of assumptions about the way the file is formatted. A `csv` file is actually plain text with commas between values. Some people think it is a MS Excel file, but csv files existed long before Excel.
- 
-## Editing Data
-
-  - Can edit by reassigning elements of a vector or data frame.
-
-  - For data frame or matrix, `A[i,j]` is the *i,j*^th^ element (row
-    *i*, column *j*) of the data frame `A`.
-
-
-
-```{r}
-IBM[5]
-IBM[5] <- 65.12
-IBM[5]
-Life[2,]
-Life[2,4]
-Life[2,4] <- 7166
+```{r getResids}
+acf(residuals(tourism.gls, type="normalized"))
 ```
 
-## R Packages
+## Next steps?
 
-  - R objects (functions, data etc.) are organized in
-    libraries/packages.
+What might be the next step?  It looks like there is a significant 12-month correlation, which would also make sense.
 
-  - Some are loaded by default when R starts each time.
-    
-      - E.g. function `ls()` is part of the `base` package that is
-        automatically loaded,
-
-  - Some packages need loading, using either the `library()` or `require()` command.
-
-```{r showMissingFun, error=TRUE}
-mvrnorm(1,mu=0,Sigma=1)
-library(MASS)
-mvrnorm(1,mu=0,Sigma=1)
-```
-
-## Some R Functions to Get You Started
-
-  - `help()` accesses R's help system; e.g. `help(ls)`. A quicker way is to use `?ls`
-
-  - `mean()`, `sd()`, `min()`, `max()` and `range()` give mean, standard
-    deviation, minimum, maximum and range respectively for a vector
-    argument. N.B. `range()` tells you the minimum and maximum as a pair, not the difference between them.
-
-  - `var()` returns variance of a vector argument, or the covariance
-    (dispersion) matrix for a matrix argument.
-
-  - `summary()` returns summary information dependent on argument type.
-
-  - `plot()` produces a plot on the current graphics tool. The type of
-    plot depends on the type of argument. The simplest use is `plot(x,y)` which
-    produces a scatter-plot of vectors `x` and `y`.
-
-Practice is the key when learning R.
-
-## Your First R Exercise
-
-1.  Use R to calculate   
-    (i) 3456-789
-    (ii) $23\times{}34$
-    (iii) 13^3^
-
-2.  Write (efficient) code to create the following sequences:
-    
-    (i) 2, 4, 6, ... 100; that is, the even numbers up to 100
-    
-    (ii) 1,2,3,4,5,4,3,2,1
-
-3.  Use the command `y <- rnorm(100)` to store 100 simulated
-    standard normal random variables in the vector `y`.
-    
-    (i) Find the mean and standard deviation of `y`.
-    
-    (ii) Find the largest simulated value. Which number simulation is this e.g. 54^th^, 23^rd^?
+But we will leave the task of adjusting for more complicated correlation structures for another course.

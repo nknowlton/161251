@@ -1,5 +1,5 @@
 ---
-title: 'Lecture 32: Autocorrelated Errors'
+title: 'Lecture 33: Autocorrelated Errors'
 author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"
 subtitle: 161.251 Regression Modelling
 output:
