@@ -199,3 +199,4 @@ Climate.lm1.sum$fstatistic
 These figures are the same as were seen earlier when we used the `anova()` command. 
 
 
+

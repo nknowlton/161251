@@ -277,3 +277,4 @@ summary(climate.step2)
 ```
 
 **Question:  Which of these models is preferred?**
+

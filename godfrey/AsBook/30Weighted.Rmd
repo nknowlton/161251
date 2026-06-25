@@ -352,3 +352,4 @@ ggplot(data=CPS5weighted,
 ```
 
 The standard deviations are much higher for the highly-educated groups, so that counteracts some of the effect of higher sample sizes.
+

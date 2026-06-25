@@ -3,4 +3,4 @@ chapter_name: "Lecture  "
 repo: ""
 output_dir: Final
 clean: [packages.bib, bookdown.bbl]
-new_session: no
+new_session: yes

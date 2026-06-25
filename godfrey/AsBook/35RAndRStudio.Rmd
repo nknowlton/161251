@@ -452,3 +452,4 @@ Practice is the key when learning R.
     (i) Find the mean and standard deviation of `y`.
     
     (ii) Find the largest simulated value. Which number simulation is this e.g. 54^th^, 23^rd^?
+

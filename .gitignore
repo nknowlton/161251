@@ -4,3 +4,8 @@
 .Ruserdata
 *.html
 Figures/
+godfrey/AsBook/Final/
+godfrey/AsBook/*.rds
+godfrey/AsBook/*.RData
+godfrey/AsBook/*.Rhistory
+godfrey/AsBook/_bookdown_files/

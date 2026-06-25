@@ -219,3 +219,4 @@ Failure of the model assumptions A1-A4 (described previously) would
 
 We need diagnostic tools to assess model adequacy.
 
+

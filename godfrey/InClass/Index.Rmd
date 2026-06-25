@@ -26,78 +26,76 @@ library(broom)
 <!--- Do not edit anything above this line. --->
 
 
-## Week  1 — Jonathan Godfrey
+##  Week 1 — Jonathan Godfrey 
 
-[Lecture 1: Paper Overview](Lecture1.html)
-[Lecture 2: The Basics of Regression Modelling](Lecture2.html)
-[Lecture 3: Simple Linear Regression](Lecture3.html)
-[Lecture 4: Linear Regression Modelling with R](Lecture4.html)
-[Lecture 41: Appendix: Introduction to R and RStudio](Lecture41.html)
+[Lecture 1: Paper Overview](Lecture1.html) 
+[Lecture 2: The Basics of Regression Modelling](Lecture2.html) 
+[Lecture 3: Simple Linear Regression](Lecture3.html) 
+[Lecture 4: Linear Regression Modelling with R](Lecture4.html) 
+[Lecture 36: Appendix: Regression through the origin](Lecture5.html)
 
-## Week  2 — Jonathan Godfrey
+##  Week 2 — Jonathan Godfrey 
 
-[Lecture 5: Checking the Assumptions](Lecture5.html)
-[Lecture 6: Outliers and Influential Points](Lecture6.html)
-[Lecture 7: What to do When Assumptions Fail](Lecture7.html)
-[Lecture 42: Appendix: Regression through the origin](Lecture42.html)
+[Lecture 5: Checking the Assumptions](Lecture1.html) 
+[Lecture 6: Outliers and Influential Points](Lecture2.html) 
+[Lecture 7: What to do When Assumptions Fail](Lecture3.html) 
+[Lecture 37: Appendix: Transformations in regression models](Lecture4.html)
 
-## Week  3 — Jonathan Godfrey
+##  Week 3 — Jonathan Godfrey 
 
-[Lecture 8: Prediction in Simple Linear Regression](Lecture8.html)
-[Lecture 9: Introduction to Multiple Linear Regression](Lecture9.html)
-[Lecture 10: Testing in Multiple Regression Models (1)](Lecture10.html)
-[Lecture 43: Appendix: Transformations in regression models](Lecture43.html)
+[Lecture 8: Prediction in Simple Linear Regression](Lecture1.html) 
+[Lecture 9: Introduction to Multiple Linear Regression](Lecture2.html) 
+[Lecture 10: Testing in Multiple Regression Models (1)](Lecture3.html) 
+[Lecture 38: Appendix: Models with Many Factors](Lecture4.html)
 
-## Week  4 — Jonathan Godfrey
+##  Week 4 — Jonathan Godfrey 
 
-[Lecture 11: Testing in Multiple Regression Models (2)](Lecture11.html)
-[Lecture 12: Basic Matrix Algebra](Lecture12.html)
-[Lecture 13: Matrices and Linear Regression Models](Lecture13.html)
+[Lecture 11: Testing in Multiple Regression Models (2)](Lecture1.html) 
+[Lecture 12: Basic Matrix Algebra](Lecture2.html) 
+[Lecture 13: Matrices and Linear Regression Models](Lecture3.html)
 
-## Week  5 — Jonathan Godfrey
+##  Week 5 — Jonathan Godfrey 
 
-[Lecture 14: Comparison of Multiple Linear Regression Models](Lecture14.html)
-[Lecture 15: Models with binary predictors](Lecture15.html)
+[Lecture 14: Comparison of Multiple Linear Regression Models](Lecture1.html) 
+[Lecture 15: Models with binary predictors](Lecture2.html)
 
-## Week  6 — Jonathan Godfrey
+##  Week 6 — Jonathan Godfrey 
 
-[Lecture 16: Polynomial Regression Models](Lecture16.html)
-[Lecture 17: Models using orthogonal polynomials](Lecture17.html)
-[Lecture 18: Piecewise Regression Models](Lecture18.html)
+[Lecture 16: Polynomial Regression Models](Lecture1.html) 
+[Lecture 17: Models using orthogonal polynomials](Lecture2.html) 
+[Lecture 18: Piecewise Regression Models](Lecture3.html)
 
-## Week  7 — Jonathan Godfrey
+##  Week 7 — Jonathan Godfrey 
 
-[Lecture 19: Linear Models with One Factor](Lecture19.html)
-[Lecture 20: Diagnostics and Multiple Comparisons for Oneway ANOVA](Lecture20.html)
-[Lecture 21: Factor or Numerical Covariate?](Lecture21.html)
+[Lecture 19: Linear Models with One Factor](Lecture1.html) 
+[Lecture 20: Diagnostics and Multiple Comparisons for Oneway ANOVA](Lecture2.html) 
+[Lecture 21: Factor or Numerical Covariate?](Lecture3.html)
 
-## Week  8 — Jonathan Godfrey
+##  Week 8 — Jonathan Godfrey 
 
-[Lecture 22: Introduction to the Two Factor Model](Lecture22.html)
-[Lecture 23: Orthogonal Factorial Models](Lecture23.html)
-[Lecture 24: Factors with Interactions](Lecture24.html)
-[Lecture 44: Appendix: Models with Many Factors](Lecture44.html)
+[Lecture 22: Introduction to the Two Factor Model](Lecture1.html) 
+[Lecture 23: Orthogonal Factorial Models](Lecture2.html) 
+[Lecture 24: Factors with Interactions](Lecture3.html) 
+[Lecture 39: Appendix: Nonlinear least squares](Lecture4.html)
 
-## Week  9 — Nick Knowlton
+##  Week 9 — Nick Knowlton 
 
-[Lecture 25: The General Linear Model](Lecture25.html)
-[Lecture 26: Comparison of General Linear Models](Lecture26.html)
-[Lecture 27: Variable Selection](Lecture27.html)
+[Lecture 25: The General Linear Model](Lecture1.html) 
+[Lecture 26: Comparison of General Linear Models](Lecture2.html) 
+[Lecture 27: Variable Selection](Lecture3.html)
 
-## Week 10 — Nick Knowlton
+##  Week 10 — Nick Knowlton 
 
-[Lecture 28: Stepwise models](Lecture28.html)
-[Lecture 29: Multicollinearity](Lecture29.html)
-[Lecture 30: Weighted regression](Lecture30.html)
+[Lecture 28: Stepwise models](Lecture1.html) 
+[Lecture 29: Multicollinearity](Lecture2.html) 
+[Lecture 30: Weighted regression](Lecture3.html)
 
-## Week 11 — Nick Knowlton
+##  Week 11 — Nick Knowlton 
 
-[Lecture 31: Splines, LOESS, and Regularized Models](Lecture31.html)
-[Lecture 32: Time Models with Independent Errors](Lecture32.html)
-[Lecture 33: Autocorrelated Errors](Lecture33.html)
+[Lecture 31: Splines LOESS and Regularized Models](Lecture1.html) 
+[Lecture 32: Time Models with Independent Errors](Lecture2.html) 
+[Lecture 33: Autocorrelated Errors](Lecture3.html)
 
-## Week 12 — Nick Knowlton
+##  Week 12 — Nick Knowlton 
 
-[Lecture 34: Modeling with Autoregressive Errors](Lecture34.html)
-[Lecture 35: Linear Modelling for Time Series Data](Lecture35.html)
-[Lecture 45: Appendix: Nonlinear least squares](Lecture45.html)
+[Lecture 34: Modeling with Autoregressive Errors](Lecture1.html)

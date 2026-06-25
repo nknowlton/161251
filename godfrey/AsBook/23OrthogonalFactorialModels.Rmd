@@ -216,3 +216,4 @@ where $Y_{ijk}$ is the response for the $k$th unit at level $i$ of
 
 - $\varepsilon_{111}, \varepsilon_{112}, \ldots, \varepsilon_{KLn_{KL}}$, are error
     terms satisfying assumptions ***A1–A4***.
+

@@ -235,3 +235,4 @@ max(cooks.distance(Hills2.lm))
 max(hatvalues(Hills.lm)) # leverages
 max(hatvalues(Hills2.lm)) 
 ```
+

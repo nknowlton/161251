@@ -238,3 +238,4 @@ haplotype is linear in the number of copies of the haplotype?
 
 What are
 the degrees of freedom for this test statistic?
+

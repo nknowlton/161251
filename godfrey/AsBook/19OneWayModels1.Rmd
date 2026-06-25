@@ -360,3 +360,4 @@ the caffeine data.
 
 4.  What is the mean sum of squares for the model *M0*?
 
+

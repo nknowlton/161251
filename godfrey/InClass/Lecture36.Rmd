@@ -1,5 +1,5 @@
 ---
-title: "Lecture 42: Appendix: Regression through the origin"
+title: "Lecture 36: Appendix: Regression through the origin"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Jonathan Godfrey <a.j.godfrey@massey.ac.nz>"
 output:

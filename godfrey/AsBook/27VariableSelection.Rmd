@@ -363,3 +363,4 @@ plot(lm5)
 - Residuals vs. Leverage: No points appear outside of the dashed Cook's distance lines, meaning we don't have any single data points that are overly influential on our results.
 
 **Conclusion**: Our final model not only makes intuitive sense but also passes the standard diagnostic checks! It appears to be a robust and reliable model.
+

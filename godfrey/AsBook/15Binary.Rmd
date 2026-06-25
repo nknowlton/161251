@@ -202,3 +202,4 @@ anova(English.lm1, English.lm2)
 ```
 
 The coefficient associated with our constructed variable `revisionGirls` is significant (*p*-value $\approx 0.04$), which indicates that there is a difference in the slope between boys and girls.
+

@@ -198,3 +198,4 @@ We can avoid some of this problem by re-scaling the original *x* variable, by ce
 This re-scaling keeps the same information within the original *x* variable as it hasn't changed shape or been re-ordered in any way. It's like deciding to measure something in centimetres or re-scaling to metres; the true measurements won't change, just their representation in numeric terms.
 
 
+

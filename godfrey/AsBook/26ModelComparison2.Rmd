@@ -1,4 +1,4 @@
-# Comparison of general linear models{#ModelComparison2}
+# Comparison of General Linear Models{#ModelComparison2}
 
 [In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture26.html)
 
@@ -369,3 +369,4 @@ tibble(
 - Report RSS, df, F, and p with the denominator model identified.
 - Add a sentence on diagnostics and effect interpretation.
 - If two models are close, prefer the simpler one for clarity unless the complex model adds needed scientific nuance.
+

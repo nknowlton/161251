@@ -233,3 +233,4 @@ Obtain these using R code.
 ```{r}
 cbind(RatDiet, RatDiet.lm$fitted.values)
 ```
+

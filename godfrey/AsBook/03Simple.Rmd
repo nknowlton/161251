@@ -306,3 +306,4 @@ $$t = \frac{\hat{\beta_1} - \beta_1^0}{SE(\hat{\beta_1})}
 
 The (2-sided) *P*-value is $P=P(|T| > 1.549) = 2 \times P(T > 1.549) = 2 \times 0.06398 = 0.128$, so we conclude that the data provide no evidence of a relationship
     between pulse rate and height.
+

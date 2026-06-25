@@ -293,3 +293,4 @@ Linear regression model assumptions do not appear valid.
 Hence conclusions based on this model are questionable.
 
 Problems with model seem largely down to a few **odd** data points or **outliers**.
+

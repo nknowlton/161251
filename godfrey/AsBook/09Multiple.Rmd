@@ -369,3 +369,4 @@ predict( Climate.lm3,  newdata=x0, interval="prediction", level=0.95)
 ```
 
 
+

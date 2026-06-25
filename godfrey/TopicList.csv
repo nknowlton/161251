@@ -24,17 +24,17 @@ LectureNo,Week,LectureTitle,Label,Presenter,Tidyverse
 23,8,Orthogonal Factorial Models,OrthogonalFactorialModels,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
 24,8,Factors with Interactions,Interactions,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
 25,9,The General Linear Model,GeneralLinearModel,Nick Knowlton <N.Knowlton@massey.ac.nz>,irrelevant
-26,9,Comparison of general linear models,ModelComparison2,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+26,9,Comparison of General Linear Models,ModelComparison2,Nick Knowlton <N.Knowlton@massey.ac.nz>,
 27,9,Variable Selection,VariableSelection,Nick Knowlton <N.Knowlton@massey.ac.nz>,yes
 28,10,Stepwise models,Stepwise,Nick Knowlton <N.Knowlton@massey.ac.nz>,
 29,10,Multicollinearity,Multicollinearity,Nick Knowlton <N.Knowlton@massey.ac.nz>,
-30,11,Weighted regression,Weighted,Nick Knowlton <N.Knowlton@massey.ac.nz>,
-31,12,Time Models with Independent Errors,Seasonality,Nick Knowlton <N.Knowlton@massey.ac.nz>,
-32,11,Serial Correlation,SerialCorrelation,Nick Knowlton <N.Knowlton@massey.ac.nz>,
-34,11,Introduction to Linear Modelling for Time Series,TimeSeries1,Nick Knowlton <N.Knowlton@massey.ac.nz>,
-35,12,Models with Autoregressive Errors,TimeSeries2,Nick Knowlton <N.Knowlton@massey.ac.nz>,
-41,0,Appendix: Introduction to R and RStudio,RAndRStudio,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
-42,1,Appendix: Regression through the origin,RegressionOrigin,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
-43,2,Appendix: Transformations in regression models,Transformations,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
-44,3,Appendix: Models with Many Factors,ManyFactors,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
-45,8,Appendix: Nonlinear least squares,Nonlinear,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+30,10,Weighted regression,Weighted,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+31,11,Splines LOESS and Regularized Models,SplinesLOESS,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+32,11,Time Models with Independent Errors,Seasonality,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+33,11,Autocorrelated Errors,SerialCorrelation,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+34,12,Modeling with Autoregressive Errors,TimeSeries2,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+35,0,Appendix: Introduction to R and RStudio,RAndRStudio,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+36,1,Appendix: Regression through the origin,RegressionOrigin,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+37,2,Appendix: Transformations in regression models,Transformations,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+38,3,Appendix: Models with Many Factors,ManyFactors,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+39,8,Appendix: Nonlinear least squares,Nonlinear,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,

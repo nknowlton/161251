@@ -7,6 +7,10 @@ Updates=0
 
 for(i in 1:nrow(LectureList)){
 
+  LectureNo <- LectureList$LectureNo[i]
+  Week <- LectureList$Week[i]
+  IsAppendix <- Week == 0
+
 TargetFile = paste0("Lecture",i,".Rmd")
 InClassFile = paste0("InClass/", TargetFile)
 print(InClassFile)
@@ -19,13 +23,13 @@ if(file.mtime(InClassFile) < file.mtime(ContentFile)| !file.exists(InClassFile )
 
 Updates=Updates+1
 
-# make files for  class delivery
-
-cat(paste0('---
-title: "Lecture ', LectureList$LectureNo[i], ': ', LectureList$LectureTitle[i], '"
+# make files for class delivery
+# Appendices (Week 0) have no date line
+if(IsAppendix){
+  cat(paste0('---
+title: "Lecture ', LectureNo, ': ', LectureList$LectureTitle[i], '"
 subtitle: 161.251 Regression Modelling
-author: "Presented by ', LectureList$Presenter[i], '"  
-date: "Week ', LectureList$Week[i], ' of Semester 2, `r lubridate::year(lubridate::now())`"
+author: "Presented by ', LectureList$Presenter[i], '"
 output:
   html_document:
     code_download: true
@@ -49,6 +53,36 @@ output:
 
 
 '), file =InClassFile)
+} else {
+  cat(paste0('---
+title: "Lecture ', LectureNo, ': ', LectureList$LectureTitle[i], '"
+subtitle: 161.251 Regression Modelling
+author: "Presented by ', LectureList$Presenter[i], '"  
+date: "Week ', Week, ' of Semester 2, `r lubridate::year(lubridate::now())`"
+output:
+  html_document:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  html_notebook:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+  word_document: default
+  slidy_presentation: 
+    theme: yeti
+    highlight_style: pygments
+  pdf_document: default
+---
+
+
+
+
+'), file =InClassFile)
+}
 
 
 file.append(InClassFile, "Content/Setup.Rmd")
@@ -69,7 +103,7 @@ if(Updates>0){
 cat('---
 title: "Index of Lecture Material"
 subtitle: 161.251 Regression Modelling
-author: "Presented by Jonathan Godfrey, Olivia and Barry " 
+author: "Presented by Jonathan Godfrey and Nick Knowlton"
 date: "Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
@@ -85,10 +119,19 @@ WeekSet = LectureList[LectureList$Week == i, ]
 
 
 
-if(nrow(WeekSet)>0){ 
-cat(paste('\n\n## Week ', i, '\n'), file = "InClass/Index.Rmd", append =TRUE)
+# Add presenter attribution to week heading
+Presenters <- unique(sapply(strsplit(as.character(WeekSet$Presenter), " <"), "[", 1))
+WeekLabel <- if(length(Presenters) == 1) {
+  paste0("Week ", i, " \U2014 ", Presenters)
+} else {
+  paste0("Week ", i, " \U2014 ", paste(Presenters, collapse = " & "))
+}
 
-cat(paste0('\n[Lecture ', WeekSet$LectureNo, ': ', WeekSet$LectureTitle, '](Lecture', WeekSet$LectureNo, '.html)'), file = "InClass/Index.Rmd", append =TRUE)
+if(nrow(WeekSet)>0){ 
+cat(paste('\n\n## ', WeekLabel, '\n'), file = "InClass/Index.Rmd", append =TRUE)
+
+# Index links use sequential file numbers within that week
+cat(paste0('\n[Lecture ', WeekSet$LectureNo, ': ', WeekSet$LectureTitle, '](Lecture', 1:nrow(WeekSet), '.html)'), file = "InClass/Index.Rmd", append =TRUE)
 
 }
 }

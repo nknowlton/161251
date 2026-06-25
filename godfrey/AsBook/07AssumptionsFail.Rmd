@@ -194,3 +194,4 @@ For our purposes, we just look for a  transformation  that fixes the residuals o
 The course 161.331 considers something called Generalized Linear Models,  which are a class of regression models used when the response variable $Y$ does not have normal errors. Many of the techniques you will learn in 161.251 generalize easily into that wider variety of contexts.
 
 
+

@@ -543,3 +543,4 @@ d & -b \\
 
  confirm that this formula produces the inverse *A^-1^* in the previous Example.
 
+

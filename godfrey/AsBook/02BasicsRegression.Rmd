@@ -165,3 +165,4 @@ This course focuses (primarily) on models with a particular linear form.
 Typically we will assume that the response is normally distributed.
 
 Linear regression models can be used for description, prediction, parameter estimation and variable screening.
+

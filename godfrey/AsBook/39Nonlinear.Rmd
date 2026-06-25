@@ -347,3 +347,4 @@ The graph seems much more reasonable. Note it changed the $k$ to 1.57.
 
 In terms of residual standard error, which is the better-fitting model, the cubic or the change-point model? (From above the cubic graph  S =`r round(summary(cubic)$sigma, 6)`).
 
+

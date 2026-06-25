@@ -203,3 +203,4 @@ The `summary()` command (which gives parameter estimates) suggests that
 3.  Calculate the fitted value for genotype B rat with genotype B foster
     mother.
 
+

@@ -290,3 +290,4 @@ The pattern of medians suggests we could model the relationship between number o
 The course 161.331 shows how to model Poisson, Negative Binomial, and other types of data using Generalized Linear Models.
 
 
+

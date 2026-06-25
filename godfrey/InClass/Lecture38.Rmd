@@ -1,5 +1,5 @@
 ---
-title: "Lecture 44: Appendix: Models with Many Factors"
+title: "Lecture 38: Appendix: Models with Many Factors"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Jonathan Godfrey <a.j.godfrey@massey.ac.nz>"
 output:

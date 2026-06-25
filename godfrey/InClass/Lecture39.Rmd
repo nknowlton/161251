@@ -1,5 +1,5 @@
 ---
-title: "Lecture 45: Appendix: Nonlinear least squares"
+title: "Lecture 39: Appendix: Nonlinear least squares"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Jonathan Godfrey <a.j.godfrey@massey.ac.nz>"
 output:

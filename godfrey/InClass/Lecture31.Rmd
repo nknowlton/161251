@@ -1,7 +1,7 @@
 ---
-title: "Lecture 31: Splines, LOESS, and Regularized Models"
+title: "Lecture 31: Splines LOESS and Regularized Models"
 subtitle: 161.251 Regression Modelling
-author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"
+author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
 date: "Week 11 of Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
@@ -16,7 +16,7 @@ output:
     widescreen: true
     smaller: true
   word_document: default
-  slidy_presentation:
+  slidy_presentation: 
     theme: yeti
     highlight_style: pygments
   pdf_document: default
@@ -41,7 +41,6 @@ library(broom)
 
 
 <!--- Do not edit anything above this line. --->
-
 ## Beyond Parametric Models
 
 So far we have focused on parametric regression models — models where the form of the relationship between $Y$ and $X$ is specified by a small number of parameters (e.g. $\beta_0 + \beta_1 x$, or $\beta_0 + \beta_1 x + \beta_2 x^2$).
