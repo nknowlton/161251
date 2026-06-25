@@ -1,0 +1,232 @@
+---
+title: "Lecture 18: Piecewise Regression Models"
+subtitle: 161.251 Regression Modelling
+author: "Presented by Jonathan Godfrey <a.j.godfrey@massey.ac.nz>"  
+date: "Week 6 of Semester 2, `r lubridate::year(lubridate::now())`"
+output:
+  html_document:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  html_notebook:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+  word_document: default
+  slidy_presentation: 
+    theme: yeti
+    highlight_style: pygments
+  pdf_document: default
+---
+
+
+
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+Sometimes we need to specify a different line or curve for different ranges of  our predictor variable.  Such a model is called **piecewise**. 
+
+### the Indianapolis 500 data
+
+This data has the winning speed (an average over 500 miles) for a very famous motor race. This is not a complete series; the race is held in almost every year, with some notable exceptions.
+
+
+
+`r xfun::embed_file("../../data/Indianap500.csv")`
+
+```{r Indianapolis 500 winning speed, eval=-1, echo=-2}
+Indy = read.csv("Indianap500.csv",header=TRUE)
+Indy = read.csv("../../data/Indianap500.csv",header=TRUE)
+plot(Speed~ Year, data=Indy)
+```
+
+In this example there appear to be three separate line segments, with possibly different slopes before World War I, between the two wars, and after World War II.  (The race was not run while the USA was active in the world wars.)
+
+
+## Allowing for changes in slope
+
+
+The change points are called ***knots**, usually we insist that the lines join up at the knots (no discontinuities) but each context will have to be judged on its merits.  
+
+A model with a single change in slope at knot $\kappa$ would have equation  $$ y = \beta_0 + \beta_1x + \beta_2 (x-\kappa)_+  + \varepsilon$$
+
+where the term $(x-\kappa)_+$ is defined as: $x-\kappa$  if  $x>\kappa$;    and  0  if  $x  \le \kappa$.
+
+This can be calculated in R as  `ifelse(x<k, 0, x-k)` read as if *x* is less than *k*, then use zero, else use *x-k*.
+
+
+
+
+
+If there are two knots, $\kappa_1$ and $\kappa_2$, the same code can be used multiple times.
+
+
+In the Indianapolis data we have gaps in the years due to the races being cancelled in  1917-18  and  1942-45 due to the USA participating in the wars.  We will use the midpoints of the missing years as the knots: $\kappa_1 = 1917.5$ and $\kappa_2= 1943.5$.  Thus we fit the model
+
+$$ y = \beta_0 + \beta_1 x + \beta_2 (x-\kappa_1)_+ + \beta_3 (x-\kappa_2)_+ + \varepsilon$$
+
+
+```{r Indianapolis.change.slopes}
+Knot1=1917.5; Knot2 = 1943.5
+Indy |> 
+  mutate(t2 = ifelse(Year<Knot1, 0, Year-Knot1),
+         t3 = ifelse(Year<Knot2, 0, Year-Knot2)) -> Indy
+
+Indy |> head() |> kable()
+Indy |> tail() |> kable()
+
+Indy.pce0 <- lm(Speed ~ Year, data = Indy)
+Indy.pce1 <- lm(Speed ~ Year + t2 + t3, data = Indy)
+summary(Indy.pce1)
+anova(Indy.pce0, Indy.pce1)
+``` 
+
+
+```{r IndianapolisChangeSlopes}
+Indy |> mutate(Fits = fitted.values(Indy.pce1)) |> 
+ggplot(aes(y=Speed, x=Year)) +
+  geom_point(color = "blue") +
+  geom_point(aes(y = Fits), color = "red") +
+labs(y="Average speed")
+```
+
+Note that, before WWI, the winning speed was rising by $\approx 2$ mph per year.  The second slope coefficient is 
+$\approx -1$,  which modifies the previous speed.  So between the two World Wars the winning speed was rising by $\approx 1$ mph per year.   The third slope coefficient is $\approx 0.5$ , which means that after WWII the winning speed was rising by $\approx 1.5$ mph per year. 
+
+
+## Allowing for discontinuity
+
+The preceding analysis indicated a significant change in slope at the two wars. The next question is: Was there a discontinuity? That is, do the line segments have to join up at the knot point?
+To examine this hypothesis, we must fit a separate intercept for the line in each of the three segments. This can be accomplished by adding the two extra indicator variables, const2 and const3, to the model above to allow the intercepts, in addition to the slopes, to differ between the segments.
+
+ 
+```{r LinesWithDiscontinuity}
+Indy |> 
+  mutate(Const2 = ifelse(Year > Knot1, 1, 0),
+         Const3 = ifelse(Year > Knot2, 1, 0)) -> Indy
+
+Indy.pce2 <- lm(Speed ~ Year + t2 + t3 + Const2 + Const3, data = Indy)
+summary(Indy.pce2)
+anova(Indy.pce1, Indy.pce2)
+```
+
+
+
+The anova() indicates that, overall, the model is significantly improved by allowing for discontinuity. The regression coefficients show this is almost entirely due to the change at the second knot, not the first. 
+
+The significant coefficient of Const2 says that, if the lines
+before and after 1943.5 were extended through the period 1941-45, then there would be a drop of 7.1 mph. In practice it looks as if  Speed just stopped rising
+between the wars, rather than actually dropping.
+
+
+```{r IndianapolisDiscontinuities}
+Indy$Fits = fitted.values(Indy.pce2)
+Indy |> ggplot(aes(y=Speed, x=Year)) +
+  geom_point(color = "blue") +
+  geom_point(aes(y = Fits), color = "red") +
+labs(y="Average speed")
+```
+
+
+
+## Extending the piecewise approach
+
+The approach can be extended to allow piecewise quadratic or cubic curves.
+
+Often the curves are constrained so that the sections are not only continuous but smooth i.e. have continuous first derivative at the knots (and of course everywhere else).   Such curves are called  ‘splines’.    Curve fitting by cubic splines is a very old technique.   Various splines are available in R,  but  we will not pursue them any further in this course. In the past splines have frequently been used as a technique for smoothing data, but we can use Lowess curves for that purpose. 
+
+It is  assumed the knots  $\kappa_1$ and $\kappa_2$ are known and do not have to be estimated. Sometimes this is reasonable.  For example   *x*   may represent time and  $\kappa_1$ and $\kappa_2$ are known events  eg. war, stock market crash, etc.  
+
+If the position of the knots do have to be estimated   then we have  a much more complicated statistical problem.  This is an area of relatively recent statistical research (e.g. in the last 30 years.)  An example where the knot needs to be estimated is where there is some sort of biological tipping point, where the system responds differently to stimuli beyond a certain (unknown) level. 
+
+One way of fitting such models is using a nonlinear  regression model.
+
+
+## Example: Child Lung Function Data
+
+
+FEV (forced expiratory volume) is a measure of lung function.
+The data include determinations of FEV on 318 female children who were seen in a childhood respiratory disease study in Massachusetts in the U.S.
+Child's age (in years) also recorded.  It is  of interest to model FEV (response) as function of age.
+
+
+`r xfun::embed_file("../../data/fev.csv")`
+
+
+ Data source: Tager, I. B., Weiss, S. T., Rosner, B., and Speizer,
+F. E. (1979). Effect of parental cigarette smoking on pulmonary function in children. *American Journal of Epidemiology*, **110**, 15-26. 
+
+
+```{r getFevData, eval=-1, echo=-2}
+Fev <- read.csv(file="fev.csv", header=TRUE)
+Fev <- read.csv(file="../../data/fev.csv", header=TRUE)
+plot(FEV~Age, data=Fev)
+```
+
+The scatter plot of data indicates that relationship between FEV and age is not linear.
+We saw how to model FEV as a polynomial in age and decided on the fourth order polynomial model:
+
+
+```{r Fev.poly}
+Fev.lm4 <- lm(FEV~poly(Age,4), data=Fev)
+```
+
+If we plot this we find the model seems to have a strange wobble, and steep increasing curves at both ends of the age range.
+
+```{r quartic plot}
+Fev |> mutate(Fits = fitted.values(Fev.lm4)) |>
+ggplot(aes(y=FEV, x=Age))  + geom_point() +
+geom_point(aes(y=Fits), color = "red")
+```
+
+Now suppose instead we fit a piecewise model.  Visually it looks like the FEV values flatten out from Age=12 onwards.
+
+
+```{r Fev piecewise}
+k <- 11.5
+Fev = Fev |> mutate(Age2 = ifelse(Age<k, 0, Age-k))
+
+
+Fev.pce1 <- lm(FEV ~ Age + Age2, data = Fev)
+summary(Fev.pce1)
+```
+
+```{r fitsFev.pce1}
+Fev |> mutate(Fits=fitted.values(Fev.pce1)) |>
+ggplot(aes(y=FEV, x=Age)) + geom_point() +
+geom_point(aes(y=Fits), color = "red")
+```
+
+```{r summFev.pce1}
+summary(Fev.lm4)$sigma
+summary(Fev.pce1)$sigma
+```
+
+
+
+The residual standard error for the simple piecewise model is almost the same as for the more complicated fourth-degree polynomial,  and the graph looks more biologically reasonable, so we would probably prefer the piecewise model. 
+
+
+
+
+The outcome is that by constructing new variables, we have increased our ability to fit meaningful and more easily interpretable models. We haven't even allowed for some curvature in the piecewise model, but that will need to be left for extension work.
+
+

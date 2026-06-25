@@ -1,0 +1,190 @@
+
+
+We saw previously that when linear models are fitted to time series data, the residuals can display autocorrelation. We also saw that autocorrelation 
+has consequences, in particular
+
+- standard errors given by standard least squares theory (and
+    hence by standard R output) will usually be smaller than the true
+    standard deviations of the parameter estimates.
+    
+- the result is that *t*-test statistics will be inflated, p-values too small, and 
+    confidence intervals will be too narrow.
+
+## Accounting for Autocorrelation in the Errors
+
+The previous discussion indicates that we need to account for autocorrelation in the errors when it is present.
+
+This will require two steps:
+    
+- Definition of an appropriate model for autocorrelated errors;
+- Fitting the linear model with autocorrelated errors.
+
+We now consider modeling the  errors using autoregressive models.
+
+## Autoregressive Models
+
+In a time series, the errors $\varepsilon_1, \varepsilon_2, \ldots, \varepsilon_n$
+    can be thought of as a realization of a random process (in time).
+
+We can model serial correlation between these errors by making each
+    one explicitly dependent on the previous one:
+    $$\varepsilon_t = \phi \varepsilon_{t-1} + \eta_t$$ where $\eta_t~(t=1,2,\ldots,n)$ is **white  noise**, that is, a sequence of independent and identically distributed  (normal) random variables with zero mean.
+
+- This equation  is a first order autoregressive (or     **AR1**) model for $\varepsilon_t$.
+- Under this model, $\mbox{Corr}(\varepsilon_t, \varepsilon_{t-1}) = \phi$.
+- Consequently, more generally, $\mbox{Corr}(\varepsilon_t, \varepsilon_{t-k}) = \phi^k$
+
+## ACF Plots for AR1 Processes
+
+To illustrate an ACF plot for a function demonstrating autocorrelation, we create two new variables from white noise 
+
+```{r whiteNoise, fig.width=8, fig.height=8}
+Z1 = rnorm(1000)
+X1 = Z1[-1] + 0.85*Z1[-1000]
+X2 = Z1[-1] - 0.85*Z1[-1000]
+par(mfrow=c(2,2))
+plot(X1, type="l")
+acf(X1)
+plot(X2, type="l")
+acf(X2)
+```
+
+The `X1` series has correlation of `r round(cor(X1[-1],X1[-999]),3)` at lag1, while the `X2` series has autocorrelation of `r round(cor(X2[-1],X2[-999]),3)` at lag1
+
+
+## Autoregressive Models for Errors in Linear Modelling
+
+If residuals in a linear model for time series data display autocorrelation then we change the model to allow for an AR1 correlation structure for the residuals in our model to account for this.
+
+N.B. More complex models are also possible. For example:
+    
+- AR models of order *q>1*, where $\varepsilon_t$ is modelled as explicitly dependent on the previous *q* errors;
+- moving average (MA) models and autoregressive moving average (ARMA) models.
+- For the purposes of this course we will focus on AR1 models for the
+    error process.
+
+## Application to the Tourism Data
+
+`r xfun::embed_file("../../data/Motel.csv")`
+
+
+```{r getTourismData, echo=-1, eval=-2}
+Tourism <- read.csv(file="../../data/Motel.csv", header=TRUE)
+Tourism <- read.csv(file="Motel.csv", header=TRUE)
+Tourism$Yr = Tourism$Year -1979 + Tourism$Month/12
+Tourism$Month <- factor(Tourism$Month)
+```
+
+```{r Tourism.lmResidACF}
+Tourism.lm <- lm(RoomNights~Yr + Month, data=Tourism)
+acf(resid(Tourism.lm))
+```
+
+There is a suggestion of exponential decay in autocorrelations.
+- AR1 model (with positive $\phi$) for errors seems reasonable.
+
+
+The model incorporating the AR1 error process, and written in regression format,
+is as follows: 
+
+$$\begin{aligned}
+Y_{t} &=& \beta_0 + \beta_1 \mbox{Yr} + \beta_2 z_{t,2} + \beta_3 z_{t,3} 
++ \ldots + \beta_{12} z_{t,12} + \varepsilon_t \\
+\varepsilon_t &=& \phi \varepsilon_{t-1} + \eta_{t}\end{aligned}$$ 
+
+where:
+
+- *Y~t~* is the *t*^th^ observation of `RoomNights`;
+- *z~t,j~ = 1* if observation *t* is taken in month *j*;
+- *z~t,j~ = 0* otherwise.
+- $\eta_1, \ldots, \eta_n$ are independent and identically
+    distributed normal random variables with mean zero.
+
+## Model Fitting with Autoregressive Errors
+
+To fit a model with AR1 errors, we must:
+
+- Estimate the size of the autocorrelation parameter, $\phi$.
+- Account for the autocorrelation in errors when estimating the
+        regression coefficients.
+
+The AR1 parameter, $\phi$, can be estimated by the method of
+    (restricted) maximum likelihood.
+
+The details are beyond the scope of this paper, but you will meet
+    maximum likelihood estimation if you take 161.304.
+
+Once $\phi$ is estimated, we can account for the AR1 nature of the
+    errors by fitting the linear model using **generalized least
+    squares**.
+
+## Generalized Least Squares in R
+
+The mathematical details of generalized least squares will not be     covered in this paper.
+
+In R, linear models can be fitted using this technique using the
+    `gls()` command found in the `nlme` add-on package. Call this package using `library(nlme)` before using the `gls()` command.
+
+
+    
+
+```{r getLib, include=FALSE}
+        library(nlme)
+```
+
+- The `gls()` command uses the same model formula as `lm()`, but also accepts an additional argument to describe    the correlation structure for the errors.
+
+## Generalized Least Squares and the Tourism Data
+
+`r xfun::embed_file("../../data/Motel.csv")`
+
+```{r Tourism.gls, echo=-1, eval=-2}
+Tourism <- read.csv(file="../../data/motel.csv", header=TRUE)
+Tourism <- read.csv(file="Motel.csv", header=TRUE)
+Tourism$Yr = Tourism$Year -1979 + Tourism$Month/12
+Tourism$Month <- factor(Tourism$Month)
+Tourism.gls <- gls(RoomNights~Yr + Month, correlation=corAR1(), data=Tourism) 
+anova(Tourism.gls)
+```
+
+
+```{r summaryTourism.gls}
+summary(Tourism.gls)
+```
+
+
+
+### Comments on the Analysis
+
+The use of an AR1 error process is obtained by setting  
+    `correlation=corAR1()`  
+    in the `gls()` command.
+
+Error variance and correlation estimated by REML (restricted
+    maximum likelihood).
+
+Estimated value of AR1 correlation parameter is
+    $\hat \phi = 0.393$.
+
+Both `Yr` and `Month` are associated with
+    RoomNights (*P*-value less than $0.0001$ in both
+    cases).
+
+Comparison of the output from `summary(Tourism.gls)` with
+    the corresponding output from the earlier analysis (assuming
+    independent errors) shows that the standard errors are usually
+    larger here, particularly for the intercept and the coefficient of    `Yr`.
+
+The only remaining question is, was the use of `gls()` successful?
+
+```{r getResids}
+acf(residuals(Tourism.gls, type="n"))
+```
+
+
+What might be the next step?  It looks like there is a significant 12-month correlation, which would also make sense. 
+
+We will have to leave the task of adjusting for more complicated correlation structures for another course.
+
+
+

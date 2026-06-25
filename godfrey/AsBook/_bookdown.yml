@@ -1,0 +1,6 @@
+book_filename: "Regression Modelling Lectures"
+chapter_name: "Lecture  "
+repo: ""
+output_dir: Final
+clean: [packages.bib, bookdown.bbl]
+new_session: no

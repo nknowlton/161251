@@ -1,0 +1,162 @@
+
+Simple and multiple regression models are types of **linear
+    model**.
+
+Remember that the word **linear** refers to the fact that the response
+    is linearly related to the regression **parameters**, not to the predictors.
+
+In most regression models, the relationship between the response and
+    each of the explanatory variables is linear.
+
+We can represent more general relationships using polynomial
+    functions of the explanatory variables.
+
+The resulting models are often referred to as *polynomial
+    regression models*.
+
+## Child Lung Function Data
+
+
+
+FEV (forced expiratory volume) is a measure of lung function.
+The data include determinations of FEV on 318 female children who were seen in a childhood respiratory disease study in Massachusetts in the U.S.
+Child's age (in years) also recorded.
+Of interest to model FEV (response) as function of age.
+
+
+`r xfun::embed_file("../../data/fev.csv")`
+
+
+ Data source: Tager, I. B., Weiss, S. T., Rosner, B., and Speizer,
+F. E. (1979). Effect of parental cigarette smoking on pulmonary function in children. *American Journal of Epidemiology*,
+**110**, 15-26. 
+
+### Example : Scatter Plot
+
+```{r getFevData, echo=-1, eval=-2}
+Fev <- read.csv(file="../../data/fev.csv", header=TRUE)
+Fev <- read.csv(file="fev.csv", header=TRUE)
+plot(FEV~Age, data=Fev)
+```
+
+
+The scatter plot of data indicates that relationship between FEV and age is not linear.
+Will try to model FEV as a polynomial in age.
+
+
+
+
+
+## The Polynomial Regression Model
+
+The polynomial linear regression model is
+$$Y_i = \beta_0 + \beta_1 x_{i} + \beta_2 x_i^2 + \ldots + \beta_p x_{i}^p
++ \varepsilon_i ~~~~~~~~~ (i=1,\ldots,n)$$ 
+
+where $Y_i$ and $x_i$ are the response and explanatory variable
+    observed on the $i$^th^ individual.
+
+$\varepsilon_1, \ldots \varepsilon_n$ are random errors satisfying
+    the usual assumptions ***A1*** to ***A4***.
+
+$\beta_0, \beta_1, \ldots, \beta_p$ are the regression parameters.
+
+The polynomial regression equation and ***A1*** imply that
+$$E[Y_i] = \mu_i = \beta_0 + \beta_1 x_{i} + \beta_2 x_i^2 + \ldots + \beta_p x_{i}^p$$
+
+The reasoning behind adding powers of the predictor ($x_i^2, x_i^3$, etc) in the model is that the resulting relationship between the predictor variable and the response is no longer a line but rather a curve. Adding higher power terms results in more complex shapes.
+
+## Notes on The Polynomial Regression Model
+
+We have defined a *p*^th^ order polynomial regression model.
+
+- Typically statisticians aim for low order polynomial models 
+- having     *p* larger than 5 or 6 is unusual.
+- If you use a polynomial model of order *p*, then you should
+    include all terms of lower order (unless the circumstances are
+    exceptional). 
+
+This last point is important. As an example, a cubic polynomial should include linear and quadratic terms:
+        $$E[Y_i] = \beta_0 + \beta_1 x_{i} + \beta_2 x_i^2 + \beta_3 x_{i}^3$$
+    is correct; we should *not* omit (e.g.) the quadratic term:
+        $$E[Y_i] = \beta_0 + \beta_1 x_{i} + \beta_3 x_{i}^3$$
+
+## Example : Model Fitting in R
+
+A sixth order polynomial model *can* be fitted with
+
+```r
+lm(FEV~Age+I(Age^2)+I(Age^3)+I(Age^4)+I(Age^5)+I(Age^6),data=Fev)
+```
+
+Notice that the powers of `Age` appear within the function `I()`. This function "protects" its contents, in the sense that R reads the
+    contents as a normal mathematical expression.
+
+For example, `I(Age^4)` is telling R to include the fourth power of `Age` in the
+    model.
+
+N.B. the expressions `*`, `/` and `^` have a different meaning in
+    a model formula (explained in later lectures)
+
+Modern practice is to avoid all that typing though!
+
+### Example : Sixth Order Model
+
+Let's start by trying to fit a sixth order model on the FEV data:
+
+```{r Fev.lm.6}
+Fev.lm.6 <- lm(FEV~poly(Age,6, raw=TRUE), data=Fev)
+summary(Fev.lm.6)
+```
+
+The coefficient of `poly(Age, 6)` is not significant, so we can remove the 6th order term.
+
+### Example : Fifth Order Model
+
+We now fit a fifth order polynomial model:
+
+```{r Fev.lm.5}
+Fev.lm.5 <- lm(FEV~poly(Age,5, raw=TRUE), data=Fev)
+summary(Fev.lm.5)
+```
+
+As the coefficient of `poly(Age, 5)` is not significant, we can remove the 5th order term from the model.
+
+### Example : Fourth Order Model
+
+We now try a fourth order polynomial model:
+
+```{r Fev.lm.4}
+Fev.lm.4 <- lm(FEV~poly(Age,4, raw=TRUE), data=Fev)
+summary(Fev.lm.4)
+```
+
+The fourth order term is statistically significant, so this is our preferred model. Since the 4th order term is significant, we have to keep all lower order terms.
+
+Our fitted model equation is:
+    $$E[\mbox{FEV}] = 3.57 - 1.39~\mbox{Age} + 0.27~\mbox{Age}^2 - 0.018~\mbox{Age}^3 + 0.00041~\mbox{Age}^4$$
+
+
+```{r Fev.lm.4.plot, echo = FALSE}
+newdat <- data.frame(Age = seq(min(Fev$Age), max(Fev$Age), length.out = 100))
+newdat$pred <- predict(Fev.lm.4, newdata = newdat)
+plot(FEV~Age, data=Fev)
+with(newdat, lines(x = Age, y = pred, col = "red", lwd = 2))
+```
+
+Looking at the plot (above), the fitted model looks adequate for ages in the range 5 to 15 years.
+At the extreme ends of the plot the fitted curve exhibits spurious upward curvature.
+This feature of the plot is an artifact of the form of the polynomial rather than a characteristic of the data.
+
+
+
+
+### Example : Collinearity in the Fitted Model
+
+Notice how in the 6th and 5th order models, none of the regression coefficients are significant; however when dropping to a 4th order model this leads to significant *t*-statistics. This is due to a noticeable collinearity between the powers of `Age`.
+
+Collinearity in polynomial regression can lead to numerical
+    instability in statistical software packages.
+
+Problems of collinearity can be addressed by using orthogonal
+    polynomials, coming up in a lecture quite soon.

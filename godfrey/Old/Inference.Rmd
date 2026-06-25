@@ -1,0 +1,218 @@
+
+Suppose (just for the purposes of argument) that we wish to test *H~0~*: $\beta_1 =  - 0.1$ versus *H~1~*: $\beta_1 >  - 0.1$. Use the R output given earlier to calculate the *t*-statistic for this test. How would you compute the associated *P*-value?
+
+
+
+
+
+
+In this lecture we will look at hypothesis tests and confidence intervals for the regression coefficients $\beta_0$ and $\beta_1$.   We will also consider the special case of $\beta_0=0$ (called *regression through the origin*).
+
+**Again read in the Pulse Data** 
+```{r getPulseData}
+pulse <- read.csv(file="../../data/pulse.csv", header=TRUE)
+summary(pulse)
+
+pulse.lm <- lm(Pulse~ Height, data=pulse )
+summary(pulse.lm)
+```
+
+Consider the table of coefficients. Below I am using the `kable()` command to make the table  pretty for presentation; you wouldn't use it in an interactive situation.
+
+```{r tidypulse.lm}
+tidy(pulse.lm) |> kable()
+```
+We want to consider the meaning of these numbers
+
+The slope estimate, $\hat{\beta_1} = `r coef(pulse.lm)[2]`$ has associated standard
+    error $SE(\hat \beta_1) = `r summary(pulse.lm)$coefficients["Height", "Std. Error"]`.$
+
+##  Sampling Distributions
+
+Theory tells us that, if the errors are normal, then the sampling distribution of $\hat{\beta_1}$  is
+$N \left(\beta_1, \frac{\sigma}{\sqrt{s_{xx}}}\right)$.
+
+So standardizing,  (subtracting the mean and dividing by the standard deviation)  gives
+$$\frac{\hat{\beta_1} - \beta_1}{\sigma/\sqrt{s_{xx}}} \sim N(0,1)$$
+
+Replacing $\sigma^2$ with the estimate *s^2^* changes the sampling distribution of $\hat{\beta_1}$ to a t distribution with $n-2$ degrees of freedom  (df).
+
+$$T = \frac{\hat{\beta_1} - \beta_1}{SE(\hat{\beta_1})} \sim t_{n-2}$$ 
+
+
+- the term $SE(\hat{\beta_1}) = s~/\sqrt{s_{xx}}$ is the **standard error** of $\hat{\beta_1}$; i.e. the
+(estimated) standard deviation of the sampling distribution of   $\hat{\beta_1}$.    ( We will *not need* to use the formula for $SE(\hat{\beta_1})$, because R will calculate the standard error for us, as shown above. )
+
+The sample value of *T* is 0.209774 /	0.1354041	 = 1.549245.  An hypothesis tests is based on this value of *T*.
+
+Similarly for the intercept, 
+$$T = \frac{\hat{\beta_0} - \beta_0}{SE(\hat{\beta_0})} \sim t_{n-2}$$ 
+The sample value of *T* here is $T = 46.906927 / 22.8793281	=2.050188$.
+
+
+## The *t* distribution
+
+The *t* distribution is used for small samples when we do not know the population variance.   Basicly it is a slightly wider curve than the normal, to reflect the fact we have more error (uncertainty) in our calculation because of putting in an estimate of $\sigma$ instead of the correct number.
+
+You'll see that we still use the *t* distribution when samples are so large that it doesn't actually matter. Why doesn't it matter? Because the *t* distribution gets closer and closer to the normal distribution as the sample size increases.    This reflect the fact that as get bigger samples, our sample estimate $s$ for $\sigma$ gets more and more accurate.
+
+```{r TDistributions, echo=FALSE, fig.width=9, fig.height=6, fig.cap="Probability density functions for *t* distributions; As df =5,10,30, (light to dark blue), the curves get closer to the normal curve (black)"}
+x=(-350:350)/100
+y1 = dnorm(x)
+plot(x, y1, ylab="f(x)", type="l")
+y2 = dt(x,df=5)
+lines(x, y2, col="lightblue",lty=2,lwd=1.5)
+y3 = dt(x,df=10)
+lines(x, y3, col="blue",lty=3,lwd=1.5)
+y4 = dt(x,df=30)
+lines(x, y4, col="darkblue",lty=2,lwd=1.5)
+```
+
+The "fatter" tails of the *t* distribution mean that the **critical values** we use in confidence intervals or hypothesis tests are larger for smaller sample sizes.
+
+
+## Hypothesis tests and confidence intervals
+
+The sampling distribution for $\hat{\beta_1}$ forms the basis for testing
+    hypotheses and constructing confidence intervals for $\beta_1$.
+
+For testing *H~0~*: $\beta_1 = \beta_1^0$, against
+    *H~1~*: $\beta_1 \ne \beta_1^0$, use the test statistic
+
+$$t = \frac{\hat{\beta_1} - \beta_1^0}{SE(\hat{\beta_1})}.$$
+
+We find p-value corresponding to *t*. As usual, smaller *P*
+    indicates more evidence against *H~0~*.
+    
+The p-value is shown in the above table *P*= 0.1278917  for the slope. 
+
+This is bigger than the usual significance level $\alpha= 0.05$ used in most hypothesis tests. So we conclude there is no insufficient evidence to reject the hypothesis that the slope=0. 
+
+## How do we find this P-value? 
+
+The null hypothesis tells us that the sample value of *T* should be close to 0, and so if we get big values of *T* on either side (positive or negative) we will reject $H_0$.
+```{r pvalue}
+pt(1.549245, df=48 )  # probability T <= 1.549
+pt(-1.549245, df=48 ) # probability T <= -1.549 or >= +1.549
+pvalue = 2*pt(-1.549245, df=48 ) 
+pvalue
+```
+The p-value is the probability of *T* being as far or further away from 0 as we got for these data. That is, it is a measure of how unlikely this slope is, to have come about by chance. 
+
+## Confidence interval for a slope
+
+A $100(1-\alpha)\%$ confidence interval for $\beta_1$ is
+
+$$\left (\hat{\beta_1} - t_{ n-2}(\alpha/2)~ SE(\hat{\beta_1}) ~~,~~
+    \hat{\beta_1} + t_{ n-2}(\alpha/2)~ SE(\hat{\beta_1})
+   \right ) .$$
+
+Here we do NOT use the value of *T*, but use a value from the $t_{n-2}$ distribution corresponding to what would give a p-value equal to the significance level $\alpha$.
+
+
+To think about...
+![the thinker](../graphics/thinker.jpg) 
+
+Suppose (just for the purposes of argument) that we wish to test *H~0~*: $\beta_1 =  - 0.1$ versus *H~1~*: $\beta_1 >  - 0.1$. Use the R output given earlier to calculate the *t*-statistic for this test. How would you compute the associated *P*-value?  (We will see a method shortly.)
+
+
+## Regression through the origin
+
+Regression through the origin $(x,y)=(0,0)$ is not common but does happen.   For example we consider a model where we may have a strong prior belief that there is no possibility that the intercept can be anything other than zero.   Then our model reduces to     $$ Y_i = \beta_1 x_i + \varepsilon_i$$  
+This model forces the mean value of $y$ to equal 0 if $x=0$.  This is called regression through the origin.
+
+All statistical packages allow you to fit this model, and it is useful at times - but one must interpret the results with care.  One aspect of this warning is that **we cannot  use $R^2$ to compare the goodness of fit with that of the usual linear model**  $\beta_0+ \beta_1 x$.    
+
+The reason is that the usual 
+$$R^2 =  1- \frac{\sum\left(y - \hat y\right)^2}{\sum\left(y - \bar y\right)^2}$$
+
+refers to the improvement in fit relative to a flat line: the denominator is based on deviations around the mean.  In the case of regression through the origin, the flat line would have to be the flat line going though y=0.  
+$$ \mbox{Fake }R^2  = 1- \frac{\sum\left(y - \hat y\right)^2}{\sum\left(y - 0\right)^2}$$
+For this reason the $R^2$ can only be used to compare two models both of the same sort, i.e. both regression through the origin or both not through the origin. 
+
+As an example, the dataset   TenMinuteWinds.csv  gives the wind speed at a Manawatu Wind Farm, every 10 minutes for one day.     Wind Farms want to be able to predict the wind 10 minutes ahead, because they have to nominate in advance how much electricity they can supply to the national power grid,  and there is a financial incentive for getting their prediction as close to the true amount as possible. 
+ 
+
+```{r Ten Minute Winds}
+Winds = read.csv(file="../../data/TenMinuteWinds.csv",header=TRUE)
+head(Winds); tail(Winds) ; attach(Winds)
+plot(Speed~TenMinEarlier)
+Wind.lm = lm(Speed ~ TenMinEarlier)
+abline(Wind.lm)
+```
+
+
+A simple  model used in Industry is the so-called Persistence  model
+$$Speed_t   = Speed_{t-1}    + \varepsilon_t $$
+where $Speed_{t-1}$    is the wind speed 1 unit of time (one row) earlier   (i.e. 10 minutes earlier .)   Note the slope of this model  is 1, and the intercept is 0, implying that we predict the next wind speed to be exactly the same as the last one, which seems reasonable. The intercept =0 would imply that if there is no wind 10 minutes earlier then we predict no wind next time.
+
+We can examine this model by fitting the slightly more general model        
+$$ Speed_t   =  \beta_1 Speed_{t-1}  +\varepsilon_t$$         and checking whether the hypothesis $H_0:  \beta_1= 1$ is reasonable. 
+
+We fit this model in R using  *0 +* in the model formulation 
+```{r No-intercept}
+Wind.lm0 = lm(Speed ~ 0 + TenMinEarlier)
+summary(Wind.lm0)
+confint(Wind.lm0)
+```
+The confidence interval shows that $\beta_1= 1$ is included in the interval.  So this indicates 1  is a plausible slope that cannot be rejected. 
+If we want an actual p-value for $H_0:  \beta_1= 1$ vs $H_1:  \beta_1 \ne 1$  then we have to calculate our own $T$ ratio
+$$ T = \frac{\hat\beta_1 -1}{se(\hat\beta_1)}  \sim t_{n-1} $$
+
+```{r T and p-value}
+coeff = summary(Wind.lm0)$coef 
+coeff
+T = (coeff[1] - 1) /coeff[2];   T
+
+Wind.df = summary(Wind.lm0)$df
+Wind.df
+pvalue = 1 - 2*pt(-abs(T),df=  Wind.df[2])
+pvalue
+```
+Note that the $df = n-1$ this time, since we are only estimating one coefficient $\beta_1$  and not two coefficients. 
+
+However the question remains whether the assumption  $\beta_0 = 0$ is valid or not.  We can examine this by comparing the output to the model *with* an intercept. 
+
+```{r with intercept}
+Wind.lm = lm( Speed ~ TenMinEarlier)
+summary(Wind.lm)
+```
+
+Comparing these two models, we see that we would reject the null hypothesis $H_0 : \beta_0 = 0$ with a p-value of `r round(summary(Wind.lm)$coef[7],4)`. 
+
+Also the residual standard error is lower in the model with an intercept. 
+
+What we *cannot do* is compare the $R^2$ here to the *Fake* $R^2$ from the model without an intercept.  We also cannot compare the *F statistics* because they are based on different denominators. 
+
+It is recommended that you decide between such models based on the smallest RSE (residual standard error).  In this  case the two-parameter model wins. 
+
+Final reminder: we only fit models with regression through the origin if the context makes it a logical model. 
+
+## Standardised variables
+
+Another situation where regression through the origin makes sense is when the $X$ and $Y$ data have been standardised
+
+$$\tilde{y_i} = \frac{y_i-\bar y}{s_y} ~, 
+~~~~~~  \tilde{ x_i} = \frac{x_i-\bar x}{s_x}   $$
+
+This is done quite often in social science or economics,  where the actual units of measurement may be quite arbitrary,  and it is more useful just to know whether a data value is average $\tilde{y_i}=0$, above average (e.g. $\tilde{y_i}=0.5$ or 1.8 etc.)  or below average (e.g. $\tilde{y_i}=-1$ or -2.3 etc.)
+
+In that case a regression of $\tilde{y }$ vs $\tilde{x }$ will go through the origin.   
+
+## What is the slope when $s_y$ = $s_x$?
+
+Back in the context of simple linear regression with or without an intercept, it can be shown that the slope estimate is 
+$$\hat\beta_1 =  r. \frac{s_y}{s_x}$$
+
+That is why testing a hypothesis  $H_0:~~ \beta_1 = 0$ gives the same conclusion as testing for zero correlation $H_0: ~~\rho = 0$.
+
+What we are drawing attention to here is that if $x$ and $y$ have the same standard deviation then the slope equals the correlation coefficient. 
+
+Clearly this happens when dealing  with standardised variables $\tilde{y}$ and $\tilde{x}$.  Then the model becomes 
+$$\tilde{y_i} = \rho \tilde{x_i}+ \varepsilon_i~.$$
+This means a confidence interval for the slope can also be thought of as a confidence interval for the correlation.
+
+(Incidentally one could square the values in such a CI and  get a confidence interval for the $R^2$. Conversely, some hypothesis tests in econometrics  are  based on testing an hypothesis that the $H_0:~R^2 =0$. We will not pursue this approach further in this course.)
+
+The other common situation where $x$ and $y$ have the same standard deviation is where the data for each variable are ranks.  For example many international comparisons are made by coming up with some rather arbitrary set of criteria and then ranking the countries: 1= best country, 2=second best,..., $n$=worst country.  If  the same set of countries is ranked by both criteria then $s_y$ = $s_x$ and the  slope equals the correlation coefficient.  (However it will not be regression through the origin.) 
+

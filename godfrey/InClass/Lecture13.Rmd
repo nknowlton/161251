@@ -1,0 +1,208 @@
+---
+title: "Lecture 13: Matrices and Linear Regression Models"
+subtitle: 161.251 Regression Modelling
+author: "Presented by Jonathan Godfrey <a.j.godfrey@massey.ac.nz>"  
+date: "Week 4 of Semester 2, `r lubridate::year(lubridate::now())`"
+output:
+  html_document:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  html_notebook:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+  word_document: default
+  slidy_presentation: 
+    theme: yeti
+    highlight_style: pygments
+  pdf_document: default
+---
+
+
+
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+Linear regression models can be conveniently expressed using matrix  notation.
+
+In this lecture, we will see how results for linear models are much more easily derived and understood using matrix notation than without it.
+
+Also note that the matrix approach is what is being done in the background by all good statistical software including R.
+
+## Matrix Formulation of the Linear Model
+
+$$\boldsymbol{y} = X {\boldsymbol{\beta}} + {\boldsymbol{\varepsilon}}
+\label{eq:matrixLM}$$
+
+where $\boldsymbol{y}$ is the response vector, *X* is the **model matrix**, ${\boldsymbol{\beta}}$ is the vector of *p+1* regression parameters, and ${\boldsymbol{\varepsilon}}$ is the vector of *n* error terms.
+
+$\boldsymbol{y} = \left [
+\begin{array}{c}
+y_1\\
+y_2\\
+\vdots\\
+y_n
+\end{array} \right ]$, $X = \left [ \begin{array}{cccc}
+1 & x_{11} & \ldots & x_{1p}\\
+1 & x_{21} & \ldots & x_{2p}\\
+\vdots & \vdots & \ddots & \vdots\\
+1 & x_{n1} & \ldots & x_{np}
+\end{array} \right ]$, $\boldsymbol{\beta} = \left [
+\begin{array}{c}
+\beta_0\\
+\beta_1\\
+\vdots\\
+\beta_p\\
+\end{array} \right ]$, and $\boldsymbol{\varepsilon} = \left [
+\begin{array}{c}
+\varepsilon_1\\
+\varepsilon_2\\
+\vdots\\
+\varepsilon_n\\
+\end{array}
+\right ]$
+
+
+The mean (expected) value of the random vector $\boldsymbol{y}$ is
+    $$\begin{aligned}
+    \boldsymbol{\mu} &=& E[\boldsymbol{y}]\\
+     &=& \left [ \begin{array}{c} 
+    E[y_1] \\ E[y_2] \\ \vdots \\ E[y_n] \end{array} \right ] \\
+     &=& E[X {\boldsymbol{\beta}} + {\boldsymbol{\varepsilon}}]\\ &=& X {\boldsymbol{\beta}}\end{aligned}$$
+
+  - Here we have used the result that for a random vector $\boldsymbol{z}$, a
+    matrix *M* and a (nonrandom) vector $\boldsymbol{a}$
+    $$E[\boldsymbol{a} + M\boldsymbol{z}] = \boldsymbol{a} + M E[\boldsymbol{z}]$$
+
+### Least Squares Estimation by Matrices
+
+For observed responses $\boldsymbol{y}$ the sum of squared errors can be
+    written as $$SS({\boldsymbol{\beta}}) = (\boldsymbol{y} - X {\boldsymbol{\beta}})^T (\boldsymbol{y} - X {\boldsymbol{\beta}}).$$
+
+  - This can be minimised using multivariate (vector) calculus to give
+    the least squares estimates as
+    $$\hat{{\boldsymbol{\beta}}} = (X^T X)^{-1} X^T \boldsymbol{y}.$$
+
+### How did that matrix solution come about?
+
+Start with $$X \hat{{\boldsymbol{\beta}}} =\boldsymbol{y}$$ and do a series of pre-multiplications: First by $X^T$ (the transpose of the $X$ model matrix.
+$$X^T X \hat{{\boldsymbol{\beta}}} = X^T \boldsymbol{y}$$, then the inverse of $(X^T X)$ to give
+$$(X^T X)^{-1} (X^T X) \hat{{\boldsymbol{\beta}}} = (X^T X)^{-1} X^T \boldsymbol{y}$$.
+
+Anything multiplied by its inverse is equal to the identity matrix, and cancels itself out, rreducing the left hand side to be the parameter estimates $\hat{{\boldsymbol{\beta}}}$ we seek.
+
+### Simple Linear Regression in matrix form
+
+For a simple linear regression model the model matrix is
+$$X = \left [
+\begin{array}{cc}
+1 & x_{1} \\
+1 & x_{2} \\
+\vdots & \vdots \\
+1 & x_{n}
+\end{array}
+\right ]$$ If we observe responses $\boldsymbol{y}$, the least squares estimate
+of ${\boldsymbol{\beta}}$ is: $$\begin{aligned}
+\hat{\boldsymbol{\beta}} &=& (X^T X)^{-1} X^T \boldsymbol{y} = 
+\left [
+\begin{array}{cc}
+n & n \bar{x}\\
+n\bar{x} & \sum_i x_i^2 
+\end{array}
+\right ]^{-1} 
+\left [
+\begin{array}{cccc}
+1 & 1 & \ldots & 1 \\
+x_1 & x_2 & \ldots & x_n 
+\end{array}
+\right ]
+\left [
+\begin{array}{c}
+y_1\\
+y_2\\
+\vdots\\
+y_n
+\end{array}
+\right ] \\
+ &=&
+\frac{1}{n s_{xx}} \left [
+\begin{array}{cc}
+\sum_i x_i^2 & - n \bar{x}\\
+- n\bar{x} & n 
+\end{array}
+\right ] 
+\left [ 
+\begin{array}{c}
+n \bar{y}\\
+\sum_i x_i y_i
+\end{array}
+\right ]
+= 
+\frac{1}{s_{xx}} \left [ 
+\begin{array}{c}
+\bar{y} \sum_i x_i^2 - \bar{x} \sum_i{x_i y_i} \\
+s_{xy}
+\end{array}
+\right ]\end{aligned}$$
+
+## Prediction and The Hat Matrix
+
+The vector of fitted values is given by $\hat{\boldsymbol{\mu}} = X \hat{\boldsymbol{\beta}} = X (X^TX)^{-1} X^T \boldsymbol{y}$ and the vector of residuals by $\boldsymbol{e} = \boldsymbol{y} - \hat{\boldsymbol{\mu}}$.
+
+
+The equation for the fitted values just given, can be re-written $\hat{\boldsymbol{\mu}} = H \boldsymbol{y} = \hat{\boldsymbol{y}}$  where *H = X (X^T^X)^-1^X^T^* is
+    often called the **hat matrix** because it "puts hats on things"!
+
+We have the equality $\hat{\boldsymbol{y}} = \hat{\boldsymbol{\mu}}$ because we use the
+    same values for prediction and mean estimation.
+
+## Covariance Matrices
+
+  - The variance-covariance (or simple covariance, or dispersion matrix)
+    has variances down the diagonal and covariances off the diagonal.
+
+  - It can be shown that for a matrix *M* and random vector $\boldsymbol{z}$
+    (of appropriate dimensions)
+    $$\mbox{Var} (M\boldsymbol{z}) = M \mbox{Var} (\boldsymbol{z}) M^T.$$
+
+## The Covariance Matrix for $\hat{\boldsymbol{\beta}}$
+
+The covariance matrix of $\hat{\boldsymbol{\beta}}$ is 
+
+$$\begin{aligned}
+    \mbox{Var}(\hat{\boldsymbol{\beta}}) = \mbox{Var}[ (X^TX)^{-1} X^T \boldsymbol{y} ] &=& (X^TX)^{-1} X^T \mbox{Var}(\boldsymbol{y}) [(X^TX)^{-1} X^T]^T\\
+        &=& (X^TX)^{-1} X^T \sigma^2 I [(X^TX)^{-1} X^T]^T\\
+        &=& \sigma^2 (X^TX)^{-1} X^TX (X^T X)^{-1}\\
+        &=& \sigma^2 (X^TX)^{-1}\end{aligned}$$
+
+We can use $\mbox{Var}(\boldsymbol{y}) = \sigma^2 I$ since the responses are
+    independent and hence uncorrelated.
+
+
+- The variances express the variability of the estimators from sample
+    to sample.
+
+- The covariances describe the inter-dependence of estimators.
+
+
+The leading diagonal of this matrix is the basis for the standard errors of our parameter estimates seen in our regression output.
+is 

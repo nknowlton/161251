@@ -3,15 +3,14 @@ title: "Lecture 31: Time Models with Independent Errors"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
 output:
-  slidy_presentation: 
-    code_download: true
+  html:
     theme: yeti
     highlight: tango
   ioslides_presentation:
     widescreen: true
     smaller: true
   word_document: default
-  html_notebook:
+  slidy_presentation: 
     code_download: true
     theme: yeti
     highlight: tango

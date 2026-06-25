@@ -1,0 +1,169 @@
+﻿
+
+So far we have focused on (i) models containing just numerical covariates (linear regression models) and (ii) models containing just factors (‘ANOVA type’ models).
+
+Naturally there will be situations in which we wish to model a response in terms of **both** numerical covariates and factors.
+
+Generalizing factorial and regression models to include models with potentially both factors and numerical covariates produces the class of models (historically) referred to as **G**eneral **L**inear **M**odels.
+
+The abbreviation GLM was used for these models for many years, and still is in some software. R uses this acronym to refer to **generalised linear models** which are covered in another course. As a consequence, we  often find some confusion, but all linear models fit into the wider group of generalised linear models  
+
+We will look at general linear models in this lecture.
+
+## General Linear Models as Regressions
+
+As we saw when we looked at factorial models, any factor can be coded using dummy variables so as to produce a linear regression model.
+
+It follows that any general linear model can be fitted as a linear regression.
+
+All the ideas about least squares estimation, fitted values and residuals remain unchanged.
+
+## Models with a Single Factor and Covariate
+
+In order to understand how to use and interpret models with a  combination of factors and numerical covariates, consider the simple  case where we have a response variable, *y*, a covariate *x* and  a factor *A*.
+
+There are a number of different models that we could fit.
+    
+- differently sloped regressions for each level of *A*,
+- parallel regressions at different levels of *A*,
+- single regression model,
+- model with zero slope, but distinct intercept for each Level of *A*, and
+- a null model having zero slope and common intercept.
+
+
+
+![image](../graphics/glm.png)
+
+### Separate Regressions at Different Levels of *A*
+
+$$Y_{ij} = \mu + \alpha_i + \beta_i x_{ij} + \varepsilon_{ij}$$
+
+Note: intercept and slope depends on factor level *i*.  
+Treatment constraint fixes $\alpha_1 = 0$.
+
+R formula is `Y ~ A + A:x`
+
+Here the notation of an interaction between the covariate and the factor
+is telling R to allow the regression slope to depend on the factor
+level.
+
+### Parallel Regressions at Different Levels of *A*
+
+$$Y_{ij} = \mu + \alpha_i + \beta x_{ij} + \varepsilon_{ij}$$
+
+Note: constant slope, but intercept depends on factor level *i*.  
+Treatment constraint sets $\alpha_1 = 0$.
+
+R formula is `Y ~ A + x`
+
+### Single Regression Model
+
+$$Y_{ij} = \mu + \beta x_{ij} + \varepsilon_{ij}$$
+
+Note: factor *A* plays no role here.
+
+R formula is the familiar `Y ~ x`
+
+*Technical aside:*  
+
+Another possible model would be different regression slopes but a common
+intercept, but this is not commonly used.
+
+### Interpretation of Linear Model Formulae
+
+The ideas just presented can be extended in a natural fashion to
+models with two or more factors and covariates.
+
+Suppose that the R formula is `Y ~ A + A:B + A:x + z`, where `A` and `B` are factors, and `x` and `z` are covariates. Then the model is defined by:
+
+$$Y_{ijk} = \mu +\alpha_i + \beta_{ij} + \gamma_i x_{ijk} + 
+     \delta z_{ijk} + \varepsilon_{ijk}.$$
+
+
+Suppose that the R formula is `Y ~ A*B + A:x`
+    
+This model is defined by $Y_{ijk} = \mu +\alpha_i + \beta_j + (\alpha\beta)_{ij} + 
+    \gamma_i x_{ijk} + \varepsilon_{ijk}.$
+
+Suppose that the R formula is   `Y ~ A + A:x + B + B:z `
+    
+This model is defined by $Y_{ijk} = \mu +\alpha_i + \beta_j + \gamma_{i} x_{ijk} + \delta_j z_{ijk} + \varepsilon_{ijk}.$
+
+## Linear Models for Samara Data
+
+
+
+Samara are small winged fruit on maple trees.
+In Autumn these fruit fall to the ground, spinning as they go.
+Research on the aerodynamics of the fruit has applications for helicopter design.
+
+![samara image](../graphics/samara.jpg)
+
+
+
+In one study the following variables were measured on individual samara:
+
+1. `Velocity`: speed of fall
+2. `Tree`: data collected from 3 trees
+3. `Load`: ‘disk loading’ (an aerodynamical quantity based on each
+        fruit’s size and weight).
+
+The aim of this Case Study is to model `Velocity` in terms of `Load` (a numerical    covariate) and `Tree` (a factor).
+
+### Samara Data: R Code
+
+
+`r xfun::embed_file("../../data/samara.csv")`
+
+```{r getSamara, echo=-1, eval=-2}
+Samara <- read.csv(file="../../data/samara.csv", header=TRUE)
+Samara <- read.csv(file="samara.csv", header=TRUE)
+str(Samara)
+Samara |> mutate(TreeF = factor(Tree)) ->  Samara
+```
+
+N.B. It might prove useful to have the values of `Tree` as both a numeric and a factor variable.
+
+### Samara Data: Plot of Data
+
+```{r SamaraPlot, fig.cap="Scatter plot of data with different colours and plotting symbols used to distinguish data from different trees."}
+Samara |>
+ggplot(mapping = aes(y=Velocity, x=Load)) + 
+geom_point(mapping = aes(col=TreeF, pch=TreeF))
+```
+
+
+
+
+
+### Model Fitting
+
+We will fit a model with separate regression lines at different levels of `TreeF`.
+
+```{r Samara.lm}
+Samara.lm <- lm(Velocity ~ TreeF + TreeF:Load, data=Samara) 
+summary(Samara.lm)
+```
+
+### Comments
+
+In the R code we have fitted separate regressions of `Velocity` on `Load` for each type of `Tree`
+
+As usual, the treatment constraint is used by default for `TreeF` (the factor version of `Tree`). Hence the `Intercept` listed under the coefficients is the intercept for `Tree 1`,
+    with adjustments for trees 2 and 3 given in the summary table.
+
+The `Tree:Load` interaction terms give the regression slopes for each `Tree`.
+
+Hence the fitted model is as follows: 
+
+$$\begin{aligned}
+    &\mbox{Tree 1}&~~~E[ \mbox{Velocity}] = 0.5414 + 3.0629  \mbox{Load}\\
+    &\mbox{Tree 2}&~~~E[ \mbox{Velocity}] = -0.2994 + 6.7971  \mbox{Load}\\
+    &\mbox{Tree 3}&~~~E[ \mbox{Velocity}] = 0.2427 + 3.8834  \mbox{Load}\end{aligned}$$
+
+### Design Matrix for the Samara Data
+
+Write down the design matrix for the model `samara.lm`.
+
+Verify your answer using the `model.matrix()` command.
+

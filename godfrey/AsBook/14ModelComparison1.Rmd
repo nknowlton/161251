@@ -1,0 +1,247 @@
+# Comparison of Multiple Linear Regression Models{#ModelComparison1}
+
+[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture14.html)
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+
+
+We have now considered two types of testing problems in multiple   linear regression:
+    
+1.  Testing whether the response is related to at least one
+        explanatory variable;
+2.  Testing the effect of a given (single) explanatory variable having adjusted for other variables.
+
+In this lecture, we investigate the importance of a group of covariates simultaneously.
+
+- This problem is equivalent to comparing a given model with a simplified version of that model.
+
+To help our discussion later we may call the simplified model an "accepted model", that is, with a set of variables  that we think accept as being useful. The bigger model (with more variables) we may call an "extended model", and we may refer to the additional variables as "candidate" variables. 
+
+
+## Matrix formulation of the model
+
+In a linear regression the predictor columns $X_1, X_2, …,X_p$  are treated as being linked together into a specific arrangement called a data matrix  **X** (sometimes also called the model matrix or Design matrix, usually depending on the amount of pre-planning there is in the data collection.
+
+The columns don’t have to be next to each other in the worksheet: all you have to do is specify the column names and  the software sets up the matrix for its own calculations.  
+
+If there is an intercept in the model, then the first column of the data matrix is assumed to be a column of 1s. This is the default.   You don’t need to create this column:  the software creates it automatically and uses it in its internal calculations – unless you specifically tell the software there is no intercept.         
+
+Note that since every entry on every row of this hidden column is the same number, then it is also referred to as the **Constant** column. 
+
+Next to the column of 1s, the software places into the data matrix the first column specified in the list of regression predictors.   So in the example below, columns $X_1$=MnJanTemp, …,$X_8$=NorthIsland are shown.  (This  makes 9 columns in all). 
+
+If only predictors $X_2$=Lat, $X_6$=Height and $X_1$=MnJanTemp  were included in the model (in that order), the data matrix would have the column of 1s,  the column of $X_2$ values, the column of $X_6$ values, and finally the column of $X_1$ values, in that order. 
+
+The regression parameters  $\beta_0, \beta_1, ….,\beta_8$  are similarly treated by the software as being arranged in an orderly fashion, in a matrix consisting of a single column of numbers.   (A matrix with one column is called a (column) vector).
+
+
+The *Y* values are similarly treated as a vector (one-column matrix of numbers in their particular order).    We denote them by just the column name `Y`.
+
+With the data organised this way in the computer,   the mathematics takes over.  Mathematically, 
+the linear regression model can be written using Matrix Algebra as 
+                               $$Y = X \beta + \varepsilon$$
+                               
+where $\boldsymbol{\varepsilon}$  is a vector of errors.  
+
+
+
+Now as before, our task is to find the estimates of  the intercept and slopes $\beta_0, \beta_1, …,\beta_p$    to make the sum of squared errors as small as possible.   (i.e.  to minimise $\varepsilon_1^2 +\varepsilon_2^2+ ...+\varepsilon_n^2$)
+
+
+The extraordinarily nice thing about writing the problem in matrix terms is that some matrix algebra gives an immediate solution  that is easily programmed.  
+$$ \boldsymbol{b} =(X^T X)^{-1} X^T \boldsymbol{y}  $$                             
+
+
+This holds for all sizes of problem, in terms of both the number of rows (observations) and columns (variables) in the *X* model matrix.
+
+Remember that proviso (condition for validity of the solution):   The columns of *X* must be linearly independent, or more accurately, not have any linear dependencies.
+
+## A note on the intercept
+
+The other point worth noting about the formula          $$\boldsymbol{b} =(X^TX)^{-1}  X^T \boldsymbol{y}   $$
+is that the intercept is not treated any differently to any other predictor variable -  it is just represented by a column of numbers in the data matrix **X** (in this case a column with every number=1). 
+
+The significance of this fact is that exactly the same rules and formulas apply to estimating the intercept $\beta_0$ as apply to estimating any other slope  $\beta_1,...,\beta_p$.  So if you read a regression textbook or a paper that gives a formula based on the slopes, they won’t necessarily give a separate formula for the intercept.  
+
+In what follows, we will occasionally talk about the design matrix (or data matrix) if it is helpful for understanding the way the regression models have been created. 
+
+
+
+
+
+
+
+## Nested Models
+
+A linear model *M1* is said to be **nested** within another
+model *M2* if *M1* can be recovered as a special case of *M1* by setting the parameters of *M2* to the necessary values.
+
+For the Climate data, define model *M2* by
+
+$$E[\mbox{MnJlyTemp}] = \beta_0 + \beta_1 \mbox{Lat} + \beta_2 \mbox{Height} + \beta_3 \mbox{Sea} + \beta_4  \mbox{NorthIsland}      + \beta_5 \mbox{Rain}+ \beta_6 \mbox{Sun}+ \beta_7\mbox{Long}+ \beta_8 \mbox{MnJanTemp}$$
+
+Then the model *M1* defined by
+
+
+$$E[\mbox{MnJlyTemp}] = \beta_0 + \beta_1 \mbox{Lat} + \beta_2 \mbox{Height} + \beta_3 \mbox{Sea} + \beta_4 \mbox{NorthIsland} $$
+is nested within *M2* because we can obtain *M1* by setting $\beta_5 = \beta_6 = \beta_7 =\beta_8 =0$ in *M2*.
+
+
+## *F* Tests for Nested Models
+
+The general ideas about model comparison   continue to  apply.    
+
+- We want a "cheap" model (i.e. one with few parameters);
+- We want a model that fits well (i.e. one with small RSS.
+- The choice of model will be a question of whether the improvement in     goodness of fit of the extended model  *M2* over the simpler model *M1* is      worth the cost.
+
+Selecting a model is equivalent to testing hypotheses about parameters of *M2* (the more complex model).
+
+
+- Suppose that linear model *M1* has *q* explanatory variables (hence *q+1* regression parameters, including intercept).
+- Suppose that *M1* is nested within linear model *M2* which has  *p > q* explanatory variables (hence *p+1* regression     parameters, including intercept).
+
+Comparison of the models can be achieved by testing
+
+*H~0~*: $\beta_j = 0$ for all $j \in J$ (i.e. *M1* adequate); versus
+
+*H~1~*: $\beta_j$ not zero for all $j \in J$ (i.e. *M2* better)
+    
+where *J* indexes the *p-q* variables that appear in *M2* but not *M1*.
+
+
+The *F*-statistic to test these hypotheses is
+
+$$F = \frac{[RSS_{M1} - RSS_{M2}]/(p-q)}{RSS_{M2}/(n-p-1)}$$
+
+As before, extreme, large values of *F* provide evidence against *H~0~* (hence evidence that we should prefer model *M2* to *M1*).
+
+If *H~0~* is correct then *F* has an *F* distribution with *(p-q),(n-p-1)* degrees of freedom.
+
+Hence if *f~obs~* is the observed value of the test statistic, and *X* is a random variable from an *F~p-q,n-p-1~* distribution, then the *P*-value is given by 
+
+$$P= P(X \ge f_{obs})$$
+
+## Interpretation of Test Results
+
+- As we have seen earlier, the importance of variables in a multiple regression is dependent upon context (i.e. what other variables are taken into account).
+
+- Retention of *H~0~* (i.e. acceptance that model *M1* is adequate) does not mean that the *p-q* variables indexed by *J* are unrelated to the response.
+- Rather, retention of *H~0~* indicates that the variables indexed by *J* do not provide additional information about the response having adjusted for all the other (*q*) variables.
+
+## Model Comparison for the Climate data
+
+Our *M2* and *M1* were given above. 
+
+
+N.B. `r xfun::embed_file("../../data/Climate.csv")` to replicate the following examples.
+
+
+
+```{r firstModels, echo=-1}
+Climate <- read.csv(file="../../data/Climate.csv", header=TRUE, row.names=1) 
+Climate.lm1 <- lm(MnJlyTemp~ Lat + Height+ Sea+ NorthIsland, data=Climate)
+anova(Climate.lm1)
+Climate.lm2 <- lm(MnJlyTemp ~ Lat + Height+ Sea+ NorthIsland+ Rain+ Sun + Long+ MnJanTemp, data=Climate)
+anova(Climate.lm2)
+```
+
+- For model `Climate.lm1`, calculations give *RSS~M1~ = `r round(anova(Climate.lm1)["Residuals", "Sum Sq"],3)`* and *q=4*.
+- For model `Climate.lm2`, calculations give *RSS~M2~ =  `r round(anova(Climate.lm2)["Residuals", "Sum Sq"], 3)`* and *p=8*.
+
+
+
+$$F = \frac{[RSS_{M1} - RSS_{M2}]/(p-q)}{RSS_{M2}/(n-p-1)} = \frac{[28.13 - 25.022]/(8-4)}{25.022/(27)} = 0.8384$$
+
+
+
+
+
+$$P(X \ge 0.8384) = 0.5129~~~~~~~~~~\mbox{where $X \sim F_{4,27}$}$$
+
+- We conclude that *H~0~* can be retained (i.e. model *M1* is      adequate). There is no evidence that Rain, Sun, Long and MnJanTemp (considered together)   provide further information about MnJlyTemp once we have adjusted for Lat, Height, Sea and NorthIsland.
+
+Can we simplify further? 
+
+
+Suppose we want to know if we really need all four variables that are in our previous model `Climate.lm1`. 
+
+
+Maybe we can get by with an even simpler model.
+
+$$E[\mbox{MnJlyTemp}] = \beta_0 + \beta_1 \mbox{Lat} + \beta_2 \mbox{Height} $$ 
+
+So in terms of M1 we are setting $\beta_3=\beta_4 =0$. 
+
+```{r Climate.lm0}
+Climate.lm0 =lm( MnJlyTemp ~ Lat+ Height, data = Climate)
+anova( Climate.lm0, Climate.lm1)
+```
+
+Clearly we reject the hypothesis that $\beta_3=\beta_4 =0$. There is something in these two variables that we need. 
+
+
+## Connection with the Omnibus *F* Test
+
+- The omnibus *F* test for model utility discussed earlier is a      particular case of the more general methodology for model comparison    presented in this lecture.
+- Specifically, in omnibus *F* test we always take *M1* to be the      *null* model with *q=0* explanatory variables, and       *M2* to be the full model with *p* explanatory variables.
+
+
+
+
+## Connection with T Tests for Single Variables
+
+- *F* tests can be used to compare two models that differ by a single      explanatory variable.
+- a *T* test can also be used to assess the importance of any given explanatory variable.
+
+
+There is a connection between the two approaches. Suppose we test *H~0~*: $$\beta_j = 0~~~~\mbox{versus}~~~~H_1:\beta_j \ne 0$$ having adjusted for certain other variables. 
+
+If the observed *t*-test statistic is *t~obs~*, and the observed *F* test statistic is   *f~obs~*, then 
+
+- *f~obs~ = t~obs~^2^*.
+- The *P*-value from the two tests will be the same.
+
+## More Testing for the Climate  Data
+
+
+- Suppose that we wish to test for the importance of `NorthIsland` having adjusted for the other variables `Lat`, `Height` and `Sea`.
+
+- We want to test *H~0~*: $$\beta_4 = 0~~~~\mbox{versus}~~~~H_1:\beta_4 \ne 0$$   
+- We will perform *t* and *F* tests using R.
+
+
+```{r secondModels}
+Climate.lm00 <- lm(MnJlyTemp ~ Lat+ Height+ Sea, data=Climate)
+anova(Climate.lm0, Climate.lm00, Climate.lm1)
+```
+
+- The first *F*-statistic (from the anova() function output) is *f = 8.869* with corresponding *P*-value *P=0.00559*. So we need Sea in addition to Lat and Height.
+- The second  *F*-statistic is  *f = 5.797* with corresponding *P*-value *P=0.02219*. So we need NorthIsland  in addition to Lat, Height and Sea. 
+
+If we look at the summary() output for M1  we get
+```{r summary M1}
+summary(Climate.lm1)
+```
+
+- The *t*-statistic for NorthIsland  is *t=2.408* with corresponding *P*-value *P=0.02219*.
+- Note that *f* = 5.797 = 2.408^2^ = *t^2^*.
+
+
+

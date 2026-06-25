@@ -1,0 +1,160 @@
+
+
+This lecture provides an overview of 161.221.
+
+
+ This paper is all about linear models.
+
+- These models seek to describe the variation of one variable in terms
+    of one or more others, so far as this is possible.
+
+- Linear models are a vital tool in the application of statistics.
+
+## Learning Outcomes
+
+A student who successfully completes this paper will be able to:
+
+- develop appropriate linear models for data analysis;
+
+- critically assess whether a linear model adequately describes how
+    one or more explanatory variables affect a response variable;
+
+- make inferences about the model parameters, and interpret these in
+    context;
+
+- create and understand analysis of variance tables, and use them to
+    test hypotheses about model parameters;
+
+- compare nested models and select a subset of explanatory variables
+    that explain variation in a response;
+
+- use suitable statistical software to apply linear models.
+
+
+N.B. the "suitable statistical software" is R. Even if you have used R before, you may wish to review some introductory material to refresh yourself. If you have not used R before, then there is some extra work to do, but we won't use this software in the first three lectures so there is still time to allow you a decent chance to catch up. Look for links on Stream, including how to [get R and RStudio set up for this semester.](https://R-Resources.massey.ac.nz/help/usingrin161.221.html)
+
+
+## Some of the New Stuff You'll Learn
+
+Polynomial Regression
+
+
+```{r FevPolyplot, echo=FALSE}
+Fev <- read.csv(file="../../data/fev.csv", header=TRUE)
+plot(FEV~Age, data=Fev, pch=19)
+Fev.poly4 = lm(FEV~poly(Age, 4), data=Fev)
+Ages=(30:190)/10
+Preds=predict(Fev.poly4, newdata=data.frame(Age=Ages))
+points(Preds~Ages, pch=16, col=2)
+```
+
+
+
+Model Diagnostic Plots
+
+```{r HillsDiagPlots, echo=FALSE}
+Hills <- read.csv(file="../../data/hills.csv",header=TRUE,row.names=1)
+Hills.lm <- lm(time~dist, data=Hills) 
+par(mfrow=c(2,2))
+plot(Hills.lm)
+```
+
+
+
+Response Surfaces
+
+```{r 3DScatterPlot, echo=FALSE}
+  temp <- seq(-pi, 0, length = 50)
+  x <- c(rep(1, 50) %*% t(cos(temp)))
+  y <- c(cos(temp) %*% t(sin(temp)))
+  z <- c(sin(temp) %*% t(sin(temp)))
+  scatterplot3d::scatterplot3d(x, y, z, highlight.3d=TRUE,
+      col.axis="blue", col.grid="lightblue",
+      main="scatterplot3d - 2", pch=20)
+```
+
+
+Regression for Grouped Data
+
+```{r OzonePlot, echo=FALSE, fig.cap="Ozone vs temperature for each of five months (May to September)"}
+attach(airquality)
+plot(Ozone~Temp, col=Month, pch=Month)
+detach(airquality)
+```
+
+## Computer Practicals
+
+In practice, statistical methods are implemented on computers.
+
+Doing statistical analyses helps you to understand underlying
+    theory.
+
+Computer practicals are an essential element of 161.221.
+
+Practical sessions will be held each week during semester.
+
+## Course Synopsis
+
+1.  Introduction
+
+3.  Simple Linear Regression
+
+4.  Multiple Linear Regression
+
+
+4. Polynomial regression
+
+5.  Linear Models with Factors
+
+6.  Time Series and Forecasting using Linear Models
+
+## 161.221 Stream site
+
+Check the Stream site for 161.221 on a regular basis for:
+
+- Announcements and news. These will automatically be emailed to you so do make sure the correct email address is on your Massey profile.
+
+- All study material. There is no set text to purchase.
+
+- Assignments and other assessment exercises, including the submission portal
+
+- Data files for download.
+
+- a record of interactions with staff and classmates
+
+
+
+
+
+### Data download into R
+
+Datasets are also hosted at:  https://r-resources.massey.ac.nz/data/161221/
+
+You will see how they can be read directly into R from that location in our practical sessions.
+
+## Assessment for 161.221
+
+
+You will use R for all assessment exercises.
+
+- Assignment 1: You will write this assignment using R markdown.
+
+- Test 1: (Short test) You can choose what software to write your answers, but you will probably need to use R to complete some small tasks.
+
+- Assignment 2: You will write this assignment using R markdown.
+
+
+- Test 2: (longer test) You will write your answers using R markdown.
+
+
+## R markdown???
+
+
+If you have not used R markdown in any other courses, then you will need to gain some skill using it. These lectures were written using R markdown. The practical sessions will be done using R markdown template files we provide. You will soon find that R markdown is a huge time saver, especially for anyone who isn't perfect (probably all of us).
+
+
+## Any Questions About the Course Structure or Direction?
+
+
+![Ask now, on Stream, or by e-mail later... but ***always*** ask.](../graphics/question.jpg) 
+

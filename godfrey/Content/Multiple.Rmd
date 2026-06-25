@@ -1,0 +1,351 @@
+
+```{r extraPkgs}
+library(ggplot2)
+```
+
+This lecture will cover an introduction to regression with multiple explanatory variables.
+
+
+## Scottish Hill Racing Data Revisited
+
+
+
+
+For the linear model of  `time`  against  `dist` , plot residuals against  `climb` .
+
+```{r HillsLurk}
+data(hills, package="MASS")
+Hills.lm <- lm(time~dist, data=hills) 
+plot(resid(Hills.lm)~climb, data=hills, xlab="Climb")
+```
+
+This is a **lurking variable** plot.  That is, it shows that the residuals are correlated with another variable not in the model, implying that if we include that variable in the regression model it will explain more of the data.
+
+
+
+
+
+  - For the Scottish Hill Racing data, the trend in the lurking variable
+    plot of residuals against `climb` indicates that the height climbed
+    should be included in the model in addition to the race distance.
+
+  - For applications such as this we need to extend simple linear
+    regression to incorporate multiple predictors.
+
+  - This extended methodology is called **multiple linear  regression**.
+
+## The Multiple Linear Regression Model
+
+The multiple linear regression model is
+$$Y_i = \beta_0 + \beta_1 x_{i1} + \ldots + \beta_p x_{ip}
++ \varepsilon_i$$
+for *i=1,2,...,n*.
+
+Note now that: 
+
+  - There are *p* predictor variables *x~1~*, *x~2~*, ..., *x~p~*.
+
+  - The notation *x~ij~* denotes the value of *x~j~* for the *i*^th^
+    individual.
+
+  - $\varepsilon_1, \ldots \varepsilon_n$ are random errors satisfying
+    assumptions A1 --- A4.
+
+  - $\beta_0, \beta_1, \ldots, \beta_p$ are the regression parameters.
+
+## Parameter Estimation
+
+  - The equation for the regression line and A1 imply that
+    $$E[Y_i] = \mu_i = \beta_0 + \beta_1 x_{i1} + \ldots + \beta_p x_{ip}$$
+
+  - The parameters $\beta_0,\beta_1, \ldots, \beta_p$ can be estimated
+    by the method of least squares.
+
+  - The least squares estimates (LSEs)  $\hat \beta_0,\hat \beta_1, \ldots ,\hat \beta_p$ are still the values
+    that minimize the following sum of squares: $$\begin{aligned}
+    SS(\beta_0, \beta_1, \ldots , \beta_p) &=& \sum_{i=1}^n (y_i - \mu_i)^2\\
+        &=& \sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_{i1} - 
+         \ldots - \beta_p x_{ip} )^2\end{aligned}$$
+
+  - Software packages can quickly compute LSEs.
+
+## Fitted Values and Residuals
+
+  - The definitions of a fitted value and a residual in multiple linear
+    regression follow on naturally from simple linear regression.
+
+  - The *i*^th^ fitted value is
+    $$\hat \mu_i = \hat \beta_0 + \hat \beta_1 x_{i1} + \ldots + \hat\beta_p x_{ip}$$
+
+  - The *i*^th^ residual is $e_i = y_i - \hat \mu_i$.
+
+  - The error variance, $\sigma^2$, can be estimated (unbiasedly) by
+    $$s^2 = \frac{1}{n-p-1} RSS$$ where the residual sum of squares is
+    $RSS = \sum_{i=1}^n (y_i - \hat \mu_i)^2$.
+
+## New Zealand Climate Data  Example
+
+Variable | Description
+--- | ---
+*Y*= `MnJlyTemp` | Mean July temperature  (degrees Celsius)
+`MnJanTemp` | Mean January temperature  (degrees Celsius)
+`Lat` | Degrees of latitude (south) 
+`Long` | Degrees of longitude (east)
+`Rain` | Annual precipitation (mm)
+`Sun` | Annual hours of sunshine
+`Height` | Average height above sea level (in metres)
+`Sea`  | 0 = no (inland)  1 = yes   is coastal
+`NorthIsland`  | 0 = no,   1= yes  
+
+Suppose our  aim is to find a model that explains the mean July Temperature in the different locations, in terms of the other variables.   We will sometimes refer to this variable *MnJlyTemp*  as  *y*  and the others as *x~1~*, *x~2~*, ..., *x~8~* respectively.
+
+Note  it does not matter  that *x~7~* = `Sea`  and *x~8~* = `NorthIsland`  are just 0 - 1 variables. These coded variables are called **indicator variables** and are an extremely important aspect of regression models, so important that they feature heavily in the rest of the course. Look out for them.
+
+Eg. the slope $\beta_7$  will still represent a one-unit change,  i.e. the difference  between  a  non-Coastal (Sea=0) and Coastal (Sea=1) location.
+
+`r xfun::embed_file("../../data/Climate.csv")` to be able to run the examples below.
+
+```{r read Climate}
+Climate= read.csv(file="../../data/Climate.csv", header=TRUE, row.names = 1)
+head(Climate)
+par(mfrow=c(1,2)) 
+plot(Lat~Long,pch=2-Sea, data=Climate)
+plot(-Lat~Long,pch=NorthIsland+16,col=NorthIsland+3, data=Climate)
+```
+
+
+To get a quick overview of the data we can use the pairs() command to get a scatterplot matrix. Clearly the variables are related. 
+
+```{r pairs plot}
+pairs(Climate )
+```
+
+To fit a multiple regression
+  $$E[Y_i] =  \beta_0 + \beta_1 x_{i1} + \ldots + \beta_p x_{ip}$$
+you simply mention all the variables in the model statement of lm().
+
+```{r Fit all}
+Climate.lm=  lm(MnJlyTemp ~ MnJanTemp + Lat +Long + Rain + Sun + Height + Sea+ NorthIsland, data=Climate)
+summary(Climate.lm)
+```
+
+The   $R^2$    is interpreted the same as before:    90.7% of the variation in the *Y* values  (mean July temperatures)   is explained by the predictors.
+
+The residual mean square  = *S* is still interpreted as the standard deviation of the residuals.       That is,   *S*= 0.9627 represents  the  typical variation of the raw data (actual *Y*) around the fitted values.  Putting it another way, we expect about $95\%$ of data to be within $2S \approx 2$ degrees of the predicted mean July temperature. 
+
+The information about residuals at the start of the summary output shows that the maximum residual is 3.3,  so that means there is a location which it 3.3 degrees warmer in July than would be predicted by the covariates. 
+
+Now if we look at the table of coefficients we see that only three variables have significant P-values:  `Lat`, `Height` and `Sea`. 
+The other variables are not significant.  So it looks as though one or more of them need to be removed from the regression. 
+
+```{r climate lm plots}
+par(mfrow=c(2,2))
+plot(Climate.lm)
+```
+
+Looking at the residual plots, we see that row number 9 (Gisbourne, on the east coast of the North Island) is the  location with the big residual.  The first plot suggests a hint of curvature, but it is weak and it is too soon to worry about this when we need to remove some covariates.  
+
+from the normal Q-Q plot that, apart from row 9, the residuals are fairly normal, but row 9 has a standardized residual$>3$.
+Many statistical programs automatically flag points with  standardized residual$>3$ as outliers. 
+
+The bottom right graph shows that row 9 is near the boundary for Cooks' D > 0.5, but it is acceptable to say that no locations are having extraordinary influence on the regression coefficients.   One location, row 28, is high leverage, which means its covariate values are unusual compared to those of other locations. 
+
+## *Adjusted $R^2$*  and *F* test
+
+We will consider the *F* test in more detail later, but for now you should know that it looks to see whether there is anything in our model which is related to the response (*Y*) variable, whether that is a single variable or a group of variables. 
+i.e. it tests the hypothesis that all the slopes are zero. 
+$$H_0:  \beta_1=\beta_2=...=\beta_p = 0$$
+If *F* is large  we reject this hypothesis.  For the moment we shall just consider the P-value.  Since $P= 5.255\times 10^{-12}$ this is an exceedingly small number, so we reject $H_0$ and conclude that at least one of the slopes is non-zero. 
+
+The *adjusted $R^2$*  is only used to compare two models with different numbers of regression parameters.   When we add a variable to a regression model, the ordinary multiple $R^2$ will go up, even if the variable added is rubbish.   The adjusted $R^2$ is an alternative formula which will only go up if the additional model explains more than at least one  extra row of data. (This is a very weak criterion indeed).  
+Conversely if we delete a useless variable, the adjusted $R^2$ should go up, or at least not go down.
+
+Just for the sake of illustration, suppose we were to remove the variable with the biggest P-value in the previous regression, namely *MnJanTemp*, with a P-value of 0.897. 
+
+```{r deleting useless}
+Climate.lm1 = update(Climate.lm, .~.-MnJanTemp)
+summary(Climate.lm1)
+```
+
+The adjusted $R^2$ here is 0.8842.  In the model with the extra variable *MnJanTemp* the adjusted $R^2$ is 0.88. That is, if we were to add that variable back   in to the model again then the adjusted 
+$R^2$ would go down. 
+This is clear evidence that we do not need this variable   *MnJanTemp*. 
+
+## Simplifying the regression model
+
+Clearly not all the variables in the ‘full’ regression model have significant  p-values.     (By ‘full’ model I mean with all the predictors  X1,..,X8 in there). We need to find out which variables  are in fact needed.
+
+ There are two main approaches to choosing a model 
+ 
+- *Forward selection*, where we start from a likely one-variable model and build it up by adding in extra predictors one at a time.
+
+- *Backwards elimination*, where we start from a full model and drop non-significant variables out one at a time. This is 
+usually the better method).  We made a start at this by removing MnJanTemp from the big regression model.       .
+
+Since the predictors are usually not independent of each other, it is important to make any model changes one variable at a time. (We will see a reason for this later in the course).
+
+Note we will study model selection techniques in more detail later on, where some automated procedures are introduced, including a hybrid forwards/backwards method called 'stepwise model selection’.
+
+Before we get to that point, we will take the task slowly because we are aiming to understand what is going on.   
+
+We start by trying to  use forward selection, beginning with the most highly correlated single variable. 
+
+```{r correlations}
+round(cor(Climate), 3)
+```
+
+Looking at the column for *MnJlyTemp*  we see that the variables with biggest correlation are *Lat*  (correlation = -0.763)
+ and *MnJanTemp* (correlation = 0.743).  Looking at the correlations would give us the same p-value as regressing the predictor by itself.
+ 
+So why did the previous argument say that *MnJanTemp* was useless but now the correlations say it is highly related to *y*? 
+
+The answer is that virtually all of the information that *MnJanTemp* would bring to the regression, is already  expressed in the other covariates. So by itself it is informative, but after everything else, *MnJanTemp* has nothing more to tell us about  *y =   MnJlyTemp*.
+
+
+### Single-Variable Model
+ 
+ 
+ We will start by regressing *MnJlyTemp* on *Lat*.
+
+```{r Single Variable}
+ Climate.lm1 =lm(MnJlyTemp ~Lat, data=Climate)
+ summary(Climate.lm1)
+```
+
+ Clearly `Lat` is significant.  
+ 
+ Can you interpret the slope? 
+ 
+ Can you interpret the intercept (is this realistic)? Hint: Think a bit about NZ's location.
+ 
+ 
+### Trying a two-variable model
+
+We will look to see what happens if we add in `MnJanTemp` or    *Height*    on top of the existing variable *Lat*.
+ 
+```{r Two variables}
+ Climate.lm2 = lm(MnJlyTemp ~ Lat + MnJanTemp , data=Climate)
+ summary(Climate.lm2)
+ Climate.lm3 = lm(MnJlyTemp ~ Lat + Height, data=Climate)
+ summary(Climate.lm3)
+ par(mfrow= c(2,2))
+ plot(Climate.lm3)
+```
+ 
+In the first analysis, `MnJanTemp` had a non-significant P-value, so again indicating that it is not useful. However the *adjusted*  $R^2$ does go up so we would not be able to dismiss it entirely. 
+
+In the second analysis `Height` is very significant and the adjusted $R^2$ has gone up a very big amount, so it is right to include `Height` in the regression model. 
+
+However the diagnostic plots do not show much difference to the plots for the full model.
+
+## On regression diagnostics for multiple regression
+
+When we had just one predictor on offer, we should have checked for nonlinearity  in the relationship. 
+
+ It is recommended before the multiple regression to plot  *Y*  vs each explanatory variable $x_1, ..., x_p$    in turn to check for curvature.
+
+But  sometimes problems only show up once one has adjusted 
+for other variables. So,  after fitting the model  plot residuals $e_i$ against each $x_i$, or use standardized 
+residuals.  **Be boringly systematic. **    
+
+And it’s a good idea to use a lowess smoother to check for possible curvature.
+
+```{r curvatureHeight}
+library(ggplot2)
+Climate |> ggplot(aes(y=residuals(Climate.lm3) , x=Height)) + geom_point() +geom_smooth()
+```
+
+This graph shows possible curvature with `height` once latitude is allowed for: perhaps a transformation might give a better model?  Something to think about later. 
+
+It is better to be alerted to a possible problem and be able to dismiss it, than to be unaware of the possible problem at all.   
+ 
+### Outliers
+
+Just as for the simple model,   residuals  are defined as   $e_i = y_i – \hat y_i$ .  
+And again, just as for the simple model,  the standard errors for the residuals depends on how unusual the corresponding  *x* values are.         This complicates the interpretation of the graphs, so we can remove this complication by looking at standardized residuals       which are scaled to give equal chance of spread at every *x* value.       Standardized residuals should usually lie within the range $\pm 2$,   and very seldom $<-3$ or $> 3$
+
+Also as before,  we can  check for whether a particular point is dragging the line towards itself (and thus not appearing as unusual as it should)  by computing externally studentized deleted residuals.
+
+It is often helpful to plot the standardized and deleted residuals on the same graph, as that helps show whether the deletion is making a big difference. 
+
+```{r standardizedResidualsAndStudentizedDeletedResiduals}
+plot(rstudent(Climate.lm3) ~ Climate.lm3$fitted.values,col=2, pch='+', main='standardized(o) and studentized(+) residuals vs fitted values')
+points(rstandard(Climate.lm3) ~ Climate.lm3$fitted.values)
+```
+
+It is clear that deleting Gisborne would make a big difference to the  regression, so we should check to make sure the number is correct. However deleting any other data points would make very little difference.
+
+## Checking leverage
+
+The  leverage values $h_{ii}$ can be obtained using the `hatvalues()` function,  and plotted against any variables of interest.
+
+The average value of $h_{ii}$ is $p/n$.   
+Points with $h_{ii} > 3 p/n$ are regarded as points worth checking. 
+
+For the `Climate.lm3` model *p=3* (intercept+ 2  slopes) and *n=36*.
+
+```{r leverage}
+plot( hatvalues(Climate.lm3) ~ Lat, data=Climate)
+abline(h= 3*length(coef(Climate.lm3))/nrow(Climate))
+plot( hatvalues(Climate.lm3) ~ Height, data=Climate)
+abline(h= 3*length(coef(Climate.lm3))/nrow(Climate))
+```
+
+The leverage is related to $(\frac{x-\bar x}{sd(x)})^2$  combined across each predictor in the the model. So the graph has a characteristic quadratic shape for most of the points. 
+
+The first graph indicates that high leverage is not related to `Lat`. The second graph indicates it is explained by extreme values for `Height`.
+
+Occasionally you get a point which is high leverage although it is not extreme in *either variable*.  In that case it is because the *combination* of the predictor variables is unusual. 
+
+## Interpreting Slopes from a  Multiple Regression
+
+Suppose we compare the coefficients from 
+
+ (A) the simple linear regression of MnJlyTemp on Lat, to those produced by
+ (B)  the multiple regression of MnJlyTemp on Lat  and Height.  
+
+```{r coefs}
+coef(Climate.lm1)
+coef(Climate.lm3)
+```
+
+We see the slope associated with `Lat` is a bit different. Why?
+
+The answer is that  `Lat` and `Height` are slightly correlated
+so the presence of `Height` in the model means `Lat` does not need to explain `MnJlyTemp` all by itself.  Since there are more very high places in the South Island than in the North Island, some of the trend with `Lat` is taken away by including `Height`. 
+
+So we settle for the following interpretation:
+
+In a combined regression   model
+$$Y = \beta_0 + \beta_1 x_1 + \beta_2 x_2$$
+
+ we interpret $\beta_1$
+the rate of change of *y*
+per unit increase of $x_1$   *if $x_2$ is held constant*.
+
+Similarly  we interpret $\beta_2$
+the rate of change of *y*
+per unit increase of $x_2$   *if $x_1$ is held constant*.
+
+
+ 
+We will see in later lectures that if adding a new variable such as $x_2$ into a model makes a big difference to the slope estimates, then it may be a good idea to  include
+it, even if its P-value did  not quite meet the P<0.05 rule.     
+
+
+## Confidence intervals for coefficients and  Prediction intervals
+
+These are calculated the same way for a multiple regression as was done for a simple linear model. 
+
+Note  that in order to make point or interval estimates, you need to state which values are associated with which variables and put them in a `data.frame()`.
+
+```{r inference}
+confint(Climate.lm3)
+
+x0 <- data.frame(Lat=40.3525, Height= 20)
+# Predicting Mean July Temperature for Palmerston North
+
+predict( Climate.lm3,  newdata=x0, interval="prediction", level=0.95)
+```
+
+

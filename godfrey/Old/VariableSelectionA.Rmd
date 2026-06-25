@@ -1,0 +1,277 @@
+
+
+
+In previous lectures we have looked at tests for single explanatory variables and groups of explanatory variables.
+
+Often, however, a statistician will simply want to know what is the     best group of explanatory variables for describing the response.
+
+In this lecture we will consider various criteria for model selection, and investigate automatic variable selection    methodologies.
+
+## Overfitting and Underfitting
+
+We begin by considering the following question:  Should all the explanatory variables be used, or should some be omitted?   
+Why might we want to omit variables? 
+
+•	Perhaps we want to detect variables which affect the response  but avoid collecting unnecessary measurements in the future
+		-	this is called variable screening
+		
+•	Perhaps we want to predict from the model.  
+	 -     Our predictions will be less accurate if the model is incorrectly specified.
+	
+We first consider the risks and benefits of including a predictor that might have coefficient $\beta =0$.
+	
+###  Dropping or Including Variables that have $\beta=0$
+
+Suppose we have a regression model with several variables.  We might suspect one has regression coefficient $\beta=0$.  Should we drop it?    
+Some mathematical theory shows: 
+
+•	If we omit a variable  which (truly) has regression coefficient  $\beta=0$  then
+
+(1)	variances of the remaining regression coefficients are reduced
+
+(2)	The variances of predictions from the model  at any point $x_0$  are reduced.  Both these things are good. 
+
+•	Conversely if we include a variable whose coefficient $\beta=0$ this  increases these variances unnecessarily.     
+This is called the problem of **overfitting**.   We want to avoid this. 
+		
+In practice we do not know if parameters are zero.   We  could use a hypothesis test to help us decide, but this is not a definitive answer.
+	
+### Dropping or Including Variables that have $\beta \ne 0$
+
+•	On the other hand suppose we make a mistake and omit a variable that has regression coefficient  $\ne$ 0.   
+
+Then we have the opposite problem, called **underfitting**.  Mathematical theory shows the consequence of underfitting is that 
+
+(1)	if the wrongly-omitted variables are correlated with the remaining variables then the expected values of the remaining regression coefficients $\beta_0,\beta_1,...\beta_{p-1}$ are **biased**.     (i.e. may be a lot too big or too small).
+
+(2)	 Further  (whether or not the omitted variables are correlated with the existing ones) the predictions $\hat y_i$   are biased.
+	
+## A Numerical Illustration of Underfitting and Overfitting
+
+In this artificial example, we consider an industrial process whose Yield is thought  to depend on the process temperature at stage A of the process, and possibly also on the temperature at stage B.   
+
+i.e.  We consider the model 
+$$ Y=\beta_0 + \beta_1.tempA+ \beta_2.tempB +\varepsilon.$$
+	
+We will assume the values of tempA and tempB and $\varepsilon$ given in the table below.  The errors $\varepsilon$ are just random ~  Normal with mean 0 and standard deviation 1.
+	
+What we want to know is, what are the implications of using an incorrect model, 	i.e. incorrect assumptions about the $\beta$s.
+
+```{r read Simulation1}
+Sim = read.csv("../../data/Simulation1.csv",header=TRUE)
+Sim;    attach(Sim)
+```
+	
+To understand the implications, we simulate
+	two scenarios. 
+	
+#### 1.  Suppose $\beta_0=50$,  $\beta_1=10$ and $\beta_2=0$.
+	
+That is, the correct model doesn’t depend 	on tempB  at all.
+Thus  for this illustration,   
+$$	Y  =  50 + 10.tempA+ \varepsilon $$
+
+The following shows the result of modelling $Y$ by (A) tempA alone and  (B)  by tempA and tempB.
+
+```{r overfitting}
+Y = 50 + 10*tempA + Epsilon
+lmA = lm( Y ~ tempA);  summary(lmA)
+lmB = lm( Y ~ tempA + tempB );  summary(lmB) 
+```
+
+The basic outcome is this: in both the preceding analyses, the estimated regression coefficient b1  is very close to the correct value $\beta_1$.
+
+This illustrates that adding in an unnecessary variable does not greatly change the estimates or add bias to the estimates (10.2 or 9.8   compared to the correct value of 10)
+	
+The major effect is to **increase the standard errors** of the estimates – in this case a threefold increase. 
+
+
+
+#### 2. Suppose $\beta_0=50$, $\beta_1=5$ and $\beta_2=5$.
+
+i.e. we consider the model  	$$	Y  =  50 + 5.tempA+ 5.tempB+ \varepsilon $$
+	
+(A). Regressing Y   on tempA alone,  and (B). Regressing Y   on tempA and tempB.
+
+```{r underfitting}
+ Y = 50 + 5*tempA +5 *tempB + Epsilon
+lmA = lm( Y ~ tempA);  summary(lmA)
+lmB = lm( Y ~ tempA + tempB );  summary(lmB) 
+```
+
+In the first model,  tempB is wrongly ignored.  The result is that the effect of tempA is greatly overestimated – biased upwards to nearly twice what it should be. 
+	
+The standard error of tempA is also greater, but it is still not large enough that a confidence interval based on the regression would contain the true value $\beta_1=5$. 
+	
+In the second model, the values of b1 and b2  are close to the true ones and the standard errors are the same as in the second analysis of the previous case. 
+	
+In summary, if we omit a needed variable then we may introduce bias into our estimation. 
+	
+The big problem with bias is that there may be no sign that we have a mistake. 
+	
+In some cases we don’t even *have* the needed variable, so we can’t try it in the model. 
+	
+At least in case 1, when we wrongly enter an unnecessary variable,  it doesn’t bias our estimates, just increases our standard errors. So at least we know exactly how bad things are.    But with an omitted variable we don’t know how bad things are.
+	
+For this reason, we may decide to err on the side of caution and add in variables even if we are uncertain about their relevance.  Then at least we can avoid bias. 
+
+
+
+## Criteria for Model Selection
+
+
+
+### Bias and Variance
+
+Model selection, then, comes down to balancing the effects of variance and bias.
+
+- If we omit a variable, it may dramatically decrease  the variance of the other parameter estimates. This is  a plus. 
+
+- But we make a mistake and omit an important variable, then the other parameter estimates may be biased.  This is a minus. 
+
+So what should we choose?  There is no settled rule for every circumstance, but in general we should probably be more concerned to avoid bias (especially since we don't know how bad this is!) than to avoid a small increase in variance (at least we do know how bad it is.)
+
+Consequently we may decide to err on the side of including variables with P-values a little  bigger than 0.05, *especially if they seem to induce a sizeable change in the other coefficient estimates.*   This is another thing to watch out for in model selection. 
+
+
+### Review of previous Model Selection Criteria
+
+**Coefficient of determination $R^2$**
+
+Recall that this is the proportion of total variation  which is explained by the model. (Alternatively, 1 minus the ratio of unexplained variation to total variation):
+$$ R^2 = \frac{SS_{Regn}}{SST}  = 1 - \frac{\sum(y_i-\hat y_i)^2}{\sum(y_i-\bar y)^2}. $$
+$R^2$ is useful for comparing two models with the **same** number of regression parameters.   If models have different numbers of regression parameters we use the - 
+
+**Adjusted Coefficient of determination $R^2_{Adj}$**
+
+Recall that this is 1 minus the ratio of Mean Square Error to Mean Square Total: 
+$$ R^2_{Adj} = 1 - \frac{MSE}{MST}  = 1 - \frac{\sum(y_i-\hat y_i)^2/(n-p)}{\sum(y_i-\bar y)^2/(n-1)}.$$
+When considering adding a variable to a regression, the $R^2_{Adj}$ goes up if the variable is "worth" at least one row of data (one df), which is a pretty low bar to cross.   But at least if a variable can't meet that rule then we know to exclude it. 
+
+**Residual Standard Error,  S**
+
+This is the standard deviation of the residuals, 
+$$ S = \frac{1}{n-p}\sum{(y_i - \hat y_i)^2} $$
+or in other words the standard deviation of how the $y_i$s vary around the model predictions.    We might choose to include a variable if it reduces the $S$.
+
+**P-value from the T-ratio**
+
+We usually prefer models that only include  variables with coefficient P-value <0.05.  However the "0.05" criterion is somewhat arbitrary and occasionally we allow in variables with slightly higher P-values. 
+
+
+## Criteria  based on prediction
+
+A problem with all the previous criteria is that they choose a model *based on the current data*, but may not be so good for *predicting new data*. 
+
+Recall we defined deleted residuals   
+$$ e_{i,-i}= y_i- \hat y_{i,-i} $$
+where $\hat y_{i,-i}$ =  the prediction of $y_i$  based on fitting the model to all data except for $i$th.  
+This  is a special case of a class of methods called “cross-validation”, where you fit a model based on part of the data and see how good it is at predicting new data.  
+
+Now combine the deleted residuals into        
+      $$ \mbox{PRESS} = \sum(e_{i,-i}^2) $$
+
+From which we can derive     
+$$R^2_{Pred} = 1- \frac{PRESS}{ SS_{total} }$$  
+We can interpret $R^2_{Pred}$   as approximately the amount of variation in *new data* which would be explained by our model. 
+
+So our criterion can be to choose the model with minimum PRESS or (equivalently) **maximum $R^2_{Pred}$ **  
+
+We can calculate this, for example,  using the following code from  https://stackoverflow.com/questions/64224124/how-to-calculate-predicted-r-sq-in-r .
+
+```{r calc r2pred}
+  PRESS <- function(linear.model) {
+  #' calculate the predictive residuals
+  pr <- residuals(linear.model)/(1-lm.influence(linear.model)$hat)
+  #' calculate the PRESS
+  PRESS <- sum(pr^2)
+    return(PRESS)
+}
+
+pred_r_squared <- function(linear.model) {
+  #' Use anova() to get the sum of squares for the linear model
+  lm.anova <- anova(linear.model)
+  #' Calculate the total sum of squares
+  tss <- sum(lm.anova$'Sum Sq')
+  # Calculate the predictive R^2
+  pred.r.squared <- 1-PRESS(linear.model)/(tss)
+    return(pred.r.squared)
+}
+```
+      
+
+## Example:  Model Selection for Climate Data
+
+```{r read climate}
+climate = read.csv("../../data/Climate.csv",header=TRUE)
+attach(climate)
+lm1 = lm( MnJlyTemp ~ Lat)
+summary(lm1)
+summary(lm1)$sigma
+summary(lm1)$adj.r.squared
+pred_r_squared(lm1)
+
+lm2 = lm( MnJlyTemp ~ Lat+ Height)
+summary(lm2)
+summary(lm2)$sigma
+summary(lm2)$adj.r.squared
+pred_r_squared(lm2)
+
+lm3 = lm( MnJlyTemp ~ Lat+ Height+ Sea)
+summary(lm3)
+summary(lm3)$sigma
+summary(lm3)$adj.r.squared
+pred_r_squared(lm3)
+```
+For these first three predictors,   they  have significant p-values, the S has gone down each time, and  the adjusted $R^2$ and $R^2_{pred}$ have gone up each time, so there is no reason to doubt that Lat, Height and Sea should all be included.   Also note the regression coefficient for Height altered by about 2 standard errors, which suggests that Sea is correcting for bias.   All the more reason for including it. 
+
+```{r fourth variable}
+lm4 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland)
+summary(lm4)
+summary(lm4)$sigma
+summary(lm4)$adj.r.squared
+pred_r_squared(lm4)
+```
+
+Same conclusions as before.  Should include NorthIsland.  Note including it has induced big changes in the coefficients (especially Lat) which again is evidence it is important. 
+
+```{r fifth variable}
+lm5 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland+ Rain)
+summary(lm5)
+summary(lm5)$sigma
+summary(lm5)$adj.r.squared
+pred_r_squared(lm5)
+```
+
+This time the Rain variable is not significant (P=0.1).   However the S has gone down, and  the adjusted R-squared and pred_r_squared have gone up.  So we may decide that if our aim is to predict for new data, then we should include this variable in the model. 
+
+```{r sixth variable}
+lm6 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland+ Rain + Long)
+summary(lm6)
+summary(lm6)$sigma
+summary(lm6)$adj.r.squared
+pred_r_squared(lm6)
+```
+At this point all the indications are bad:  The P-value for Long is >0.5, the adjusted R-squared has gone down, the S has gone up and the pred_r_squared has gone down.  
+
+In conclusion we should include the first four variables, and optionally the fifth one, Rain. 
+
+The following lists all the statistics for comparison purposes. 
+
+
+```{r } 
+sigmas = c(summary(lm1)$sigma,summary(lm2)$sigma,summary(lm3)$sigma,summary(lm4)$sigma,summary(lm5)$sigma,summary(lm6)$sigma )
+adjR2s = c(summary(lm1)$adj.r.squared,summary(lm2)$adj.r.squared,summary(lm3)$adj.r.squared,summary(lm4)$adj.r.squared,summary(lm5)$adj.r.squared,summary(lm6)$adj.r.squared)
+R2preds = c(pred_r_squared(lm1),pred_r_squared(lm2),pred_r_squared(lm3),pred_r_squared(lm4),pred_r_squared(lm5),pred_r_squared(lm6))
+Models = c(1,2,3,4,5,6)
+cbind(Models, sigmas, adjR2s, R2preds)
+```
+
+### Mallow's C
+
+Mallow's C is another commonly used selection criterion, which seeks to balance the variance and bias in estimating the predicted values $\hat y_i$. 
+
+Without going into details, we note that one common way of using Mallow's C boils down to being equivalent to choosing the model based on minimum $S$. 
+
+So that gives a double reason to use $S$ as a selection criterion: it can be thought of as a providing balance of variance and bias for prediction. 
+

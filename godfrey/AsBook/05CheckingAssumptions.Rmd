@@ -1,0 +1,295 @@
+# Checking the Assumptions{#CheckingAssumptions}
+
+[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture5.html)
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+Statistical models allow us to answer questions using data.
+
+The validity of the conclusions that we reach is contingent upon the appropriateness of the models that we use.
+
+Once you have fitted a statistical model to data, it is therefore important to check the assumptions underlying the model.
+
+The tools to check these assumptions are often referred to as **model diagnostics**.
+
+We shall look at assumption checking for simple linear regression in this lecture.
+
+## Assumptions for Simple Linear Regression
+
+Recall that the linear regression model is
+$$Y_i = \beta_0 + \beta_1 x_i + \varepsilon_i$$ 
+
+where we make the
+following assumptions:
+
+***A1***.  $E[\varepsilon_i] = 0$ for *i=1, ... ,n*.
+
+***A2***.  $\varepsilon_1, \ldots ,\varepsilon_n$ are independent.
+
+***A3***.  var$(\varepsilon_i) = \sigma^2$ for *i=1,...,n* (**homoscedasticity**).
+
+***A4***.  $\varepsilon_1, \ldots ,\varepsilon_n$ are normally distributed.
+
+
+Class Discussion: Interpret these assumptions, and think about situations in which each might fail.
+
+## Raw Residuals
+
+The residuals (or **raw residuals**), $$\begin{aligned} e_i &=& y_i - \hat \mu_i\\ &=& y_i - \hat \beta_0 - \hat \beta_1 x_i~~~~~~~~~(i=1,\ldots ,n)\end{aligned}$$
+are a fundamental diagnostic aid.
+
+These residuals are a kind of sample version of the error random variables $\varepsilon_1,\ldots,\varepsilon_n$.
+
+Consequently we can test the assumptions by seeing if they hold for $e_1, \ldots ,e_n$ (instead of $\varepsilon_1, \ldots ,\varepsilon_n$).
+
+## Standardized Residuals
+
+There is a  technical problem with raw residuals as substitutes for the error terms: it can be shown that the variance of the *i*^th^ raw residual is given by 
+$$var(e_i) = \sigma^2 (1 - h_{ii})~~~~~~(i=1,\ldots,n)$$ where
+$$h_{ii} = \frac{1}{n} + \frac{(x_i - \bar x)^2}{s_{xx}}.$$
+
+Hence unlike error terms, raw residuals do not have equal variance.
+
+It is therefore preferable to work with the standardized residuals, defined by 
+$$r_i = \frac{e_i}{s \sqrt{1-h_{ii}}}.$$
+
+We will not need to evaluate this formula; R can produce standardized residuals for us.
+
+These standardized residuals have an approximately standard normal, *N(0,1)*, distribution and thus common variance.
+
+
+In reality this technical issue is not a biggie.  In practice there is little visual difference between looking at a graph of ordinary residuals and a graph of standardized residuals. For example the following plots show ordinary and standardized residuals for the Hill data introduced below. It is very hard to pick any difference in the ***shape*** of the points.
+
+```{r Comparing residual plots, echo=FALSE, fig.cap="Plots of raw (upper) and standardised (lower) residuals against the predictions from the simple model."}
+data(hills, package = "MASS")
+Hills <- hills
+Hills.lm = lm(time~ dist, data=Hills)
+plot(resid(Hills.lm)~ predict.lm(Hills.lm), xlab="Predictions", ylab="Raw residuals")
+plot(rstandard(Hills.lm)~ predict.lm(Hills.lm), xlab="Predictions", ylab="Standardised residuals")
+```
+
+### So why do we bother with standardised residuals?  
+
+A  practical reason is interpretability.
+
+- If the units in which *y* is measured are very interpretable (such as \$, or kg)  then the same units apply to the raw residuals, and so the graph will be more interpretable in the original units. 
+- But suppose the units in which *y* is measured is rather arbitrary, such as the total from a certain number of questions on a questionnaire used to investigate some opinion, with each question being recorded on some arbitrary scale (e.g. 1=strongly disagree, 2=disagree, 3=neutral, 4=agree, 5 =strongly agree).  In that case the precise values of *y* are not informative.  E.g. if you were told your political score was 32, what does that mean? It would only have meaning if you knew what the average, and maximum and minimum attainable score were.   So it is better to  convert *y* to a z-score so that the numbers become more interpretable.
+
+$$ z = \frac{y - \bar{y}}{s_y}$$
+
+E.g. we can interpret z=0 as average,  -2 as very low, z=+1 as above average, etc. 
+
+- Similarly the raw residuals will have the same uninterpretable units as *y*, but we can interpret standardised residuals as z-scores. $r_i=-2$ meaning the $y_i$ value is far below the regression line,  $r_i=0$ as meaning the $y_i$ value is on the regression line, and $r_i= +2.5$ meaning the $y_i$ value is unusually far above the regression line,   etc. 
+
+
+
+## Scottish Hill Racing Data
+
+
+- Data comprise the record times in 1984 for 35 Scottish hill races.
+
+Variables are `dist` distance (miles) `climb` height gained (ft) `time` record time (minutes)  
+
+- Data source: A.C. Atkinson (1986) Comment: Aspects of diagnostic regression analysis. *Statistical Science* **1**, pp397-402.
+
+```{r RunnerJPG, fig.cap="a hill runner", echo=FALSE}
+knitr::include_graphics("../graphics/hillrace.jpg")
+```
+
+  
+
+We will first consider simple linear regression of `time` on `dist` in R.
+
+
+Reading the Data into R
+
+```{r getHillsData, eval=-3}
+data(hills, package="MASS") 
+Hills <- hills
+Hills <- read.csv(file="https://r-resources.massey.ac.nz/data/161251/hills.csv", header=TRUE, row.names=1)
+```
+
+The `row.names=1` argument tells R that the first column of data in the comma separated values file `r xfun::embed_file("../../data/hills.csv", text="hills.csv")` contains information which should provide the row names for the data (in this case, names of race locations).
+
+The data is also available in the `MASS` package that comes with R. (Use one of these two data sources, not both!)
+
+
+### Fitting the Regression Model in R
+
+```{r Hills.lm}
+Hills.lm <- lm(time~dist, data=Hills) 
+summary(Hills.lm)
+```
+
+
+```{r HillsFittedLinePlot, fig.cap="Fitted line plot for the first model for the hill racing data"}
+library(ggplot2)
+ggplot(Hills, mapping = aes(y=time, x=dist)) + geom_point() +
+geom_smooth(method = "lm", se = FALSE) +
+ylab("Winning time of race") + xlab("Race distance")  
+```
+
+
+
+The fitted model is (to 2 decimal places)
+
+$$E[\mbox{time}] = `r round(coef(Hills.lm)[1], 2)` + `r round(coef(Hills.lm)[2], 2)` \, \mbox{dist}$$
+
+The *P*-value of $`r summary(Hills.lm)$coefficients["dist", "Pr(>|t|)"]`$ for testing whether the regression slope is zero. This is tiny, and indicates overwhelming evidence for (linear) dependence of race time on distance.
+
+The R-squared statistic of `r round(summary(Hills.lm)$r.squared,4)`  indicates that distance explains quite a large proportion of the variation in race record times.
+
+The command `resid()` returns (raw) residuals for a fitted linear regression model.
+
+```{r getResids}
+resid(Hills.lm)
+```
+
+These numbers are interpretable because the numbers are in units of minutes above or below what would be expected. 
+
+Let's see the commands used to get those graphs of raw and standardised residuals shown earlier.
+
+```{r ComparingResidualPlots2, fig.cap="Plots of raw (upper) and standardised (lower) residuals against the predictions from the simple model."}
+data(hills, package = "MASS")
+Hills <- hills
+Hills.lm = lm(time~ dist, data=Hills)
+plot(resid(Hills.lm)~ predict.lm(Hills.lm), xlab="Predictions", ylab="Raw residuals")
+plot(rstandard(Hills.lm)~ predict.lm(Hills.lm), xlab="Predictions", ylab="Standardised residuals")
+```
+
+and some numerical details:
+
+```{r ResidDetails}
+summary(resid(Hills.lm))
+summary( rstandard(Hills.lm))
+```
+ 
+
+## Diagnostics for Failure of Model Assumptions
+
+### Assessing Assumption A1
+
+Assumption ***A1*** is equivalent to stating $E[Y_i] = \beta_0 + \beta_1 x_i$
+
+Failure of ***A1*** indicates that we are fitting the wrong mean function.
+
+Looking for any trends in residual versus fitted values or a covariate is a useful diagnostic.
+
+
+### Assessing Assumption A2
+
+If ***A2*** is correct, then residuals should appear randomly scattered about zero if plotted against race order (if known), fitted values or the predictor.
+
+Long sequences of positive residuals followed by sequences of negative residuals suggests that the error terms are not independent.
+
+Failure of this assumption will mean standard errors will be incorrect,  and so hypothesis tests  and confidence  intervals will be unreliable.
+
+We will look at regression models for time series later in the course.
+
+### Assessing Assumption A3
+
+If ***A3*** is correct, then the **spread** of the (standardized) residuals about zero should not vary systematically with the fitted value or covariate.
+
+**Heteroscedasticity**  (unequal spread) is typically recognized as a "fanning out" of (standardized) residuals when plotted against fitted value or  covariate.  This means the  errorvariance increases with the mean response. (Alternatively one could have fanning in).
+
+Failure of this assumption will leave parameter estimates unbiased, but standard errors will be incorrect, and hence  test results and confidence intervals will be unreliable.
+
+A transformation of both response and predictor variables    can sometimes help in this case.
+
+An alternative strategy is to use **weighted linear regression** (covered later in the course).
+
+
+
+
+### Assessing Assumption A4
+
+A normal probability plot, or **normal Q-Q plot**, is a standard graphical tool for assessing the normality of a data set.
+
+A normal Q-Q plot of the (standardized) residuals should show points staying close  to a straight line --- curvature indicates a failure of  ***A4***.
+
+On the other hand failure of the  normality assumption for the   error distribution is not usually a serious problem.  Removal of (obvious) outliers will often improve the normality  of the standardized residuals.
+
+
+## Diagnostics for Hill race s Example 
+
+The `plot()` command applied to the fitted model `Hills.lm` produces four useful diagnostic plots. The `par()` command put first splits the graphing window into a two-by-two grid so we can see all four graphs together. 
+```{r Hills.lmDiag, fig.height=10, fig.width=10, fig.cap="Residual analysis plots for the first model applied to the hill racing data."}
+par(mfrow=c(2,2))
+plot(Hills.lm)
+```  
+
+The first three of these plots are:
+
+- Plot of raw residuals versus fitted values
+- Normal Q-Q plot for standardized residuals
+- Scale-location plot (square root of absolute standardized residuals against fitted value)
+
+```{r Hills.lmDiag1, fig.cap="Residuals plotted against fitted values for the first model fitted to the hill racing data"}
+plot(Hills.lm, which=1)
+```
+
+
+
+
+
+This residual plot shows some data points with very large residuals.
+
+The red line is a nonparametric estimate of trend (take care not to over-interpret) it.
+
+
+Would you say there is strong evidence of curvature, or of increasing spread in residuals?
+
+
+
+
+```{r Hills.lmDiag2, fig.cap="Normality plot of residuals for the first model fitted to the hill racing data"}
+plot(Hills.lm, which=2)
+```
+
+
+
+The Normal Q-Q plot is far from a straight line. This indicates failure of the normality assumption.
+
+Note that this plot is heavily influenced by data points with large residuals.
+
+```{r Hills.lmDiag3, fig.cap="Scale versus location plot for the first model fitted to the hill racing data"}
+plot(Hills.lm, which=3)
+```
+
+For the scale-location plot, we look for a trend for the line to be increasing (or decreasing) as we move from left to right. If so, it  provides a hint that spread of residuals is increasing (or decreasing) with fitted value. 
+
+This graph suggests the error variance $\sigma^2$ may not be constant for all data points.
+
+
+### What about assumption ***A2***, independent error? We can just plot the residuals without an *x* variable. 
+
+```{r PlotOfErrorsSequence}
+plot(Hills.lm$residuals)
+abline(h=0, lty=2)
+```
+
+The outliers make it hard to tell, but the graph suggests the residuals may not be entirely random - perhaps there is some relevant order in the data. 
+
+
+## Conclusions from Diagnostics for Example 
+
+Linear regression model assumptions do not appear valid.
+
+Hence conclusions based on this model are questionable.
+
+Problems with model seem largely down to a few **odd** data points or **outliers**.

@@ -1,0 +1,140 @@
+﻿
+In a factorial model, the importance of a factor should be assessed     by performing an appropriate *F* test.
+
+Sometimes we may have a particular question
+    relating to the relative outcomes at various factor levels that also
+    requires testing. This is OK.
+
+If a factor is found to be significant, some researchers like to    compare the relative outcomes between many pairs of factor levels.
+    This is sometimes referred to as **post hoc testing**, and should be
+    done with care...
+
+## Caffeine Data Revisited
+
+The parameter estimates for the caffeine data model were as follows:
+    
+
+`r xfun::embed_file("../../data/caffeine.csv")`
+
+```{r Caffeine.lm, echo=-1, eval=-2}
+Caffeine <- read.csv(file="../../data/caffeine.csv", header=TRUE)
+Caffeine <- read.csv(file="caffeine.csv",header=T)
+Caffeine.lm <- lm(Taps~Dose, data=Caffeine) 
+summary(Caffeine.lm)$coefficients
+```
+    
+
+Due to the treatment constraint, the estimates
+    $\hat \alpha_2 = 1.6$ and $\hat \alpha_3 = 3.5$ represent
+    respectively the difference in mean response between the low dose
+    and control groups, and between the high dose and control groups.
+
+
+Having found that `Dose` is statistically significant, we can investigate
+    *where* the differences in mean response lie.
+
+We could compare factor level means by formal tests:
+    
+1.  Is the mean response at low level different from the control      group? A t-test of *H~0~*: $\alpha_2 = 0$ versus        *H~1~*: $\alpha_2 \ne 0$ retains *H~0~* ($P=0.12$); i.e. no      difference between low dose and control groups
+    
+2.  Is the mean response at high level different from the control group? A t-test of *H~0~*: $\alpha_3 = 0$ versus   *H~1~*: $\alpha_3 \ne 0$ rejects *H~0~* ($P=0.002$);   i.e. there is a difference between high and control groups.
+
+However, the value of performing such ‘post hoc’ tests is often
+    questionable.
+
+## The Perils of Post Hoc Multiple Comparisons
+
+Post hoc multiple testing involves the comparison of many
+(sometimes all) factor levels, once the overall statistical significance
+of the factor has been established.
+
+There are problems with this form of analysis:
+
+1.  Interpretation of the results from post hoc tests can be unclear.
+    
+      - The conclusions drawn can depend to a large degree on the
+        particular choice of hypotheses to test.
+   
+      - The conclusions from different tests can even appear mutually
+        inconsistent.
+
+2.  Any type of multiple comparison procedure requires an adjustment to
+    the way in which *P*-values are interpreted to avoid the generation of
+    many ‘false positive’ results.
+
+
+### Interpretation of Results for the caffeine data:
+
+(a)   The results of post hoc tests imply no evidence of a difference
+        between low dose and control groups, but a difference between
+        high dose and control groups.
+
+(b)  It can be shown that a comparison between the low and high dose
+        groups (*H~0~*: $\alpha_2 = \alpha_3$) does not provide evidence
+        of a difference in their mean response.
+
+There is clearly an inconsistency between (A) and (B) above, given
+    that we know that there is some difference between factor levels.
+
+Based upon the parameter estimates (rather than any tests), the
+    truth seems to lie somewhere between the stories told by (A) and
+    (B). The mean response for the low dose lies somewhere between that
+    for high dose and zero dose.
+
+
+## Type I error inflation
+
+In a hypothesis test at a given significance level we can make two
+    types of error.
+    
+      - We can wrongly reject *H~0~* when it is true; a type I
+        error;
+   
+      - We can wrongly retain *H~0~* when it is false; a type II
+        error.
+
+The significance level is the probability of making a type I error.
+
+If we perform many tests at a given significance level then we are
+    almost certain to make some type I errors.
+
+For example, if we conduct 200 tests at a 5% significance level then
+    we can expect to make $200 \times 0.05 = 10$ type I errors if
+    *H~0~* is really true in every case.
+
+If we performed post hoc comparisons between every pair of factor
+    levels for a factor with 20 levels, then we would perform 190 tests.
+
+## Correcting for error inflation
+
+The most common approach is to adjust the significance levels using
+    Bonferroni’s correction, which states that the significance level for each individual test should
+    be $\alpha/N$ if we perform *N* tests.
+
+For example,  consider a factor with 5 levels. Comparison of all pairs of
+        levels means *N=10* tests.
+    
+To keep the overall type I error to 5% (at most), the Bonferroni
+        correction says reject the null hypothesis for any individual
+        test only if the *P*-value is below a significance level of *0.05/10 = 0.005 = 0.5%*.
+
+However, the Bonferroni correction is very conservative, in the
+    sense that the overall significance level may be much lower than
+    $\alpha$. This can mean that it is hard to spot significant
+    effects.
+
+## Conclusions
+
+Post hoc multiple comparisons are problematic, both in terms of the
+    interpretation of test results and the control of type I error.
+
+The type I error problem can be partially resolved by using some
+    adjustment to the significance levels of each test (e.g. Bonferroni
+    adjustment).
+
+The problem of interpretation of test results is more difficult.
+
+In the end:  Multiple post hoc comparisons are often best avoided. Inspection of
+parameter estimates is typically a good way to examine the inter-group
+differences in ANOVA models with statistically significant factors.
+

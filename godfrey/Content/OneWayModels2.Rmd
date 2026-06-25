@@ -1,0 +1,216 @@
+
+```{r extraLibrary, echo=FALSE,include=FALSE}
+library(car)
+library(DescTools)
+```
+
+This lecture follows on from last time when we used a factor as a predictor in our model.
+
+
+
+## Diagnostics for Caffeine Data
+
+We have tested whether the speed of students’ finger tapping is related to the caffeine dose received.
+As usual, the validity of our conclusions is contingent on the adequacy of the fitted model. We should therefore inspect standard model diagnostics.
+
+
+`r xfun::embed_file("../../data/caffeine.csv")`
+
+```{r Caffeine plot, echo=-1, eval=-2}
+Caffeine <- read.csv(file="../../data/caffeine.csv", header=TRUE)
+Caffeine <- read.csv(file="caffeine.csv",header=T)
+
+Caffeine.lm= lm(Taps~factor(Dose),data= Caffeine)
+
+par(mfrow=c(2,2))
+plot(Caffeine.lm)
+```
+
+
+
+### Comments on the Diagnostic Plots
+
+For a factor  model, the fitted values are constant within each group. This explains the vertical lines in the left-hand plots.
+
+A **balanced** factor  design exists when the same number
+    of observations are taken at each factor level.
+
+When the data are balanced the leverage is constant, so a plot of
+    the leverage would be pointless.
+
+As a result, R produces a plot of standardized residuals against
+    factor levels for balanced factor  models in place of the usual
+    residuals versus leverage plot.
+
+
+For factor models, it is particularly important to scrutinize the plots for **heteroscedasticity** (non-constant variance), when the error variance changes markedly between the factor levels.
+
+When heteroscedasticity is present, assumption A3 fails and conclusions based on *F* tests become unreliable.
+
+The diagnostic plots do not provide any reason to doubt the appropriateness of the fitted model.
+
+## Tests for Heteroscedasticity
+
+These are the same as for binary variables.  The hypotheses for this test are:
+
+$H_0$:  error variance constant across groups,   versus
+
+$H_1$:  error variance not constant across groups
+
+Rejecting the null means that the equal variance assumption is     violated.
+
+As before, we can check using   Bartlett's test (if we think the residuals look reasonably normal)  or Levene's test  (needs the `car` package).
+
+
+```{r getLibrary}
+library(car)
+```
+
+```{r Caffeine.bt}
+Caffeine.bt = bartlett.test(Taps ~ Dose, data = Caffeine)
+Caffeine.bt
+Caffeine.lv = leveneTest(Taps~  factor(Dose), data = Caffeine)
+Caffeine.lv
+```
+
+The *P*-value for both these tests is large,  which confirms that, for the  caffeine data, we have no reason to doubt the constant variance  assumption.
+
+
+## Multiple Comparisons
+
+In a factor model, the overall importance of the factor should be assessed     by performing an *F* test.
+
+But sometimes we may have a particular question relating to the relative outcomes at various factor levels that also      requires testing. This is OK.
+
+If a factor is found to be significant, some researchers like to    compare the relative outcomes between many pairs of factor levels.
+
+This is sometimes referred to as **post hoc testing**. Post hoc means "after this" in Latin. Thus it is something you do after establishing that the means are not all equal.
+    
+This should be     done with care...
+
+### Caffeine Data Revisited
+
+The parameter estimates for the caffeine data model were as follows:
+    
+
+```{r Caffeine.lm }
+Caffeine.lm <- lm(Taps~Dose, data=Caffeine) 
+summary(Caffeine.lm)$coefficients
+```
+    
+
+Due to the treatment constraint, the estimates
+    $\hat \alpha_2 = 1.6$ and $\hat \alpha_3 = 3.5$ represent
+    respectively the difference in mean response between the low dose
+    and control groups, and between the high dose and control groups.
+
+
+Having found that `Dose` is statistically significant, we can investigate *where* the differences in mean response lie.
+
+We could compare factor level means by formal tests:
+    
+1.  Is the mean response at low level different from the control group? A t-test of $H_0$: $\alpha_2 = 0$ versus $H_1$: $\alpha_2 \ne 0$ retains $H_0$ ($P=0.12$); i.e. no difference between low dose and control groups
+    
+2.  Is the mean response at high level different from the control group?   A t-test of $H_0$: $\alpha_3 = 0$ versus $H_1$: $\alpha_3 \ne 0$ rejects $H~0$ ($P=0.002$); 
+ie. there is a difference between high and control groups.
+
+
+### The Multiple Comparisons Problem
+
+In the analysis below, the intercept has been dropped from the model. That means the confidence intervals for the coefficients are in fact confidence intervals  for the mean Taps at each dose level.    We see that the CIs for
+$\mu_1$ and for $\mu_2$ overlap, but the CIs for $\mu_1$ and $\mu_3$ do not overlap. 
+So can we conclude that this is where the significant *F*-value comes from? 
+
+```{r Caffeine.lm0}
+Caffeine.lm0 <- lm(Taps~0+Dose, data=Caffeine) 
+summary(Caffeine.lm0)
+
+confint(Caffeine.lm0)
+```
+
+The problem is that there is not a precise equivalence between a significant  F-test result (judged as at the 5% significance level) and what one might think by looking at the so-called 95% confidence intervals.  There is a technical issue called the Multiple Comparisons Problem. 
+
+This relates to the fact that if we are comparing three group means,  then we are making three different two-group comparisons (Zero-Low, Zero-High, Low-High).  
+
+So even if *H~0~* is true (i.e. the only differences that show up between group results are due to luck),  then we have three chances of one of those luck results appearing significant at the 5% level.    
+
+If those three chances were independent  (like tickets in 
+three different raffles)  then we would have to say that the probability of getting at least one result “significant” is nearly three times greater (closer to 15%). This is unacceptable.
+
+Our situation is somewhat more complicated as our three comparisons are not independent (and hence neither are our 
+three chances).     But nevertheless the fact is that we
+have close to three times the chance of getting at least one  significant two-group comparison just by luck.  
+
+So our 5% significance rule for Type I error goes out the window.
+
+If we were comparing four groups we would have six different inter-group comparisons.   If we performed two-group
+comparisons between every pair of factor   levels for a factor with 20 levels, then we would perform 190 tests. 
+In that case even if $H_0$ is true we would expect to get $0.05\times 190$ =`r 0.05*190` positive tests.
+
+From all this we see that   that the conclusion from CIs for the means may not match up with the conclusion from an F test:
+
+•	if we have two non-overlapping confidence intervals then this *usually (but not always)* indicates that the two group  means $\mu_i$ and $\mu_j$ (say) are different.
+
+•	if we have overlapping confidence intervals then this *usually (but not always)* indicates that two group means $\mu_i$ and $\mu_j$   do not differ.
+
+### Solution to the multiple comparisons problem
+
+So how do we fix things so that "chance" means the same thing in the CIs as it does in the overall F test? 
+ 
+The answer is to use one of a collection of methods called **Post hoc** analyses.  
+
+
+
+### Bonferroni Correction for error inflation
+
+The most common approach is to adjust the significance levels using      Bonferroni’s correction, which states that the significance level for each individual test should
+    be $\alpha/N$ if we perform *N* tests.
+
+For example,  consider a factor with 5 levels. Comparison of all pairs of   levels means $N= \frac{K(K-1)}{2} =10$
+tests.
+    
+To keep the overall type I error to 5% (at most), the Bonferroni   correction says reject the null hypothesis for any individual    test only if the *P*-value is below a significance level of *0.05/10 = 0.005 = 0.5%*.
+
+However, the Bonferroni correction is very conservative, in the      sense that the overall significance level may be much lower than     $\alpha$. This can mean that it is hard to spot significant     effects.
+
+### Tukey HSD intervals
+
+Since a CI for $\mu_i-\mu_j$ is of the form
+
+$$ \bar X_i - \bar X_j  \pm \mbox{multiplier} \times
+\mbox{standard error} $$
+
+the straight-talking Statistician John Tukey  developed an adjusted multiplier.   Tukey's adjustment works for 
+doing all two group comparisons.  He called his method Honest Statistical Differences. (The name leaves no doubt about what he thought of other people's approaches.)   It works off the output of an old ANOVA program called aov(). 
+
+```{r Tukey}
+tmc =TukeyHSD(aov(Taps~factor(Dose), data=Caffeine))
+tmc
+plot(tmc)
+```
+
+The CIs and p-value show only one pair of means have a significant difference.  The plot is optional and just helps us visualise the results: if the CI includes zero then the means are not significantly different.
+
+
+### Dunnett intervals
+
+Dunnett intervals use a different multiplier because they just compare each group to a control level.  So for the Caffeine analysis that is just two comparisons instead of  three.    The benefit of Dunnett intervals is  narrower intervals than for Tukey, since we don't have to adjust for so many chance 'significant' results.   To use it, one needs to load the package DescTools.
+
+```{r DunnettTest}
+library(DescTools)
+DunnettTest(Taps ~ factor(Dose), control ="Zero", data=Caffeine)
+```
+
+
+### Discussion
+
+Post hoc multiple comparisons are problematic, both in terms of the interpretation of test results and how they control for type I error (the significant level). 
+
+The type I error problem can be partially resolved by using arbitrary adjustment of the significance level of each test   (e.g. Bonferroni   adjustment $\alpha/ \frac{K(K-1)}{2}$)  or some other adjustment of the multiplier. 
+
+The problem of interpretation of test results is more difficult. In the end some statisticians feel that    multiple post hoc comparisons are often best avoided,  and advocate simply inspecting parameter estimates as
+typically a good way to examine the inter-group  differences.
+However one must remember that conclusions may need to be 
+"taken with a grain of salt".
+
+

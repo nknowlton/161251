@@ -1,0 +1,167 @@
+
+In this lecture we will look at simple linear regression modelling in R.
+
+We shall use R to fit models (i.e. estimate the unknown  parameters in models).
+
+We shall discuss the interpretation of output from R.
+
+## The `lm()` Command
+
+R uses the  linear  model command to fit
+    models of this type.
+
+The basic syntax is `lm(formula, data)`         where:
+    
+- `formula` is the model formula (required argument)
+    - `data` is the data frame in use (optional).
+    - Variables are taken from your stored objects if no data frame is
+        specified.
+
+## Analysis of the Pulse Data: 
+
+
+```{r getPulseData, echo=-1, eval=-2}
+pulse <- read.csv(file="../../data/pulse.csv", header=T)
+pulse <- read.csv(file="https://r-resources.massey.ac.nz/161221/data/pulse.csv", header=TRUE)
+summary(pulse) 
+```
+
+`r xfun::embed_file("../../data/pulse.csv")` 
+
+It is common to use names for your models that make sense, especially to the person you will work with the most in future (you, yourself!). Remember, your future self will be pretty annoyed that your current self isn't going to be able to answer questions about your funny selections of names, so go easy on yourself by being clear with your work.
+
+The most common convention is to use a name that shows what data was used and what type of model was created. We will see `<data>.lm` lots in this course!
+
+
+```{r Pulse.lm}
+attach(pulse)
+pulse.lm <- lm(Pulse~1+Height )
+summary(pulse.lm)
+```
+
+The formula `Pulse ~ 1 + Height` specifies that `Pulse` is the response and `Height` the explanatory  variable in the model. The `1` explicitly indicates inclusion of an intercept. (Most people leave it out.)
+    
+The most commonly sought numbers in that output are the coefficients
+
+```{r getCoefs}
+coef(pulse.lm)
+```
+
+But in simple regression, we often want to see how these coefficients create a line, and how that line looks  alongside our data.  We can do this in a simple plot or fancy   ggplot.
+```{r simple plot}
+plot(Pulse~Height)
+abline(lm(Pulse~Height))
+```
+Or more elegantly ...
+
+```{r PulseFittedLine, fig.cap="Plot of resting pulse rate (beats per minute) versus height (in centimeters) with fitted line added, for a sample of 50 hospital patients. Source: A Handbook of Small Data Sets by Hand, Daly, Lunn, McConway and Ostrowski."}
+library(ggplot2)
+ggplot(pulse, mapping = aes(x=Height, y=Pulse)) + geom_point() +
+geom_smooth(method = "lm", se = FALSE) +
+labs(ylab="Resting pulse rate (beats per minute)", xlab="Height (in centimeters) ")  
+```
+
+
+
+
+
+
+### Comments on the R code for the Pulse Data
+
+The `read.csv()` command reads (multivariate) data from a text
+    file with commas separating the values.
+
+The option `header=TRUE` indicates that the first line of the text file
+    contains column headings (not data points).
+
+The `summary()` command will typically give sensible output when
+    applied to a variety of types of object. We saw it used to summarise the raw data, and to summarise the simple regression model we fitted. 
+
+
+The `geom_smooth()` command adds a line fitted using the specified `method` for fitting the model. Note that we used `"lm"` here so that this line matches the results from fitting a model using `lm()` to this data.
+
+### Interpretation of Model for Pulse Data
+
+The summary table of coefficients contains much relevant
+    information. We can get this part of the summary using the `tidy()` command.
+
+
+```{r tidypulse.lm}
+tidy(pulse.lm) |> kable()
+```
+
+The `kable()` command here makes the  table more pretty for presentation; you wouldn't use it in an interactive situation (it is not required for your homework etc.)
+
+
+
+The fitted model (i.e. model with parameters replaced
+    by estimates) is $$E[\mbox{Pulse}] = `r round(coef(pulse.lm)[1],2)` + `r round(coef(pulse.lm)[2],3)` ~\mbox{Height}$$
+
+
+## Residual standard error
+
+The error standard deviation, $\sigma$, is estimated by  *s=`r round(summary(pulse.lm)$sigma, 3)`* (the **residual standard error**) according to the output.
+
+The *s* is a very useful statistic, and highly interpretable.  This is because  *about* 95% of residuals will be within about (formula explained later) $\pm t_{(n-2)}(0.025) ~~s  \approx \pm 2~s$.    
+
+This converts to meaning that about 95% of data values $y_i$ will be within $2~ s$ above or below the line. 
+
+In the present case $s\approx 8.8$ so most pulses  will be within about $\pm 17.6$ beats above or below the predicted value on the line.   This simple mental calculation gives us an idea how accurate and useful our regression is likely to be for prediction  (So, in fact, not very accurate or useful at all, in this example!)
+
+It also means we can do a simple graph to help us find *y* values that are unusual (***We will refine this graph later***)
+
+```{r Finding typical values}
+plot(Pulse~Height)
+abline(pulse.lm)
+lines(pulse.lm$fitted.value+ 17.6 ~ Height, lty=3, col=2)
+lines(pulse.lm$fitted.value -17.6 ~ Height, lty=3, col=2)
+```
+The graph illustrates that the model is really pretty poor, and also that there are two individuals whose pulse is much higher than is typical. 
+
+### *R^2^* for the Pulse Data
+
+The (multiple) R-squared statistic, *R^2^=*`r  summary(pulse.lm)$r.squared`, is the square
+of the correlation between the observed and fitted responses.   It also has another name, **the coefficient of determination**.
+
+It can be interpreted as the proportion of variation in the response
+that is explained by the predictor in the model. (In other words, how much the *y* values are determined (fixed) by the regression model)
+
+Hence `Height` explains just *R^2^* = `r round(summary(pulse.lm)$r.squared *100,1)`% of the variation in the    response according to the fitted model.
+
+R-hint:  You can find what different parts of the output are called by applying the names() function to the summary. 
+```{r extracting output}
+names(summary(pulse.lm))
+summary(pulse.lm)$r.squared
+summary(pulse.lm)$sigma
+```
+
+
+The slope estimate, $\hat{\beta_1} = `r coef(pulse.lm)[2]`$ has associated standard
+    error $SE(\hat \beta_1) = `r summary(pulse.lm)$coefficients["Height", "Std. Error"]`.$
+
+For testing *H~0~*: $\beta_1 = 0$ versus *H~1~*: $\beta_1 \ne 0$, the
+    t-test statistic is
+
+
+$$t = \hat \beta_1 / SE(\hat \beta_1) = 0.210/0.135 = `r summary(pulse.lm)$coefficients["Height", "t value"]`$$
+
+The corresponding *P*-value is *P=`r summary(pulse.lm)$coefficients["Height", "Pr(>|t|)"]`*, just like when we did the
+    analysis by hand.
+
+We conclude that the data provide no evidence of a (linear)
+    relationship between resting pulse rate and height.
+
+
+## Final Comments on the Model for Pulse Data
+
+Our conclusion does not provide evidence that pulse is not related
+    to height - that's not the way hypothesis testing works.
+
+Our conclusions are based on the assumption that the model is
+    appropriate.
+
+Failure of the model assumptions A1-A4 (described previously) would
+    indicate an inappropriate model.
+
+We need diagnostic tools to assess model adequacy.
+

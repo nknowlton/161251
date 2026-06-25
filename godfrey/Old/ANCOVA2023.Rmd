@@ -1,0 +1,144 @@
+
+
+## Analysis of Covariance  -  ANCOVA
+
+We consider the situation where we want to  quantify the effect of a categorical variable after first adjusting for the effect of a covariate.  This is called ANCOVA  - analysis of covariance.  
+
+In the following example, we want to know whether the layout of shops (called ‘Arrngmt’ : shop arrangement) makes a difference to the profitability of those shops.  Three different arrangements were tried, in different branches of a chain store.  In order to answer the question we need to first adjust for the covariate effect ‘RtailSpc’  (retail space – the floor area of the shop). 
+
+`r xfun::embed_file("../../data/RtailSpc.csv")`
+
+```{r Retail, eval=-1,echo=-2 }
+Retail = read.csv(file="RtailSpc.csv",header=TRUE)
+Retail = read.csv(file="../../data/RtailSpc.csv",header=TRUE)
+head(Retail)
+plot(Profit ~ RtailSpc, pch=Arrngmt, col= Arrngmt, data=Retail,cex=1.3)
+```
+
+We fit a linear model to first adjust for the covariate, then include the factor.
+
+```{r RetailInteraction models}  
+Retail.lm1 = lm(Profit ~ RtailSpc, data=Retail)
+Retail.lm2 = lm(Profit ~ RtailSpc + as.factor(Arrngmt) , data=Retail)
+summary(Retail.lm2)
+anova(Retail.lm1, Retail.lm2)
+```
+
+We see that the Profit is definitely related to RtailSpc, and there seems to be a significant difference between arrangements 1 and 3, but not between arrangements 1 and 2. 
+
+The anova test enables us to  average the effect of the different levels of Arrngmt and conclude that, overall, Arrngment is significantly related to Profit. 
+
+### Is there an interaction ? 
+
+We may wonder if some store arrangements make better use of space than others. That is, if the relationship between Profit and RtailSpc is altered, depending on what arrangement is being used.  This means fitting an interaction model. 
+
+
+
+```{r Rtail linear models} 
+Retail.lm3= lm(Profit ~ RtailSpc * as.factor(Arrngmt) , data=Retail)
+summary(Retail.lm3)
+anova(Retail.lm2, Retail.lm3)
+```
+
+We see that the interaction terms are not significant, whether individually (in terms of slopes) or together (in terms of the ANOVA).
+
+### A Plot with Separate Lines and Symbols
+
+You can use the following code to plot a response variable *Y* versus a covariate *X* with a group variable (factor) *G* 
+
+```{r ggplot}
+library(ggplot2)
+Retail  |> ggplot(aes(x= RtailSpc, y=Profit, group=Arrngmt)) + geom_point() + geom_smooth(method="lm", se=FALSE)
+```
+
+We see from the plot that allows for interaction, that there is little difference in slope between the three groups.  If we assume parallel lines then the lines for Arrngmt 1 and 2 are very close together.
+
+### Writing down equations from the coefficients
+
+Using the Summary(Retail.lm2)  or the following
+coef(Retail.lm2) we can write down the equations for the regression lines for each group in the case of parallel lines. 
+
+**For Parallel Lines**
+```{r parallel equations}
+coef(Retail.lm2)
+```
+
+For Arrangement 1, the baseline group, the equation is 
+ $$(1) ~~~~~~~  Profit = 12.583 +  0.410 \times RtailSpc $$
+For Arrangement 2 and 3 
+
+ $$(2) ~~~~~~~  Profit  =  (12.583 + 1.286)  +  0.410\times RtailSpc  $$
+  $$  ~~~~~~~~~~~~~~  =   13.869 +  0.410\times RtailSpc  $$
+ 
+ $$(3) ~~~~~~~  Profit  =(12.583 + 12.462)  +  0.410\times RtailSpc  $$ 
+$$~~~~~~~~~~~~   = 25.045 +  0.410\times RtailSpc  $$
+ **For Non-Parallel Lines**
+ 
+```{r non-parallelEquations}
+coef(Retail.lm3)
+```
+
+For the model with an interaction the equations are 
+ 
+  $$(Int1) ~~~~~~~  Profit = 16.842 +  0.265 \times RtailSpc $$
+  
+   $$(Int2) ~~~~~~~  Profit = (16.842 -5.464) +  (0.265+ 0.223)\times RtailSpc $$
+   $$ ~~~~~~~~~~~~~~~~  = 11.378 +  0.488\times RtailSpc $$
+  $$(Int3) ~~~~~~~~  Profit = (16.842+ 8.271) +  (0.265+ 0.142) \times RtailSpc $$
+    $$ ~~~~~~~~~~~~~~~~  = 25.113 +  0.407\times RtailSpc $$
+  
+In the case of non-parallel lines we can check the equations by subsetting the variables. But we cannot do this for the parallel-line model. 
+  
+```{r forArrangement2}
+ lm( Profit[Arrngmt==2] ~ RtailSpc[Arrngmt==2], data=Retail )
+```
+ 
+## Exercise
+ 
+ Read in the NSRent2021.csv data.   The response variable is rent, and predictor variables are bedrooms and bathrooms.
+ 
+```{r}
+NSrent21= read.csv("../../data/NSrent2021.csv",header=TRUE)
+```
+
+(a) Plot to see whether the relationship between rent and bedrooms is parallel if the number of bathrooms is treated as a factor. (Note more recent houses tend to have more bathrooms)
+
+```{r ggplot2}
+NSrent21  |> ggplot(aes(x= bedrooms, y=rent, group=bathrooms)) + geom_point() + geom_smooth(method="lm", se=FALSE)
+```
+
+
+(b) Fit a parallel-lines model  
+
+lm1 = lm(rent~ bedrooms + as.factor(bathrooms))
+
+Assuming a two-bathroom house, write down the equation relating the expected rent to the number of bedrooms. 
+
+(c) Fit an interaction model
+
+lm2 = lm(rent~ bedrooms * as.factor(bathrooms))
+
+  (i) Is the interaction model significantly better than a parallel-lines model? 
+
+  (ii) Calculate the formula for the lines relating expected rent to number of bedrooms for one- and two- bathroom houses.
+ Check your calculation by subseting the data (e.g. [bathrooms==2]) .
+
+  (iii) What is the expected rent for a house with 3 bedrooms and 2 bathrooms?  
+
+
+Solution
+```{r rent, eval =TRUE}
+NSrent = read.csv("../../data/NSrent2021.csv",header=TRUE)
+head(NSrent)
+
+NSrent.lm1 = lm(rent~ bedrooms + as.factor(bathrooms), data=NSrent)
+summary(NSrent.lm1)
+NSrent.lm2 = lm(rent~ bedrooms * as.factor(bathrooms), data=NSrent)  
+summary(NSrent.lm2)
+anova(NSrent.lm1, NSrent.lm2)
+NSrent.lm3 = lm(rent[bathrooms==1] ~ bedrooms[bathrooms==1], data=NSrent) 
+summary(NSrent.lm3)
+NSrent.lm4 = lm(rent[bathrooms==2] ~ bedrooms[bathrooms==2], data=NSrent)
+summary(NSrent.lm4)
+coef(NSrent.lm4)[1] + coef(NSrent.lm4)[2]*3
+```

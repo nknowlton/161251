@@ -1,0 +1,545 @@
+# Basic Matrix Algebra{#Matrix1}
+
+[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture12.html)
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+While the use of matrix notation may seem unnecessarily complicated  at first, there are good reasons for learning about it:
+    
+- Many results for linear models are much more easily derived and
+        understood using matrix notation than without it.
+    
+- Matrix formulation of linear models is the norm in some areas of
+        science, so will help you understand the literature.
+
+In this lecture we will cover the necessary terminology and matrix algebra.
+
+- even if you have a good understanding of matrices, you will see how various matrix operations are done using R.
+
+- you do not need to remember all R commands presented here. There is always time to come back and find them if you need something.
+
+What you need to know before we start is that  matrix algebra  is the way that R does practically all the calculations needed  for fitting linear models, no matter what kind of linear model we are fitting. The linear model work comes in the next lecture.
+
+
+## What is a Matrix?
+
+- A matrix is a collection of numbers arranged in a rectangular array.
+
+- Matrices are often denoted using capital letters, but notation is far from consistent due to changes in preference and typesetting technology.
+
+- If a matrix has *r* rows and *c* columns then the matrix is *r* by
+    *c*.
+
+$$X = 
+\left [
+\begin{array}{cccccc}
+x_{11} & x_{12} & \cdots & x_{1j} & \cdots & x_{1c} \\
+x_{21} & x_{22} & \cdots & x_{2j} & \cdots & x_{2c} \\
+\vdots & \vdots & \ddots & \vdots & \ddots & \vdots \\
+x_{i1} & x_{i2} & \cdots & x_{ij} & \cdots & x_{ic} \\
+\vdots & \vdots & \ddots & \vdots & \ddots & \vdots \\
+x_{r1} & x_{r2} & \cdots & x_{rj} & \cdots & x_{rc}
+\end{array}
+\right ]
+\label{eq:matrix1}$$
+
+- *x~ij~* denotes the *i,j*th *element* of the
+    matrix *X*.
+
+### A Simple Matrix
+
+Consider matrix *A* defined by $$A = \left [
+\begin{array}{cc}
+3 & 4 \\
+2 & 2 \\
+4 & 1 \\
+\end{array}
+\right ].$$
+
+- This is a 3 by 2 matrix.
+
+```{r matrixIn}
+A.mat = matrix(c(3, 4, 2 , 2 , 4 , 1), nrow=3, byrow=TRUE)
+```
+
+- Its first row is *(3,4)* and its second column is *(4,2,1)*.
+
+
+
+- The *1,2* element, *a~12~*, is *4*.
+
+```{r fetchElements}
+A.mat[1,]
+A.mat[,2]
+A.mat[1,2]
+```
+
+
+## Types of matrices
+
+### Square Matrices
+
+- Matrix with same number of rows as columns is **square**.
+
+- Square matrices have some nice properties, like having an **inverse** (coming soon).
+
+
+
+The matrix *A* defined by $$A = \left [
+\begin{array}{cc}
+1.74 & 4.11 \\
+3.11 & 3.16 \\
+\end{array}
+\right ]$$ is a square matrix. The main diagonal of this
+matrix contains the elements *1.74* and *3.16*.
+
+```{r matrixSquare}
+A.mat = matrix(c(1.74, 4.11, 3.11, 3.16), nrow=2, byrow=TRUE)
+diag(A.mat)
+```
+
+
+### Symmetric Matrices
+
+Matrix with elements that can be defined as *x~ij~ = x~ji~* for all
+*i* and *j* is called **symmetric**.
+
+
+
+The matrix *A* defined by $$A = \left [
+\begin{array}{ccc}
+3 & -2 & 0 \\
+-2 & 1 & 4 \\
+0 & 4 & 5 \\
+\end{array}
+\right ]$$ is a symmetric matrix.
+
+### Diagonal Matrices
+
+The matrix with zero entries everywhere away from the main/leading diagonal (top left to bottom right) is called **diagonal**.
+
+
+
+The matrix *A* defined by $$A = \left [
+\begin{array}{ccc}
+3 & 0 & 0 \\
+0 & 1 & 0 \\
+0 & 0 & 5 \\
+\end{array}
+\right ]$$ is a diagonal matrix.
+
+```{r DiagMatrix}
+D.mat <- diag(c(3,1,5))
+D.mat
+```
+
+### Identity Matrices
+
+The matrix with ones along the main diagonal and zero elements
+    everywhere else is called the **identity** matrix.
+
+The identity matrix *I~n~* is said to be of **size** (or **order**) *n*,
+    with dimensions $n \times n$.
+
+- Identity matrices can be thought of as the "units" in matrix
+    algebra, in that they play much the same role as the number 1 in
+    standard multiplication.
+
+
+
+The matrix $$I_3 = 
+\left [
+\begin{array}{ccc}
+1 & 0 & 0 \\
+0 & 1 & 0 \\
+0 & 0 & 1 \\
+\end{array}
+\right ]$$ is the identity matrix of order *3*.
+
+### Vectors
+
+- A matrix with a single column is a column vector.
+
+- A matrix with a single row is a row vector.
+
+- Vectors typically assumed to be column vectors unless explicitly
+    stated otherwise.
+
+- Vectors are a special type of matrix, and have their own notation.
+    Specifically, vectors are usually denoted by a bold, lower case
+    character, with elements specified by a single subscript.
+
+- R stores single column or single rows as matrices; R's vectors don't know about direction.
+
+
+
+The vector $$\boldsymbol{x} = 
+\left [
+\begin{array}{c}
+ x_1 \\
+ x_2 \\
+ x_3 \\
+\end{array}
+\right ]
+=
+\left [
+\begin{array}{c}
+ 1.4 \\
+ 0.5 \\
+-0.3 \\
+\end{array}
+\right ]$$ is a column vector. The vector $\boldsymbol{v} = (4.2, 5.0)$ is a row
+vector.
+
+
+## Matrix operations
+
+### Matrix Addition and Subtraction
+
+- Only matrices of the same size can be added or subtracted.
+
+- Addition and subtraction are then done element by element.
+
+
+
+An example of addition: $$\left [
+\begin{array}{cc}
+3 & 4 \\
+2 & 2 \\
+4 & 1 \\
+\end{array}
+\right ] 
++ 
+\left [
+\begin{array}{cc}
+1 & 6 \\
+4 & 2 \\
+1 & 2 \\
+\end{array}
+\right ]
+=
+\left [
+\begin{array}{cc}
+4 & 10 \\
+6 & 4 \\
+5 & 3 \\
+\end{array}
+\right ].$$ An example of subtraction: $$\left [
+\begin{array}{cc}
+3 & 4 \\
+2 & 2 \\
+4 & 1 \\
+\end{array}
+\right ] 
+-
+\left [
+\begin{array}{cc}
+1 & 6 \\
+4 & 2 \\
+1 & 2 \\
+\end{array}
+\right ]
+=
+\left [
+\begin{array}{cc}
+2 & -2 \\
+-2 & 0 \\
+3 & -1 \\
+\end{array}
+\right ].$$
+
+### Multiplication by a Scalar
+
+Multiplication of a matrix by a scalar (i.e. a single number) is
+    achieved by multiplying each element of the matrix by that scalar.
+
+
+If $$A = \left [
+\begin{array}{cc}
+3 & 4 \\
+2 & 2 \\
+4 & 1 \\
+\end{array}
+\right ]$$ then $$4A = \left [
+\begin{array}{cc}
+12 & 16 \\
+8 & 8 \\
+16 & 4 \\
+\end{array}
+\right ].$$
+
+### Matrix by Matrix Multiplication
+
+- For matrices *A* and *B* we can evaluate the product *AB* only
+    if the number of columns of *A* is the same as the number of rows
+    of *B*.
+
+- If the matrices are conformable in this way, then the *i,j*th
+    element of the product *C=AB* is given by
+    $$c_{ij} = \sum_{k} a_{ik} b_{kj}.$$
+
+### A Simple Matrix Product
+
+Define $$A = 
+\left [
+\begin{array}{ccc}
+2 & 1 & 3\\
+1 & 3 & 4 \\
+\end{array}
+\right ]$$ and $$B = 
+\left [
+\begin{array}{cc}
+3 & 4 \\
+2 & 2 \\
+4 & 1 \\
+\end{array}
+\right ]$$
+
+Then $$AB = 
+\left [
+\begin{array}{ccc}
+2 & 1 & 3\\
+1 & 3 & 4 \\
+\end{array}
+\right ]
+\left [
+\begin{array}{cc}
+3 & 4 \\
+2 & 2 \\
+4 & 1 \\
+\end{array}
+\right ]
+=
+\left [
+\begin{array}{cc}
+20 & 13 \\
+25 & 14 \\
+\end{array}
+\right ].$$
+
+
+```{r MatrixProd1}
+A.mat = matrix(c(2,1,3,1,3,4), nrow=2, byrow=TRUE)
+B.mat = matrix(c(3,4,2,2,4,1), nrow=3, byrow=TRUE)
+A.mat%*%B.mat # do not use a single star here!
+```
+
+N.B. You might see what happens if you don't use the correct operator `%*%` in this last calculation.
+
+
+Consider the matrices from the previous example. We will now compute the
+product *BA*. We have 
+
+$$BA = 
+\left [
+\begin{array}{cc}
+3 & 4 \\
+2 & 2 \\
+4 & 1 \\
+\end{array}
+\right ]
+\left [
+\begin{array}{ccc}
+2 & 1 & 3\\
+1 & 3 & 4 \\
+\end{array}
+\right ]
+=
+\left [
+\begin{array}{ccc}
+10 & 15 & 25 \\
+ 6 & 8 & 14 \\
+ 9 & 7 & 16 \\
+\end{array}
+\right ]$$
+
+```{r MatrixProd2}
+B.mat%*%A.mat # do not use a single star
+```
+
+
+$AB \ne BA$. In general matrix multiplication is **non-commutative**; that is, the order matters.
+
+### Product of Matrix by Vector
+
+This follows exactly the same rules as for matrix by matrix multiplication.
+
+- But if we use the single subscript notation for elements of vectors,     then the equations look a bit different.
+
+- Let *A* be an $r \times c$ matrix, and let $\boldsymbol{v}$ be
+    a column vector with *c* elements.
+
+- Then if $A\boldsymbol{v} = \boldsymbol{x}$, we find that $\boldsymbol{x}$ is also a column vector
+    but with *r* elements, defined by
+    $$x_i = \sum_{j=1}^c a_{ij}v_j.$$
+
+### A Simple Product
+
+Let  $A = \left [
+\begin{array}{ccc}
+2 & 1 & 3\\
+1 & 3 & 4 \\
+\end{array}
+\right ]$ and  $\boldsymbol{v} = \left [
+\begin{array}{c}
+4\\
+0\\
+2\\
+\end{array}
+\right ]$ 
+
+Then 
+
+$$A\boldsymbol{v} = 
+\left [
+\begin{array}{ccc}
+2 & 1 & 3\\
+1 & 3 & 4\\
+\end{array}
+\right ] 
+\left [
+\begin{array}{c}
+4\\
+0\\
+2\\
+\end{array}
+\right ] = \left [
+\begin{array}{c}
+14\\
+12\\
+\end{array}
+\right ] = \boldsymbol{x} $$
+
+## Operations specific to matrices
+
+### Matrix Transpose
+
+The **transpose** of a matrix is obtained by interchanging rows and
+    columns.
+
+- The transpose of $\boldsymbol{A}$ is denoted $\boldsymbol{A}^T$ or sometimes $\boldsymbol{A}^t$ or $\boldsymbol{A}^\prime$.
+
+
+Using *B* as defined above, its transpose is given by $\boldsymbol{B}^T = \left [
+\begin{array}{ccc}
+3 & 2 & 4\\
+4 & 2 & 1\\ 
+\end{array}
+\right ]$.
+
+```{r transpose}
+t(B.mat)
+```
+
+### Properties of Transposition
+
+There are numerous matrix manipulations that are used by software to make calculations more efficient.
+
+As an example, $(\boldsymbol{A} \boldsymbol{B})^T = \boldsymbol{B}^T \boldsymbol{A}^T$.
+
+Matrix/vector transposition proves useful in computing sums of squares in
+    statistics. 
+
+$\boldsymbol{v}^T \boldsymbol{v} = \left [ v_1, v_2, \ldots, v_n \right ]     \left [     \begin{array}{c}
+     v_1 \\      v_2 \\      \vdots \\      v_n \\
+    \end{array}     \right ]
+    = v_1 \times v_1 + v_2 \times v_2 + \cdots v_n \times v_n = \sum_{i=1}^{n} {v_i^2}$
+
+### Matrix Inverse
+
+- For a given matrix *A*, the inverse matrix is denoted *A^-1^*
+    and satisfies *AA^-1^ = I = A^-1^ A*.
+
+- Only square matrices can have inverses, and even some square
+    matrices will be **uninvertible** or **singular**.
+
+### A Simple Matrix and Its Inverse
+
+Consider the matrix *A* defined by 
+
+$A =  \left [
+\begin{array}{cc}
+3 & 2 \\
+1 & 2 \\
+\end{array} \right ]$ 
+
+The inverse of this matrix is  $A^{-1} =  \left [ \begin{array}{cc}
+\tfrac{1}{2} & -\tfrac{1}{2} \\
+-\tfrac{1}{4} & \tfrac{3}{4} \\
+\end{array} \right ]$ 
+
+
+```{r MatrixAndInverse}
+A = matrix(c(3,2,1,2), nrow=2, byrow=TRUE)
+solve(A)
+```
+
+As an exercise you should perform the matrix multiplication
+to confirm that 
+
+$$A A^{-1} = \left [
+\begin{array}{cc}
+3 & 2 \\
+1 & 2 \\
+\end{array}
+\right ]
+ \left [
+\begin{array}{cc}
+\tfrac{1}{2} & -\tfrac{1}{2} \\
+-\tfrac{1}{4} & \tfrac{3}{4} \\
+\end{array} \right ] =  \left [
+\begin{array}{cc}
+1 & 0 \\
+0 & 1 \\
+\end{array} \right ] = I$$ 
+
+and (or) 
+
+$$A^{-1} A =   \left [ \begin{array}{cc}
+\tfrac{1}{2} & -\tfrac{1}{2} \\
+-\tfrac{1}{4} & \tfrac{3}{4} \\
+\end{array} \right ]  \left [ \begin{array}{cc}
+3 & 2 \\
+1 & 2 \\
+\end{array} \right ]
+=  \left [ \begin{array}{cc}
+1 & 0 \\
+0 & 1 \\
+\end{array} \right ]
+= I.$$
+
+### Inverse of a 2 by 2 Matrix
+
+In general evaluation of a matrix inverse is a tedious matter that is
+best left to a computer. However, the calculation of the inverse of a 2
+by 2 matrix is easy to do by hand.
+
+The inverse of $\left [ \begin{array}{cc}
+a & b \\
+c & d \\
+\end{array} \right ]^{-1}
+= \frac{1}{ad-bc} \left [ \begin{array}{cc}
+d & -b \\
+-c & a \\
+\end{array} \right ]$, as long as $ad-bc \ne 0$ (*ad-bc=0* is  very unusual).
+
+
+### Exercise
+
+ confirm that this formula produces the inverse *A^-1^* in the previous Example.
+

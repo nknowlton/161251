@@ -1,0 +1,167 @@
+# The Basics of Regression Modelling{#BasicsRegression}
+
+[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture2.html)
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+
+This lecture is an overview of regression.
+
+## Terminology
+
+This course deals with models that are used to explain how one random variable, *Y*, is affected by one or more other variables *x~1~, x~2~, ..., x~p~*.    
+
+
+Here:
+    
+ *Y* is called the response variable;
+    
+ *x~1~, x~2~, ..., x~p~* are called the explanatory variables, or regressors, or predictors, or covariates.
+
+-  A statistical regression model specifies how the distribution *Y* depends on the values *x~1~, x~2~, ..., x~p~* (which are assumed to be fixed for the purposes of our analyses);
+- Regression models express the response distribution in terms of these values and also one or more unknown parameters which determine the relationship.
+- but, in addition to Regression models expressing the line relating *y* to *x*, they also express the distribution (i.e. pattern, spread) of *y* values around that line. 
+
+
+## Regression Versus Correlation
+
+Suppose you observe paired *(x,y)* data.
+
+- You could examine relationship between *x* and *y* by
+    calculating correlation coefficient *r*.
+
+Class discussion: How is this different to a regression analysis?
+
+## Normally Distributed Responses
+
+We shall typically assume that the distribution of *Y* follows a normal distribution for any given values of *x~1~, x~2~ ..., x~p~*.
+
+We shall typically assume that:
+    
+- the mean of the normal distribution of *Y* does depend on *x~1~, x~2~ ..., x~p~*.
+- the variance of the normal distribution does not depend on the values of     *x~1~, x~2~ ..., x~p~*.
+
+The model is then:
+
+$$Y \sim N \left ( g(x_1, x_2, \ldots, x_p), \, \sigma^2 \right )$$
+
+where
+
+- *g* is some function for *E[Y] =g(x~1~, x~2~, ..., x~p~)*.
+        Note that *g* will usually depend on some parameters $\beta_0, \beta_1, \ldots, \beta_p$.
+- $\mbox{Var}(Y) = \sigma^2$ is the response variance
+
+
+The model $Y \sim N \left ( g(x_1, x_2, \ldots, x_p),\, \sigma^2 \right )$ can be
+expressed equivalently by 
+
+$$Y = g(x_1, x_2, \ldots, x_p) + \varepsilon$$
+
+where $\varepsilon \sim N(0,\, \sigma^2)$
+
+Notice that the mean (or **expected**) value of *Y* for this model is given by *E[Y] = g(x~1~, x~2~ ..., x~p~)*
+
+## Linear Models
+
+Usually we will assume that *g* is a parametric function.
+
+Suppose you have data on a **response variable** *y* (e.g. blood pressure) and an **explanatory variable** *x* (e.g. a measurement of cholesterol).
+
+- We want to model the relationship between the mean value of *y*, and *x*.
+
+- We might use a simple linear regression model, 
+$$E[Y] = \beta_0 + \beta_1 x$$ 
+where $\beta_0$ and $\beta_1$   are model parameters.
+
+- This is a linear regression model because $E[Y]$ is linearly related to the parameters $\beta_0$ and $\beta_1$ (not because it is linearly related to *x*).
+
+## What's So Special About Linear Models in Statistics?
+
+- Linear regression models are easy to apply and interpret.
+
+- The mathematical theory underlying linear regression models is very well understood.
+
+- We can investigate the relationship between a response and lots of explanatory variables in a straightforward manner.
+
+- A linear regression model will often (but not always) provide an adequate approximation to reality.
+
+## Linear or Non-Linear? That is the Question
+
+Which of the following are linear  models?
+
+1.  $Y \sim N( \beta_0 + \beta_1 x^{\beta_2}, \, \sigma^2)$
+
+2.  $Y \sim N( \beta_0 + \beta_1 x + \beta_2 x^2 + \beta_3 x^3, \, \sigma^2)$
+
+3.  $Y \sim N( \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 \log(x_3), \, \sigma^2)$
+
+
+This distinction has a massive impact. If your exploratory data analysis (EDA) shows that a relationship of some kind exists, then you can try to transform (re-scale) your variables to make the relationship linear.
+
+## Uses of Regression Models
+
+The reason for fitting a model matters. It can determine how we gauge the usefulness of that model.
+
+
+Descriptive modelling: just interested in better
+    understanding the problem under study.
+
+Prediction: predict the value of *Y* that will result from particular values of the explanatory variables.
+
+Parameter estimation: want to estimate interpretable model parameters.
+
+Variable screening: want to investigate which explanatory variables have an effect on the response.
+
+## Regression and Causation
+
+Regression analyses can be used to examine the association between response and predictor variables.
+
+Possible interpretations of association:
+    
+- Causation: *y* depends causally on *x*;
+    
+- Common Response: *y* does not depend causally on *x*; both *y* and *x* are related (perhaps causally) to **lurking variable** *z*;
+    
+- Confounding: *x* is (strongly) associated with lurking variable *z*, so it is then impossible to tell whether *y* depends causally on *x* or *z*.
+
+## Establishing a Causative Link...
+
+...is not easy
+
+1.  Use a carefully designed experiment. This is the basis of the course 161.222 taught in Semester 2.
+
+2.  If not possible to conduct an experiment, then the following questions should help:
+    
+      - Is the association between the variables strong?
+      - Is the association consistent?
+      - Are higher doses associated with stronger responses?
+      - Do the alleged causes precede the effect in time?
+      - Is the alleged cause plausible?
+    
+If *yes* to all then a causal link seems probable. E.g. a causal link between lung cancer and smoking now fully
+        accepted by scientists because above criteria satisfied.
+
+## Summary
+
+Regression models seek to represent dependence of a response on explanatory variables.
+
+This course focuses (primarily) on models with a particular linear form.
+
+Typically we will assume that the response is normally distributed.
+
+Linear regression models can be used for description, prediction, parameter estimation and variable screening.

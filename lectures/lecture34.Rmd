@@ -4,7 +4,6 @@ subtitle: 161.251 Regression Modelling
 author: "Presented by Nick Knowlton <nknowlton@massey.ac.nz>"  
 output:
   html_document:
-    code_download: true
     theme: yeti
     highlight: tango
   ioslides_presentation:
@@ -170,9 +169,9 @@ Such behaviour should not be observed if the errors are independent.
 
 However, for time series data it is common for some residual correlation between residuals to remain even when the trend and seasonal variation has been removed.
 
-This type of correlation in the sequence of residuals is usually     called **autocorrelation**.
+This type of correlation in the sequence of residuals is **autocorrelation** and we reviewed spatial autocorrelation in an earlier lecture.
 
-## Stationary Processes and Autocorrelation
+### Autocorrelation Function
 
 Consider a random process in time: $Z_t$ where $t=1,2,\ldots$ and $Z_t$ represents the value of the process at time $t$.
 
@@ -193,8 +192,6 @@ The ACF (autocorrelation against time lag) can be plotted in R using    the `acf
 ```{r TourismACF}
 acf(resid(tourism.lm))
 ```
-
-##
 
 - The ACF plot indicates a correlation of about $0.4$ at lag one.
     Hence consecutive residuals are positively dependent.
@@ -218,5 +215,12 @@ When we are thinking about time series, the correlation for data from lags 0 and
 If observations are correlated with their preceding observations, and those preceding observations are correlated with their preceding observations, then there is likely to be a correlation between observations and those that are back two time steps.
 
 This logic continues to three, four, and greater time lags and is especially likely when the correlation at the first lag is very, very high.
+
+## Tourism Data: PCF Plot for Residuals
+```{r TourismPACF}
+pacf(resid(tourism.lm))
+```
+
+This is the Partial Autocorrelation Function (PACF) plot and shows the correlation between $Z_t$ and $Z_{t+k}$ after removing the effect of any correlations due to the intermediate lags $1, 2, \ldots, k-1$.
 
 

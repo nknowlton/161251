@@ -1,0 +1,184 @@
+
+```{r extraLibrary, echo=FALSE,include=FALSE}
+library(car)
+```
+
+Let's go back to the Climate data example, which had two binary predictors `NorthIsland` and `Sea`. In this lecture we will focus on the predictor `NorthIsland` only.
+
+We can briefly examine the effects of this predictor via a boxplot. `NorthIsland` seems to have an effect on temperature, but is the effect statistically significant? 
+
+N.B. `r xfun::embed_file("../../data/Climate.csv")` to replicate the following examples.
+
+```{r Climate boxplots, eval = -2, echo = -1}
+Climate <- read.csv(file= "../../data/Climate.csv", header = TRUE, row.names = 1)
+Climate <- read.csv(file= "Climate.csv", header = TRUE, row.names = 1)
+boxplot(MnJlyTemp ~ NorthIsland, data = Climate)
+```
+
+## Idea of comparing groups using lm()
+
+Suppose we denote the $i$th data value (response) from group $j$ by $Y_{ij}$, where $j= 0,1$ and $i=1,2,…,n_0$ or $1,2,…,n_1$   respectively.  Thus the group means are  $\mu_0$  and $\mu_1$ .
+
+One way to analyse the data would be to use a two-sample t-test to test the hypothesis $H_0:~~\mu_0= \mu_1$      versus   $H_1:~~\mu_0 \ne\mu_1$. You may have been introduced to such tests in your first-year statistics course.
+
+Another way of writing down the hypothesis (which will turn out to be convenient) is to treat one group as a “baseline group”  with mean $\mu$ and the other group as a  shifted or
+ “treatment” group  with mean  $\mu+\delta$.  Then the hypotheses become   $H_0:~\delta=0$  vs  versus $H_1:~\delta\ne 0$.
+	                                      
+There is a definite advantage in writing the hypothesis this way. Namely, we can   easily put the test into the linear model  framework, since the regression models are written in the form where we are testing whether a slope (which will be $\delta$) equals zero.   
+
+To write  it this way, define an **indicator variable**  as $z_i = 0$ if  the datum is in group 0, and $z_i=1$ if if is in group 1. 
+   
+Then we can write a formula for the response as    
+$$ E[Y_i] = \mu + \delta z_i   = \beta_0 + \beta_1 z_i$$
+where $\beta_0 = \mu$ and $\beta_1 = \delta$.
+
+In other words the two-group comparison can be put in the same form as a linear regression. So  all we would need to do is:
+
+1. set up the group indicator variable *z*, 
+
+2. regress *Y* on *z* and 
+
+3. test the hypothesis that the slope =0. 
+
+## Testing using lm()
+
+If we want to test the significance of the relationship between `NorthIsland` and temperature, we can use `lm()`. Remember `lm()`  assumes the variance of residuals does not depend on the values of the predictor. From the boxplot it looks like this assumption is justified. 
+
+```{r lmTesting}
+Climate.lm1 <- lm(MnJlyTemp ~ NorthIsland, data = Climate)
+summary(Climate.lm1) 
+```
+
+The t-test for the slope of the model is significant (*p*-value = `1.66e-05`), indicating that there is a significant difference between the mean of the two groups.
+
+
+## Testing using t.test()
+
+Since this is a simple two-group comparison, we can also investigate using a standard two-sample `t.test`, which gives basically the same conclusion.
+
+```{r t.test Testing}
+t.test(MnJlyTemp ~ NorthIsland, data = Climate)
+``` 
+ 
+On close inspection you will see that the *p*-value and df are not exactly the same as for the `lm()`.   
+The reason is that the default settings for `t.test()` do not assume equal variances, and so uses a method called Welch's method. Essentially it does a fudge on the df  to make the t-distribution work.   
+
+If we want to get exactly the same results in the `t.test()` as in the `lm()`, then we need to set the var.equal=TRUE option.
+
+```{r t.testVar.equal}
+t.test(MnJlyTemp~NorthIsland, var.equal=TRUE, data=Climate)
+``` 
+
+In this case the t statistics, df and *p*-value are equal to those from `lm`.
+
+
+## How do we know whether to assume equal variances?
+
+A simple rule of thumb we can use is that if the standard deviation of residuals for the two groups does not differ by more than a factor of 2, then we can assume equal variances.
+
+```{r Compare sd}
+with(Climate, sd( MnJlyTemp[NorthIsland==0] )/ sd( MnJlyTemp[NorthIsland==1] ))
+```
+
+(Note that the `with()` function allows us to use the variables from the `Climate` dataframe without writing `Climate$`; `MnJlyTemp[NorthIsland == 0]` gives us the temperatures for observations not in the North Island). Clearly the ratio is much less than 2. 
+
+Preferably, we will perform a formal statistical test of $H_0: \sigma_0^2 = \sigma_1^2$ (i.e. variances are equal)  vs  $H_1:$ variances are not equal. 
+
+There are two tests commonly used: 
+Bartlett's test (which depends more on the errors being normally distributed) and Levene's test (which works even if the data are not normal).  
+
+We will normally use the Levene's test. The corresponding R function is available through the `car` package.
+
+
+
+```{r getLibrary}
+library(car)
+```
+
+```{r Climate.bt}
+bartlett.test(MnJlyTemp ~ factor(NorthIsland), data=Climate)
+```
+
+
+```{r}
+library(car)
+leveneTest(MnJlyTemp ~ factor(NorthIsland), data=Climate)
+```
+
+
+Note the use of the `factor()` function to indicate that we want to treat the `NorthIsland` variable as a group indicator variable (rather than a numerical variable).
+
+The *p*-value for both these tests is large,  which confirms that, for the Climate data, we have no reason to doubt the equal variance  assumption.
+
+
+### Going further
+
+A natural question is to ask what happens when we have more than two groups. This will be the topic of the next lecture.
+
+
+## Models for a single numeric predictor and a binary group variable
+
+Binary predictors can also be used to deal with changes in slope between two groups.
+
+For example, in their book "Regression Analysis by Example", Chatterjee and Price present some data on the impact of amount of revision impacts scores in an English exam differently for boys and girls. Let:
+
+- $Y_i$	= score in English exam,
+-	$x_i$	= number of hours spent in revision,
+- $z_i$ = sex (0 for boys, 1 for girls).
+
+
+N.B. `r xfun::embed_file("../../data/EnglishExam.csv")` if you want to replicate the following examples.
+
+
+```{r getEnglish, eval = -2, echo = -1}
+English <- read.csv(file="../../data/EnglishExam.csv", header=TRUE)
+English <- read.csv(file="EnglishExam.csv", header=TRUE)
+head(English)
+```
+
+
+Looking at the data graphically we see:
+
+```{r EnglishEDA, echo = FALSE}
+English |> 
+  ggplot(aes(y=resulty, x= revision, group= sex, colour = as.factor(sex))) +  
+  geom_smooth(formula = y ~ x, method = "loess", alpha = 0.3) +
+  geom_point() +
+  labs(x = "Revision (hours)",
+       y = "Result",
+       colour = "Sex") + 
+  scale_colour_brewer(palette = "Set1")
+```
+
+
+The question we are asking is: should the lines for boys and girls have a different slope?
+
+To answer this question, we need to fit a model in which boys and girls have different slopes. As in the previous section, it is convenient to test for a difference in slope by setting a baseline group (say, the boys) with slope $\beta_1$, and expressing the slope for the girls group as a shifted slope $\beta_1 + \delta$. That is, we want a model with the following response: 
+
+$$E[Y_i] = \beta_0 + \beta_1 x_i ~\mbox{ for boys, and}$$
+$$E[Y_i] = \beta_0 + (\beta_1 + \delta) x_i ~\mbox{ for girls}$$
+
+The group indicator variable $z_i$ is very convenient to construct the appropriate model:
+
+$$E[Y_i] = \beta_0 + (\beta_1 + \delta z_i) x_i = \beta_0 + \beta_1 x_i + \delta x_i z_i$$
+
+
+Here, $x_i z_i$ corresponds to a new variable that is equal to 0 for boys and to $x_i$ for girls. In order to fit the model with `lm()` in the usual way, we can easily construct this new variable:
+
+```{r constructNewVariable}
+English$revisionGirls <- English$revision * English$sex
+head(English)
+```
+
+
+We can now fit the model:
+
+```{r DiffSlopesModels}
+English.lm1 <- lm(resulty ~ revision, data = English)
+English.lm2 <- lm(resulty ~ revision + revisionGirls, data = English)
+
+summary(English.lm2)
+anova(English.lm1, English.lm2)
+```
+
+The coefficient associated with our constructed variable `revisionGirls` is significant (*p*-value $\approx 0.04$), which indicates that there is a difference in the slope between boys and girls.

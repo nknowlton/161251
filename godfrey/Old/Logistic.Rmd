@@ -1,0 +1,302 @@
+
+*The logistic model,  interpretation  of the model and coefficients,    interpreting odds ratios, extensions.  *  
+
+## Introduction
+Logistic Regression is a technique for modelling data where the response variable is binary, usually coded as Y=0 or Y=1, where Y=1 is regarded as a “success”.
+
+These models are sometimes described in the business literature as “discrete choice models”.  A typical context is the decision to buy or not buy a particular product.    A biological example is a study of whether one can predict that a person has a disease (or not) based on medical symptoms or signs such as a blood test.  Or  we may wish to identify factors predictive of failure or survival, (of a person or thing) based on some data.  
+
+
+## Example: Business Failure
+
+As our worked example we will consider the WallinMetkon.csv dataset. This gives data on 82 companies, their profitability, liquid assets and solid assets, and whether or not the business failed.  The data comes courtesy of Professor Jan Wallin, Department of Accounting,   Swedish School of Economics and Business Administration,  Finland. 
+
+```{r read WallinMetkon}
+Metkon= read.csv("../../data/WallinMetkon.csv", header=TRUE)
+head(Metkon);  attach(Metkon)
+par(mfrow=c(1,3))
+boxplot(Profitability~Survivor)
+boxplot(LiquidAssets~Survivor)
+boxplot(SolidAssets~Survivor)
+```
+
+
+In the above graph, business survivors are indicated by a 1 and business failures by a 0.  It is clear that businesses that survived had higher median levels of profitability, liquid assets and solid assets,  but none of these are perfect predictors of survival.  
+
+In logistic regression we want to estimate the probability of survival, given the continuous variables (and sometimes given factors). 
+
+### The Wrong Analysis:  Linear Regression
+
+A simple approach would be to fit an ordinary linear regression to Y= Survivor.    The most serious drawback is that the  fitted model  could go outside the range 0 to 1,  which is not allowed for probabilities.   
+
+The graphs below show that neither a straight line,  nor a cubic model, manages to represent the data adequately,  because the predicted values can go $<0$ or $>1$,  which probabilities cannot. 
+
+```{r linear}
+#plot(Survivor ~ SolidAssets)
+Met.lm1 = lm(Survivor ~ SolidAssets)
+Met.lm3 = lm(Survivor ~ poly(SolidAssets,3))
+
+plot(Survivor ~ SolidAssets)
+xrange= (-40:80)/10
+lines(xrange, predict(Met.lm1, newdata=data.frame(SolidAssets=xrange))  )
+ plot(Survivor ~ SolidAssets)
+ lines(xrange, predict(Met.lm3,  newdata=data.frame(SolidAssets=xrange))  )
+```
+
+
+The graphs show that linear models are not valid.    
+
+##  Logistic regression 
+
+What we need is a curve that approaches Y=1 from below, getting closer and closer as X increases. 
+
+One such curve is the logistic function:  
+$$\pi = \frac{e^{ \beta_0 + \beta_1 X}}{1 + e^{ \beta_0 + \beta_1 X}}$$
+
+where $\pi$  is the expected (mean) value of the proportion.    Here  $0 < \pi< 1$. 
+
+If $\beta_1 >0$ the $\pi$ approaches 1 from below  as $x \rightarrow \infty$  and approaches 0 from above if $x \rightarrow -\infty$.
+ 
+If $\beta_1 <0$ the  shape of the curve is reversed.  
+
+The following  plot shows the fitted values   from a logistic regression model. It seems this curve has the desired shape. 
+
+```{r logistic curve}
+Met.glm = glm(Survivor ~ SolidAssets, family=binomial)
+ plot(Survivor ~ SolidAssets)
+ lines(xrange, predict(Met.glm,  newdata=data.frame(SolidAssets=xrange),type="response")  )
+```
+
+
+If you read the code, you will have noticed a few differences to the syntax for linear models.  
+
+Firstly the function is not lm()  but **glm()** which stands for generalized linear models.  These are models that work for data that are not normal distributed, but have some other probability distribution such as binomial, poisson, exponential, gamma, negative binomial, inverse gaussian, and others (including normal as a special case). 
+
+Hence the second difference is the option:  **family=binomial**.    This is because the response data are binary $\{0,1\}$ which is a special case of binomial data,  and the software needs to know how to treat the data. 
+
+The third difference is that in the predict() function the option is:  **type="response"**.   So what else could it have been? We will see shortly. 
+
+### Generalized Linear Models
+
+As indicated above, glm's  allow fitting of a variety of non-normal data. Most of those are relegated to the course 161.331 but here we give you a brief introduction to modelling binary response data. 
+
+Recall that in a linear model with normal errors, the expected value is given by 
+$$E[ Y_i ]= \beta_0 + \beta_1 x_{i1} + \beta_2 x_{2i} + ...
+\beta_k x_{ik} ~~~~~~~~(1)$$
+
+In a generalized linear model a **link** function $g()$  is inserted between the mean and the **linear predictor** on the right hand side of equation (1): 
+
+$$g(E[ Y_i ]) = \beta_0 + \beta_1 x_{i1} + \beta_2 x_{2i} + ...
+\beta_k x_{ik} ~~~~~~~~(2)$$
+
+For binary data, suppose the probability of a success on the $i$th row is $\pi_i$. 
+Then the mean for $Y_i$ equals  $\pi_i$.   (proof: $E[Y_i] =  0 \times(1-\pi_i) + 1\times \pi_i  = \pi_i$).
+The standard link function is 
+$$g(\pi) = \mbox{logit}(\pi)  = \log{\left( \frac{\pi}{1-\pi}\right)} ~~.$$
+This logit()  function   extends the range from  $p$ in the interval $(0,1)$   to $g(\pi)$ anywhere in the real number line $(-\infty,\infty)$, which means the linear predictor side of (2) is not limited to the interval $(0,1)$. 
+
+The following shows the coefficients for the glm of the Metkon data. 
+```{r glm coefs}
+Met.glm
+```
+
+We see the intercept has estimate $\hat\beta_0= -0.6937$  and the coefficient of SolidAssets is $\hat\beta_1 =0.6881$.   So our estimated curve is 
+$$ log(\frac{p}{1-p}) = -0.6937 + 0.6881 X  ~~~~~~~~  (3)$$
+where $p= \hat\pi$ and $X$= SolidAssets.  The fitted values $-0.6937 + 0.6881 X$ for different values of $X$ are what we would get from the predict() function if we did not use the option **type="response"** in the R code above. 
+
+In practice we usually want to put the output back in terms of the fitted probabilities $p$. 
+If we raise both sides of   equation (3) to a power of $e$, and rearrange the fraction, we get 
+$$p = \frac{ e^{\hat\beta_0 + \hat\beta_1 X}}{1+ e^{\hat\beta_0 + \hat\beta_1 X}} ~  = \frac{ e^{-0.6937 +  0.6881 X}}{1+ e^{-0.6937 +  0.6881 X}} $$
+
+In a linear model the coefficient $\hat\beta_1= 0.6881$ would be called the slope.  But here we have a curve rather than a straight line, so it is  a little bit of an abuse of terminology to call it a 'slope',  but we will do so anyway, for convenience. 
+
+The 'slope' being positive,   means that estimated survivor probability  increases when $x$ increases -  this is how we will interpret a positive ‘slope’ coefficient in qualitative terms. (Interpreting the numbers precisely is a bit harder.) 
+
+If the ‘slope’ had been  negative then the estimated probability  decreases when $x$ increases.   i.e.  the curve decreases from 1 to 0,  with the same pushed-over ‘S’ shape.
+
+###  Finding the $\pi=0.5$ point
+
+It is usually very informative to know at what point the "success" probability $\pi =0.5$,  i.e. the chances of success (Survival) are 50% - just as likely to succeed or fail. 
+
+The model implies that if the linear predictor $\beta_0 + \beta_1 x = 0$  then the success probability $\pi  =0.5$  since $e^0/(1+e^0)= 1/2$.  This means that  we can estimate $\pi$ by solving  the equation
+$$ -0.6937 +  0.6881 x = 0$$ for $x$.  We get  $x= 0.6937/ 0.6881  =  1.008$.  This is sometimes denoted as $x_{0.5}$.
+If $x<1.008=x_{0.5}$ in SolidAssets (whatever units this is measured in)  then the company is more likely to fail, and if $x>1.008$ then it is more likely to survive. 
+
+In some applications of this model (e.g. testing the toxicity of chemicals or insecticides) the location  $x_{0.5}$  is called the LD50  (lethal dose for 50%) and this is often quoted as a summary number for comparison of different chemicals. 
+
+### Fitting the model 
+
+The glm() model is  fitted by a procedure called  **maximum likelihood**,  rather than least squares.   This minimises a generalized version of sums of squares  called **deviance**  (in fact if we use glm() to fit data with normal errors then the deviance boils down to the sums of squares).  
+
+However  inside the computer, the actual fitting is carried out using *iteratively weighted least squares* much the same as we have done in the last topic. 
+
+
+## Interpreting the rest of the summary output
+
+```{r glm summary }
+summary(Met.glm)
+```
+
+The summary output is arranged in such a way as to be analogous to summary(lm()) output. 
+
+At the top there is a summary of the residuals for the model, except these are called deviance residuals and are on the *linear predictor*  scale.   There is not much to see here. 
+
+Then there is the table of coefficients.  We have interpreted the estimates,  and we note that they have standard errors. In a lm() we would calculate $t$ = coef/(standard error) and hence get a  p-value based on the $t$ distribution.  Here there is different maths at play and we get $z$ = coef/(standard error),  and subsequent p-values based on the normal distribution. 
+
+In lm() output we would next have the residual standard error $S$,  the multiple $R^2$ and adjusted version $R^2_{adj}$ and an $F$ statistic with its  p-value. 
+
+In glm() output we instead have information about the deviance for a **null** model  (i.e. if there was a flat line because the  'slope'  was zero)  and **residual deviance** after fitting the model.  
+
+In place of an $R^2$ we consider the *relative size* of the residual deviance   compared to its df (degrees of freedom).   For a good fit we want residual deviance $\approx$ df.   (This is because deviance has approximately a Chi-square distribution, and the expected value of a Chi-square equals its df.)
+
+Here  the residual deviance is 96.289 on 80 df, so it is not too bad.  We could formally test the hypothesis 
+
+$$H_0: \mbox{the model fits the data well} ~~~~~~ versus\\  H_1:  \mbox{the model does not fit the data well}~~~~$$
+using 
+```{r test chisq}
+pchisq(96.289,df=80, lower.tail=FALSE)
+```
+and conclude that we could not reject $H_0$. The model fits ok.  
+
+The difference between the null and residual deviance  gives us the analogue to the F test in linear regression.  
+
+For this, the null model is 
+$$H_0:\beta_1 = 0  ~~~ versus ~~~ H_1: \beta_1 \ne 0$$
+
+We can do the test using the anova() command: 
+
+```{r anova() test}
+anova(Met.glm, test="Chisq")
+```
+
+We conclude there is significant evidence to reject the null model  (p-value = $3\times 10^{-5}$  = 0.00003).
+
+**NOTE** Unlike linear regression, the  Z  test for the coefficients in a glm() does not necessarily give the same p-value as the anova() test.   The rule is we should usually **base decisions on the  anova() test**. 
+
+### Classification rate
+
+Another way to measure how well a model is doing, is to find what proportion of data would be accurately predicted (classified) as being success or failure. 
+
+If we predict "success" when the $p_i > 0.5$ and predict failure otherwise, then we can tabulate that against the actual status:
+
+```{r classification table}
+predsurvive=  predict(Met.glm, type="response") >0.5 
+table(Survivor, predsurvive)
+```
+
+Of the 41 failures (Survival=0) 32 were correctly predicted to fail. 
+
+If the 41 successes (Survival=1) 31 were correctly predicted to survive. 
+
+In total then, 63 / 82 = 76.8% of the companies were correctly classified. 
+
+
+
+
+
+## Odds, odds ratios, and relative risk
+
+Although we are used to thinking about chance in terms of probabilities (e.g. p=0.2 means 20% chance of the event occurring) there is a different way to represent chance, namely **odds = p/(1-p)**. 
+
+Imagine there were 5 tickets in a hat and if your ticket gets drawn you get a prize. The probability of a win is 1/5,  or looking at it a different way there are 4 tickets against your 1 so the odds of you winning is 1:4.
+
+We can go from probabilities to odds thus: 
+$$\frac{p}{1-p} = \frac{\frac{1}{5}}{1- \frac{1}{5}} = \frac{1}{4}$$
+
+Thus the logit model is sometimes sometimes called the log-odds model. 
+
+Now often on the News there will be a report that some exposure increases the risk of an event, such as risk of getting a particular disease. 
+
+This is called the **relative risk**. e.g. if a person at exposure level 2 has 3 times the risk of getting the disease compared to a person at exposure level 1, then the relative risk is  $p_2 /p_1= 3$. 
+
+Unfortunately a logistic regression model is not well suited to computing relative risks except if the initial risk is very small (e.g. a rare disease).  If it is small, then the 
+$$ \mbox{Odds ratio} = \frac{p_2/(1-p_2)}{p_1/(1-p_1)} \approx \frac{p_2}{p_1} ~~.$$ 
+So usually when News reports talk about increased risks they are actually quoting odds-ratios but interpreting them as relative risks.  So long as are talking about rare events it doesn't really matter. 
+
+For example, suppose the life-time risk of a particular disease is 0.02.  Suppose  being exposed to a particular contaminant raises that to 0.04.  Then the relative risk is 2.0. For comparison the $\mbox{Odds ratio} = \frac{0.04/0.96 }{0.02/0.98} = 2.04$ which is very close to the relative risk. So for journalistic purposes they are the same.
+
+
+
+## Logistic regression with multiple variables
+
+We consider including the other two predictors in the Metkon dataset. 
+In what follows we find that adding the extra variables has  increased the **mis-classification** rate.  This illustrates a principle that we should not include unnecessary variables in a regression, because they can give us *worse predictions* than a simpler model.   We will follow up this idea in the next topic:Variable Selection. 
+
+
+```{r more models}
+Met3.glm =  glm(Survivor~ Profitability+ LiquidAssets+ SolidAssets, family=binomial)
+summary(Met3.glm)
+predsurvive=  predict(Met3.glm, type="response") >0.5 
+table(Survivor, predsurvive)
+
+Met2.glm =  glm(Survivor~   LiquidAssets+ SolidAssets, family=binomial)
+summary(Met2.glm)
+predsurvive=  predict(Met2.glm, type="response") >0.5 
+table(Survivor, predsurvive)
+
+anova(Met3.glm,Met2.glm, Met.glm, test="Chisq")
+```
+The anova() results show that the two and three variable models do not explain significantly more variation than the one-variable model. 
+
+## Example: Setting a new Olympic Record
+
+It seems reasonable that, at each Olympic Games, it should get  harder to set a new Olympic record in any sport, since athletes are essentially competing with all the Olympians who have gone before. We will examine the data on this, for the Olympics of years 1952 to 1988.
+In the following, a variable NewRecord =1 if the gold-medal winning athlete in a sport, at any Olympics, had a better result than at any previous Olympics. NewRecord=0 otherwise.    
+We consider data  for males and females (Sex=m or f), and for the sports 100m sprint,  4x100m relay, 1500m run, High Jump, Long Jump, Javelin and Shot Put.
+The variable Olympics =1 (for 1952), 2 (for 1956), …., 10 (for 1988).   There are 134 data. 
+The data are in OlympicRecord.csv
+
+We would like to know:
+
+1. Is the probability of a new record increasing or decreasing significantly with time? (if so, which way is it changing?)                    
+2. 	For which Year would you expect the probability of a NewRecord to be 0.5?  
+
+
+```{r read olympics}
+olympics=read.csv("../../data/OlympicRecords.csv" ,header=TRUE)
+summary(olympics)
+attach(olympics)
+oly.glm1 = glm(NewRecord ~ Year, family=binomial)
+summary(oly.glm1)
+anova(oly.glm1,test="Chisq")
+plot(jitter(Year,factor=0.1), jitter(NewRecord, factor=0.2))
+points(Year, predict(oly.glm1,type="response"), pch=3,col=2)
+```
+
+I added jitter to the plot   for visualisation  purposes only, so we could see more of the data, not having all points sitting on top of each other.  
+The probability of a new record is decreasing significantly  as the years go by (p-value= 0.0127).  
+
+$$ -\hat\beta_0/\hat\beta_1 = 76.96035/0.03887  =1979.942$$
+
+The probability of a new record was about 50% in the 1980 Olympics. 
+
+Now  we add to the   logistic regression the categorical variables   Male and Sports  (100m sprint is the baseline Sport category).    Show output.
+
+
+3. Are males or females significantly more likely to set a new Olympic record?   What about sports?   	
+4. 	Are there any sports for which it was more common to set a new Olympic record  than in the baseline category, 100m.   Explain.  
+5. What proportion of  data rows are correctly classified? 
+
+```{r glm with factor}
+oly.glm2= glm(formula = NewRecord ~ Year + Sex + Sport, family = binomial)
+anova(oly.glm2, test="Chisq")
+summary(oly.glm2)
+prednew=  predict(oly.glm2, type="response") >0.5 
+table(NewRecord, prednew)
+```
+
+Sex is a significant predictor of NewRecord. 
+Sport has p-value = 0.061 according to the anova(). This  is close to 0.05 and it makes sense in context to keep this variable,  so I would include it.  
+Based on the summary, new records were significantly  more likely to be set by females than males, and in High Jump and ShotPut than in the 100m sprint. 
+
+The proportion of data rows correctly classified is 89/134 =
+ 0.664.
+ 
+## Epilogue 
+#### (not examinable)
+
+There are other link functions in common use than the logit function,  so called probit, cauchit and complementary log-log links. We will not pursue these in this course. 
+
+There is a way to do logistic regression with non-binary binomial data.  One sets up a two-dimensional object with one column being the number of successes and the second the number of failures. e.g. cbind(Successes, Failures).  Then use that object as the response in the glm (left hand side of the ~ ). We will not pursue this in this course. 
+
+The glm() function can be used for other types of non-normal data, including types where the variance is bigger than predicted by the standard probability theory. This is called "over-dispersion".  It is possible to tweak the model to deal with this but adding in an optional dispersion parameter - hence the cryptic line in the summary() saying the dispersion parameter is set to 1 (as opposed to something else). We will leave this to the course 161.331.

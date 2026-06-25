@@ -1,0 +1,180 @@
+
+<!--- includes Paramo example stuff; this example data has been removed everywhere else --->
+
+In previous lectures we have looked at comparison of models, and
+    automatic methods of variable selection, using *F* testing.
+
+- An alternative approach to selecting a good model is to define a
+    measure of the quality of a model, then choose the model of the
+    highest quality.
+
+- So called information criteria can be used as measures
+    of model quality.
+
+In this lecture, we will examine information criteria in general, the
+    Akaike information criterion (AIC) in particular, and    consider their use in model selection.
+
+## Information Criteria
+
+A good regression model (i.e. with a good choice of predictors)
+    will:
+    
+1.  fit the data well;
+2.  be simple (have as few predictors as possible).
+
+Hence quality of a model can be measured by a quantity of the form
+    $$\mbox{Measure of badness of fit} + k \times \mbox{Number of predictors} + \mbox{constant}$$ where *k* can be adjusted to control the relative
+    importance of the two aspects of a model's quality just given.
+
+Note that any additive constant is of no real importance, since in
+    comparing the quality of different models (our real aim) the
+    constant term cancels out.
+
+## Akaike Information Criterion
+
+Several information criteria in statistics are of the    form of our simple equation for a "measure of badness of fit" given above.
+
+One such measure is the Akaike Information Criterion (AIC). For
+    a linear model with unknown error variance this is defined by
+    $$AIC = n \log (RSS/n) + 2p + \mbox{constant}.$$
+
+We can choose between models by selecting the
+    one with **smaller** AIC.
+
+
+N.B. This is not the only criterion in common use, but is perhaps the most common. Different software presents different criteria.
+
+## Back to the Paramo Data
+
+Recall previously that we compared models *M0* and *M1* defined
+    as follows:
+    $$M0~~~~~~E[ \mbox{N}] = \beta_0 + \beta_1  \mbox{AR} + \beta_3  \mbox{DEc}$$
+    and
+    $$M1~~~~~~E[ \mbox{N}] = \beta_0 + \beta_1  \mbox{AR} + \beta_2  \mbox{EL} + \beta_3  \mbox{DEc} + \beta_4  \mbox{DNI}$$
+
+These models were fitted in R and stored as `Paramo.lm0` and `Paramo.lm1` respectively.
+
+Selecting between these models by an *F* test involves testing
+    *H~0~*: $$\beta_2 = \beta_4 = 0~~~~\mbox{versus}~~~~~H_1: \beta_2, \beta_4 \mbox{ not both zero.}$$
+
+`r xfun::embed_file("../../data/paramo.csv")` 
+
+```{r firstModels, echo=-1, eval=-2}
+Paramo <- read.csv(file="../../data/paramo.csv", header=TRUE, row.names=1) 
+Paramo <- read.csv(file="https://r-resources.massey.ac.nz/161221/data/paramo.csv", header=TRUE, row.names=1) 
+Paramo.lm0 <- lm(N~AR + DEc, data=Paramo)
+Paramo.lm1 <- lm(N ~ AR + EL + DEc + DNI, data=Paramo)
+AIC(Paramo.lm0)
+AIC(Paramo.lm1)
+```
+
+We can compare the models using AIC (instead of using an *F* test).
+
+An alternative to `AIC()` is the `extractAIC()` command. The output from `extractAIC()` command is number of regression
+    parameters (*p+1*) and the model's AIC.
+
+AIC is smaller for model *M0*, so this model is to be preferred in
+    accordance with our earlier findings.
+
+## AIC in Stepwise Variable Selection
+
+We have seen that sequential variable selection can be conducted
+    using a sequence of *F* tests.
+
+
+An alternative is to compare models using AIC.
+
+Specifically, at each step of the algorithm we change to the model
+    with smallest AIC (from adding or dropping a single variable), and
+    stop only when we cannot reduce AIC by single term additions or
+    deletions.
+
+This procedure is implemented using the `step()` command in R.
+
+## US Crime Rate Data
+
+
+
+This example concerns crime data from 47 states of the USA in 1960.
+Our aim is to model the crime rate as a function of up to 15 potential explanatory variables.
+We will use stepwise variable selection based on AIC to choose a model.
+Data source: Ehrlich, I. (1973) "Participation in illegitimate activities: a theoretical and empirical investigation" Journal of Political Economy, <strong>81</strong>, 521-565).
+
+![possible burglar](../graphics/burglar.jpg)
+
+
+
+### Example : Variables in the Data Set
+
+| Variable  | Description                                                               |
+| :- | :------------------------------------------------------------- |
+| M | percentage of males aged 14-24                                 |
+| So | indicator variable for a southern state                        |
+| Ed | mean years of schooling                                        |
+| Po1 | police expenditure in 1960                                     |
+| Po2 | police expenditure in 1959                                     |
+| LF | labour force participation rate                                |
+| M.F | number of males per 1000 females                               |
+| Pop | state population                                               |
+| NW | number of nonwhites per 1000 people                            |
+| U1 | unemployment rate of urban males 14-24                         |
+| U2 | unemployment rate of urban males 35-39                         |
+| GDP | gross domestic product per head                                |
+| Ineq | income inequality                                              |
+| Prob | probability of imprisonment                                    |
+| Time | average time served in state prisons                           |
+| Crime | rate of crimes in a particular category per head of population |
+
+### Example : R Code
+
+```{r getUSCrimeData}
+data(UScrime, package="MASS") # data is in MASS package
+UScrime |> rename(Crime=y) -> USCrime
+USCrime.lm.full <- lm(Crime~., data=USCrime)
+```
+
+Notes:
+
+- Specification of the `scope` in a `step()` can be tricky when using dots in formula. So we will specify the upper scope explicitly by extracting the necessary details using `formula()`     from an existing model.
+- The output from R is presented "iteration by iteration" and (relatively speaking) takes some time to push through for this data.
+
+```{r USCrime.lm.step}
+USCrime.lm.step <- step(USCrime.lm.full, scope=list(lower=Crime~1, upper=formula(USCrime.lm.full)), direction="both")
+```
+
+
+
+
+### Example: Comments on R Output
+
+The stepwise algorithm has selected  $$E[ \mbox{Crime}] = -6426.10 + 9.33   \mbox{M} + 18.01   \mbox{Ed}    + 10.27   \mbox{Po1} + 2.23   \mbox{M.F}  \mbox{} -6.09   \mbox{U1}
+    + 18.74   \mbox{U2} + 6.13   \mbox{Ineq} -3796.03   \mbox{Prob}
+$$
+     as the "best" model.
+
+While this is (probably) a perfectly reasonable model, it is usually
+    unrealistic to hope to find *the* best model (even if
+    we can define precisely what we mean by such a thing).
+
+The AIC criteria tends to err on the side of including too many
+    (rather than too few) predictors.
+
+### Example : The Final Model
+
+```{r summaryUSCrime.lm.step}
+summary(USCrime.lm.step)
+```
+
+### Example: Conclusions
+
+The crime rate is negatively associated with the probability of
+    imprisonment.
+
+Only one of `Po1` and `Po2` appear in the model because these predictors are
+    highly interdependent.
+
+The crime rate is positively associated with police expenditure;
+    i.e. the more that is spent on policing, the higher the crime rate!
+
+   This association should not be interpreted as a causal relationship  - obviously higher police spending does not cause a higher crime
+    rate.

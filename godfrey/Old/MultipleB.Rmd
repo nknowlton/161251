@@ -1,0 +1,131 @@
+## What is linear independence? 
+
+To be linearly independent means you cannot write any column as the sum or difference of any other columns in the *X* matrix.  
+
+
+It is perhaps easiest to illustrate the idea of linear independence by considering its opposite, linear dependence. Consider an example:  suppose the columns of *X* contain information about 
+   $X_1$ = personal income of the respondent, 
+   $X_2$   =  household income,     since these are usually different numbers.      
+
+Note that Personal Income is not significant in the regression below, and in fact has the reverse sign to what one might expect.  
+```{r x1 x2}
+Read =read.csv(file="../../data/READ.csv",header=TRUE)
+Read.lm1 = lm(log(Magazines+1) ~ PersIncm + FamIncm, data=Read)
+summary(Read.lm1)
+```
+
+Now suppose a researcher is, for example, interested in  the effect of 
+
+$X_3$ = household income provided by people other than the respondent.   
+
+But since $X_3 = X_1 – X_2$    and this mathematically exact formula must apply  across all rows of the dataset, then   $X_1$, $X_2$,  and $X_3$  are linearly dependent. 
+
+We can interpret linear dependence  as meaning that though we *think* we have three columns of information, we actually only have two distinct columns of information, and the third does not contain any new information since it is derived from the first two.
+
+Now the linear regression command assumes that every column does contain some new information, and so if we tried to put all three columns in the regression predictors together, then the software will  complain and not use one of the  variables.  
+
+```{r NAs}
+library(tidyverse)
+Read = Read |> mutate(OtherIncome = FamIncm - PersIncm)
+Read.lm2 = lm(log(Magazines+1) ~ PersIncm + FamIncm + OtherIncome, data=Read)
+summary(Read.lm2)
+```
+
+So if we want to get information on OtherIncome we need to delete $X_1$ or $X_2$.    It seems most logical to keep $X_1$.    Now we see that both PersIncm and OtherIncome are highly significant, and they both have positive signs, which agrees with intuition. 
+
+```{r x1 x3}
+Read.lm3 = lm(log(Magazines+1) ~ PersIncm + OtherIncome, data=Read)
+summary(Read.lm3)
+```
+   
+
+## F test
+
+We saw in the previous topic that the F test is used for testing hypotheses relating to multiple parameters.  
+In this section we review and extend these ideas. 
+
+In a multiple regression model there are a variety of hypotheses
+    that we might wish to test. For example:
+
+1.  Is the mean response related to any of the predictors?
+2.  Does a given predictor provide additional information about the
+        response over and above that provided by the other predictors?
+
+In this lecture we shall look at the methodology for testing question  1 above.
+
+## The *F* Test for Overall Fit of a Multiple Regression Model
+
+For any given model: $Y_i = \beta_0 + \beta_1 x_{i1} + \ldots + \beta_p x_{ip}
++ \varepsilon_i$ where *i=1,2,...,n*.
+
+We ask: Is the mean response (linearly) related to any of the predictors?
+
+
+We test:  
+
+*H~0~*: $\beta_1 = \beta_2 = \ldots = \beta_p = 0$ i.e. mean response is
+not linearly related to any of the predictors
+
+against
+
+*H~1~*: $\beta_1, \beta_2, \ldots, \beta_p~\mbox{not all zero}$ i.e. mean
+response is linearly related to at least one of the predictors.
+
+Testing *H~0~* versus *H~1~* is equivalent to comparing two different
+models: 
+
+*M0*: $Y_i = \beta_0 + \varepsilon_i$ and 
+
+*M1*: $Y_i = \beta_0 + \beta_1 x_{i1} + \ldots + \beta_p x_{ip} +  \varepsilon_i$ where *i=1,2,...,n*.
+
+
+
+Model *M0* corresponds to *H~0~*.
+
+Model *M1* corresponds to *H~1~*.
+
+
+
+## F-Tests for Overall Fit (again)
+
+We want to compare:
+
+Model *M0* --- cheap (just 1 regression parameter) but may
+        fit badly (residual sum of squares, *RSS~M0~*, may be large).
+
+Model *M1* --- more expensive (*p+1* regression parameters)
+        but will fit better (residual sum of squares, *RSS~M1~*,
+        smaller).
+
+So we calculate residual sum of squares (RSS) for each model and
+    compute the following ***F test statistic***:
+
+$$F = \frac{[RSS_{M0} - RSS_{M1}]/p}{RSS_{M1}/(n-p-1)}$$
+
+This may make more sense in the context of a structured table we shall see soon. 
+
+- Intuitively, this *F* statistic measures (a standardised version
+    of) improvement in fit per "unit cost" (i.e. per extra parameter).
+
+Large values of *F* suggests that we should prefer *M1* to *M0*. Intuitively, improvement in fit of model is worth the cost.
+
+How large is "large"?
+
+If model *M0* is correct (i.e. *H~0~* is correct) then the *F* test statistic has an *F* distribution with *p,(n-p-1)* degrees of freedom, often denoted *F~p,n-p-1~*.
+
+We use these facts to calculate the *P*-value for the *F* statistic, and
+    hence test *H~0~* versus *H~1~*.
+
+##ANOVA table (numbers)##
+
+Source | Sum of squares | df | Mean Square | F 
+--- |--- |--- | --- | ---
+Regression | 245.31| 8|$\frac{245.31}{8}$| 33.087
+Error | 25.022 | 27| $\frac{25.022}{27}$|  
+Total |270.33 | 35 | | 
+
+here 245.31/8 =`r round(245.31/8, 5)` and 25.022/27 =`r round(25.022/27,5)`  and  so F = $\frac{245.31/8 }{25.022/27}$ = `r round( (245.31/8 ) /(25.022/27), 5)`
+
+Here the( p-value is given by  1- pf(33.087,8, 27) =`r 1-   pf( 33.087,8, 27) `
+
+

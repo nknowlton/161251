@@ -1,0 +1,40 @@
+LectureNo,Week,LectureTitle,Label,Presenter,Tidyverse
+1,1,Paper Overview,PaperOverview,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,irrelevant
+2,1,The Basics of Regression Modelling,BasicsRegression,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+3,1,Simple Linear Regression,Simple,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+4,1,Linear Regression Modelling with R,RegressionWithR,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+5,2,Checking the Assumptions,CheckingAssumptions,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+6,2,Outliers and Influential Points,Outliers,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+7,2,What to do When Assumptions Fail,AssumptionsFail,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+8,3,Prediction in Simple Linear Regression,Prediction,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+9,3,Introduction to Multiple Linear Regression,Multiple,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+10,3,Testing in Multiple Regression Models (1),Testing1,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+11,4,Testing in Multiple Regression Models (2),Testing2,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+12,4,Basic Matrix Algebra,Matrix1,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+13,4,Matrices and Linear Regression Models,Matrix2,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,irrelevant
+14,5,Comparison of Multiple Linear Regression Models,ModelComparison1,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+15,5,Models with binary predictors,Binary,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+16,6,Polynomial Regression Models,Polynomial,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+17,6,Models using orthogonal polynomials,OrthogonalPolynomials,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+18,6,Piecewise Regression Models,Piecewise,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+19,7,Linear Models with One Factor,OneWayModels1,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+20,7,Diagnostics and Multiple Comparisons for Oneway ANOVA,OneWayModels2,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+21,7,Factor or Numerical Covariate?,FactorOrCovariate,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+22,8,Introduction to the Two Factor Model,TwoFactorModel,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+23,8,Orthogonal Factorial Models,OrthogonalFactorialModels,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+24,8,Factors with Interactions,Interactions,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+25,9,The General Linear Model,GeneralLinearModel,Nick Knowlton <N.Knowlton@massey.ac.nz>,irrelevant
+26,9,Comparison of general linear models,ModelComparison2,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+27,9,Variable Selection,VariableSelection,Nick Knowlton <N.Knowlton@massey.ac.nz>,yes
+28,10,Stepwise models,Stepwise,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+29,10,Multicollinearity,Multicollinearity,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+30,11,Weighted regression,Weighted,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+31,12,Time Models with Independent Errors,Seasonality,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+32,11,Serial Correlation,SerialCorrelation,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+34,11,Introduction to Linear Modelling for Time Series,TimeSeries1,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+35,12,Models with Autoregressive Errors,TimeSeries2,Nick Knowlton <N.Knowlton@massey.ac.nz>,
+41,0,Appendix: Introduction to R and RStudio,RAndRStudio,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+42,1,Appendix: Regression through the origin,RegressionOrigin,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+43,2,Appendix: Transformations in regression models,Transformations,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,yes
+44,3,Appendix: Models with Many Factors,ManyFactors,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,
+45,8,Appendix: Nonlinear least squares,Nonlinear,Jonathan Godfrey <a.j.godfrey@massey.ac.nz>,

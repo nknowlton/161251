@@ -1,0 +1,257 @@
+---
+title: "Lecture 31: Time Models with Independent Errors"
+subtitle: 161.251 Regression Modelling
+author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
+date: "Week 12 of Semester 2, `r lubridate::year(lubridate::now())`"
+output:
+  html_document:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  html_notebook:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+  word_document: default
+  slidy_presentation: 
+    theme: yeti
+    highlight_style: pygments
+  pdf_document: default
+---
+
+
+
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+## Independent vs non-independent errors
+
+Assumption A2 of   linear regression 
+$$ y_i = \beta_0 + \beta_1  x_{i1} + \beta_2 x_{2i}  + ... \beta_p  x_{pi} + \varepsilon_i$$
+
+is that the errors $\varepsilon_i$ are independent. That is, there is no carry-over of information from one data row $i$  to another, apart from what is expressed through differences in the covariates (or factors, if relevant).
+
+In the final topics of this course we will consider how to detect whether this assumption is broken, and how to model 
+data with correlated errors 
+$cor(\varepsilon_{i-1},\varepsilon_i) \ne 0$.
+
+For the moment we suppose the independence assumption A2 remains correct, and consider some simple ways of handling data that have a regular periodic component, such as patterns that depend on seasons of the year, or time of the day. 
+
+## Indicator Variables for Seasonality
+
+Often time series show some form of seasonal variation.  One way to handle this in a regression equation is to use indicator variables which pick out the most obvious seasonal influences (e.g. summer/ winter, or the Christmas effect on retail figures. )    
+
+We consider data on Ski equipment sales versus PDI (personal disposable income).  In the following data, both Ski Sales and PDI increased as time went by, but there appears to be a seasonal aspect to sales (which makes sense). 
+
+`r xfun::embed_file("../../data/SkiSales.csv")`
+
+```{r Ski Sales, eval=-1, echo=-2}
+SkiSales = read.csv("SkiSales.csv",header=TRUE)
+SkiSales = read.csv("../../data/SkiSales.csv",header=TRUE)
+SkiSales |> head() |> kable()
+```
+
+```{r PlotSkiSales}
+SkiSales |> mutate(Quarter =  as.factor(Quarter)) |> ggplot(aes(y=Sales, x= PDI)) +
+geom_point(aes(pch=Quarter, col= Quarter))
+
+SkiSales.lm1 = lm(Sales ~ PDI, data=SkiSales)
+Residuals =  SkiSales.lm1$residuals
+SkiSales |> mutate(Quarter = as.factor(Quarter)) |> ggplot(aes(x=PDI, y=Residuals)) +
+geom_point(aes(pch=Quarter, col= Quarter)) +
+geom_abline(h=0)
+```
+
+The residual plot shows that residuals tended to be positive in the first and fourth quarter of the year
+(plotted using o,x) and negative in second and third quarter (plotted using triangle,+).    It therefore
+seems reasonable to create an indicator variable for winter
+ (first and   fourth quarter). 
+ 
+```{r winterIndicator}
+SkiSales |> mutate(Winter =as.numeric( (Quarter ==1)+ (Quarter ==4))) -> SkiSales
+SkiSales.lm2 = lm(Sales ~ PDI + Winter, data=SkiSales)
+summary(SkiSales.lm2)
+plot(SkiSales.lm2$residuals ~ PDI,  pch=Quarter, col= Quarter, data=SkiSales)
+```
+
+The regression shows ski sales are significantly higher in winter, as expected, and the residuals do not show any particular pattern with Quarter.   
+
+However, for completeness, we will just check whether there is any tendency for ski sales to be higher or lower in the first half of winter (Christmas??) or summer. 
+
+```{r Q4Q2Indicator}
+SkiSales |> mutate(Q4=as.numeric(  Quarter ==4 ),
+ Q2=as.numeric(  Quarter ==2 )) -> SkiSales
+SkiSales.lm3 = lm(Sales ~ PDI + Winter+ Q4 + Q2, data=SkiSales)
+summary(SkiSales.lm3)
+anova(SkiSales.lm2, SkiSales.lm3)
+```
+
+We can conclude that a simple winter indicator is sufficient to express the effect of season on sales. 
+
+## Effect of month
+
+We consider some data on a householder’s monthly electricity bill from May 1994 to May 1998. During this period the householder sometimes let paying guests rent part of the house, and we may expect the electricity bill was  higher at those times.  The householder's problem was to estimate the extra cost, so it could be legitimately claimed as a business expense for tax purposes.  
+
+One might expect the electricity bill to be higher in winter months, and in later years because of price rises, and also for periods when there were paying guests renting part of the house. It was also supposed that there might be an effect for the number of days included in the bill, and for whether the electricity bill was an estimate or the meter had actually been read. 
+
+The focus *for us* is how to adjust the analysis for the effect of season (month)  on the bill.  To examine this, we consider the residuals of Bill after adjusting for the non-weather-related variables.
+
+`r xfun::embed_file("../../data/Electricity.csv")`
+
+```{r Electricity vs weather, eval=-1, echo=-2}
+Electricity= read.csv("Electricity.csv",header=TRUE)
+Electricity = read.csv("../../data/Electricity.csv",header=TRUE) 
+Electricity |> head() |> kable()
+Electricity.lm1 =lm(Bill~Days + Estimate+ Guestwks + Time , data=Electricity)
+resids =Electricity.lm1$residuals
+plot(resids~ Time, data=Electricity)
+lines(resids~ Time, lty=1,col=4, data=Electricity)
+abline(h=0, lty=2)
+```
+
+
+Although the effect of season is not clear, there are portions of the graph with several positive residuals in sequence, and several negative residuals. Time starts here at month=5 (May).
+
+### Indicator variables
+
+One way of modelling seasonality would be to estimate an effect for each Month.  The dataset here is really too short for such an approach, but we can try it for purposes of illustration.
+
+```{r factorMonth}
+Electricity.lm2= lm(resids ~ factor(Month), data=Electricity)
+summary(Electricity.lm2)
+```
+
+We see from the F test that the mean(resids) varies significantly with Month.   
+F-statistic: 4.633 on 11 and 37 DF,  p-value: 0.0002 
+
+The t-tests indicate that, compared to the baseline month January,  the resids are unusually high in July through to October.  This makes sense because more electricity would be used for lighting and heating during winter months. 
+
+Usually, however, we would like a more parsimonious model. So we consider one next. 
+
+## Sinusoidal models
+
+It would seem reasonable to model electricity use by temperature, and temperature by a simple Sine curve, with peak in winter and lowest electricity use in summer.
+Perhaps an initial guess is to set the '0' for the sine curve to  April since the power bill in that month includes the autumn equinox when temperatures should be ‘average’.
+
+We can compute variables
+
+SineTime=sin(  (Time-4)$\times 2\times$
+ 3.1415927 /12) ,    and
+
+CosTime=cos(  (Time-4)$\times 2\times$
+3.1415927 /12).
+
+The rationale for also calculating a Cosine curve is that sometimes we don’t  know for sure where the ‘0’  should be.  If we include a Cosine curve in the model, its effect is to allow the ‘0’ to shift earlier or later.  
+
+How it works:  suppose we want to fit a curve of the form   $A\sin( x+\phi)$  where $A$ is an amplitude and 
+$\phi$ is an unknown shift parameter.  Then  trigonometry tells us that
+$$A.\sin(x+\phi)  
+    =A\sin(x)\cos(\phi) + A\cos(x)\sin(\phi) \\
+    = A_1 \sin(x) + A_2\cos(x)   $$
+    
+So a  regression of  $Y$ on the two columns with numbers 
+$\sin(x)$ and $\cos(x)$  will automatically calculate the slope parameters $A_1$ and $A_2$   and their relative size will automatically determine the optional choice of starting point $\phi$.  Easy as!
+
+If we find out later the extra cos() term is  not needed, then we can stick with our guess of April. 
+
+```{r sinusoidal first guess}
+Electricity |> mutate(SinTime = sin((Time-4)*2*3.1415927 /12),
+CosTime = cos((Time-4)*2*3.1415927 /12)) -> Electricity
+Electricity.lm3 = lm(resids ~ SinTime  + CosTime, data=Electricity)
+summary(Electricity.lm3)
+```
+
+The regression shows that the coefficient of CosTime is definitely non-zero.  If it had been zero then this would mean  $\sin(\phi)=0$  and hence $\phi=0$  or in other words that there was no need for any further adjustment from my guess of April as the “average” month.       
+
+Since the CosTime is highly significant it looks as if my guess was wrong.  Let’s plot the fitted values on the same graph as my working ‘response’ variable.The plot below shows that the fitted values equal zero close to the first data point, at Time =5. 
+
+```{r plotSinusoidal}
+plot(resids~ Time, data=Electricity)
+lines(resids~ Time, lty=1,col=4, data=Electricity)
+lines(Electricity.lm3$fitted.values ~ Time, lty=2,col=2,lwd=2, data=Electricity)
+abline(h=0, lty=2)
+```
+
+ 
+So we will try with 5 as the adjustment. The working below shows success. 
+
+```{r second sinusoidal}
+Electricity |> mutate(SinTime = sin((Time-5)*2*3.1415927 /12),
+CosTime = cos((Time-5)*2*3.1415927 /12)) -> Electricity
+Electricity.lm4 = lm(resids ~ SinTime  + CosTime, data=Electricity)
+summary(Electricity.lm4)
+```
+ 
+### Adding more sin and cos terms
+
+Now considering again the plot, I am not convinced  that the
+relationship between resids and month is  a simple
+sine curve. In particular resids rise more steeply in winter.
+ 
+The next step is to add a component with 
+double the period of the sin curve, i.e.
+
+Sin2Time=sin(  (Time-5)$\times 4\times$
+ 3.1415927 /12) ,    and
+
+Cos2Time=cos( (Time-5)$\times 4\times$ 3.1415927 /12).
+
+Adding terms in this way gives a more flexible set of shapes.
+
+```{r Augmented sin curve}
+Electricity |> mutate(Sin2Time = sin((Time-5)*4*3.1415927 /12),
+Cos2Time = cos((Time-5)*4*3.1415927 /12)) -> Electricity
+Electricity.lm5 = lm(resids ~ SinTime  + CosTime+ Sin2Time + Cos2Time, data=Electricity)
+summary(Electricity.lm5)
+anova(Electricity.lm4,Electricity.lm5)
+```
+
+```{r plot augmented sinusoidal}
+plot(resids~ Time, data=Electricity)
+lines(resids~ Time, lty=1,col=4, data=Electricity)
+lines(Electricity.lm5$fitted.values ~ Time, lty=2,col=2,lwd=2, data=Electricity)
+abline(h=0, lty=2)
+```
+ 
+The regression output indicates that the extra sinusoidal terms have improved the fit significantly. 
+
+The graph suggests:  first, that  the peak in power costs in winter is steeper than previously shown, with estimated maximum in August;  estimated minimum power use is in December;  and there was a fairly flat period of  electricity use for the four months between February and May inclusive.  
+
+(The graph actually shows a tiny peak in March but it is not clear whether this is real or an “artifact”    of the model  i.e. something forced by the fact we are fitting the data using simple wavy curves and so one is going to get wiggles whether real or not.) 
+
+The only way to check would be to add in even more terms such as sines and cosines with 3 times the frequency.  However we do not have a lot of data so we will stop here. 
+
+### Putting it together
+
+Finally one should put all the variables together into the same model: 
+ 
+ 
+```{r everything}
+ Electricity.lm6 =lm(Bill~Days + Estimate+ Guestwks + Time+SinTime  + CosTime+ Sin2Time + Cos2Time, data=Electricity)
+ summary(Electricity.lm6)
+plot(Bill~ Time, data=Electricity)
+lines(Bill~ Time, lty=1,col=4, data=Electricity)
+lines(Electricity.lm6$fitted.values ~ Time, lty=2,col=2,lwd=2, data=Electricity)
+```
+
+The model is not perfect, but is now picking up many of the features of the data. 
+ 
+

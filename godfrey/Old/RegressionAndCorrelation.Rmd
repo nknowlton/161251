@@ -1,0 +1,260 @@
+
+This lecture introduces regression models (also known as linear models).
+
+## Terminology
+
+In general this course deals with models that are used to explain how one
+    random variable, *Y*, is affected by one or more other variables *x~1~, x~2~, ..., x~p~*.    
+
+
+Here:
+    
+ *Y* is called the response variable;
+    
+ *x~1~, x~2~, ..., x~p~* are called the explanatory
+        variables, or regressors, or
+        predictors, or covariates.
+      
+In a Simple Linear Model there is just one *x* variable,  so we don't bother with the subscript. 
+
+Regression models express not just the line relating *y* and *x*, but the distribution (i.e. pattern, spread) of *y* values. 
+
+The model also may include one or more unknown parameters.
+
+
+## Normally Distributed Responses
+
+We shall typically assume that the distribution of *Y* follows a
+    normal distribution for any given value  of *x*.
+    
+That is, we  can write the simple  linear as
+$$Y = \beta_0 + \beta_1 x + \varepsilon $$
+
+where $\beta_0$ and $\beta_1$ are parameters (often unknown numbers) and the  **errors** $\varepsilon$ are assumed to have a Normal distribution $N(0, \sigma^2)$ .  i.e. the errors are random, but their spread is fairly  constant irrespective  of the value of *x*. If you average the  errors you get 0, i.e. the raw data values *Y* should be centred around the line. 
+
+- $\mbox{Var}(\varepsilon) = \sigma^2$ is the response variance
+
+Putting it all together
+$$Y \sim N \left ( \beta_0 + \beta_1 x, \, \sigma^2 \right )$$
+We say the  mean (or **expected**) value of *Y* for this model is
+given by $E[Y] = \beta_0 + \beta_1 x$.   
+
+Later we will generalise this to arbitrary functions *g( )* of *x~1~, x~2~, ..., x~p~*,  say
+$$Y \sim N \left ( g(x_1~, x_2, ..., x_p), \, \sigma^2 \right )$$
+
+
+## Linear Models
+
+Usually we will assume that *g* is a parametric function.
+
+Suppose you have data on a **response variable** *y* (e.g. blood
+    pressure) and an **explanatory variable** *x* (e.g. a
+    measurement of cholesterol).
+
+- We want to model the relationship between the mean value of *y*, and
+    *x*.
+
+- We might use a simple linear regression model:
+    $$E[Y] = \beta_0 + \beta_1 x$$ where $\beta_0$ and $\beta_1$
+    are model parameters.
+
+- This is called  a linear model for $E[Y]$ because  linear algebra (e.g. matrix algebra) can be used to estimate the   **parameters** $\beta_0$ and $\beta_1$ (*not because it is straight-line  in  x* (!)).  Basically this comes down to the fact the $\beta$s are separated by pluses '+'. 
+
+Thus a model of the form  $$E[Y] = \beta_0 + \beta_1 x^2$$  or 
+   $$E[log(Y) ] = \beta_0 + \beta_1 log(x)$$
+ would still be called a linear model.  (All we are doing is changing the measurement scale of the variables *x* or *Y*).  
+ 
+The same principle extends to several *x* variables or more parameters $\beta_0,  \beta_1, \beta_3, \beta_4,...$.  The main thing is that the $\beta$s should be separated by pluses *+*. 
+
+## Linear or Non-Linear? That is the Question
+
+Which of the following are linear models?
+
+1.  $Y \sim N( \beta_0 + \beta_1 x^{\beta_2}, \, \sigma^2)$
+
+2.  $Y \sim N( \beta_0 + \beta_1 x + \beta_2 x^2 + \beta_3 x^3, \, \sigma^2)$
+
+3.  $Y \sim N( \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 \log(x_3), \, \sigma^2)$
+
+
+## What's So Special About Linear Models in Statistics?
+
+- Linear models are easy to apply and interpret.
+
+- The mathematical theory underlying linear models is very well
+    understood.
+
+- We can investigate the relationship between a response and lots of
+    explanatory variables in a straightforward manner.
+
+- A linear model will often (but not always) provide an adequate
+    approximation to reality.
+
+
+## Uses of Regression Models
+
+- Descriptive modelling: just interested in better
+    understanding the problem under study.
+
+- Prediction: predict the value of Y that will result
+    from particular values of the explanatory variables.
+
+- Parameter estimation: want to estimate and interpret model parameters.
+
+- Variable screening: want to investigate which
+    explanatory variables have an effect on the response.
+
+## Example.  Income vs Hours
+Read and attach the NZISSURF data again.  
+
+```{r NZISSURF}
+NZISSURF <- read.csv(file="../../data/NZISSURF.csv", header=TRUE)
+
+attach(NZISSURF)
+```
+We know from the preceding topic that the relationship between Income and Hours is fairly straight-line.
+
+We use the function *lm( )* to do a linear model of Income vs Hours.
+Often it is good idea to save the output of the function, then look at the output in different ways. 
+
+```{r lm1a}
+lm1 = lm( Income ~ Hours)
+lm1
+```
+The output says that the model for the expected income is $E[Y]= 0.3487 + 17.0576 \times Hours$
+
+We can plot the line using
+
+```{r lm1b}
+plot(Income~ Hours)
+abline( lm1)
+```
+
+**Question: do the errors follow the pattern $N(0, \sigma^2)$?**
+
+Answer:  for any given value of x, the errors above or below the line do seem to be fairly symmetrical. So the $N(0, )$ part seems alright.  But the spread of errors appears to be less on the left than on the right.  So we do not have constant variance $\sigma^2$. We need to improve our model.
+
+Exercise:  Often we can improve models by a transformation of either the *x* or *y* variable or both.  Try taking the square root of both variables and see if that improves the model. Use the following code. 
+
+
+lm2 = lm( sqrt(Income) ~ sqrt(Hours))
+
+plot(sqrt(Income) ~ sqrt(Hours) )
+
+abline( lm2)
+
+## Summary of regression
+
+Regression models seek to represent dependence of a response on
+    explanatory variables.
+
+This course focuses (primarily) on models with a particular linear
+    form.
+
+Typically we will assume that the response is normally distributed.
+
+Linear regression models can be used for description, prediction,
+    parameter estimation and variable screening.
+
+## Correlation
+
+Note that being a predictor does not necessarily mean the *x* causes *Y*.  
+For example suppose  you were trying to predict what the median house price will be some time next year,  then you would probably use a formula that included *x = time*  as a predictor.   
+However there is no sense in which the passage of time *causes* houses to change in value. The change in value occurs because of economic factors, population growth, environmental factors, etc. The passage of time is simply *associated* with changes in house prices. This is often summarised by the pithy saying "Correlation does not imply causation".
+
+But what is correlation?  The Correlation Coefficient *r* is a measure of how close two variables are to falling on a straight line.  We can see by the previous graphs that Income and Hours worked are positively related (the line goes up)  but not very closely related - some points are  far from the line. 
+
+The mathematical definition of *r* is 
+$$ r= \frac{S_{xy}}{\sqrt{S_{xx}S_{yy}}} = \frac{\sum{(x-\bar x)(y - \bar y)}}{\sqrt{\sum{(x-\bar x)^2}\sum{(y-\bar y)^2}}} $$
+but we will not need to use this formula ourselves.  We can get the correlation  in R using the command
+```{r correlation}
+cor(Income, Hours)
+```
+
+It can be shown mathematically that  $-1 \le r \le 1$
+where
+
+- a value of  *r* close to 1 means the points on the graph lie very close to being on a straight line with positive slope. 
+For the Income data we would say that the *r* indicates the relationship is moderately strong but not very strong. 
+
+- a value of  *r* close to -1 means the points on the graph lie very close to being on a straight line with negative slope. 
+
+- a value of  *r* = 0 means a straight line through the data with would have zero slope. 
+
+- In practice if $-0.2 \le r \le  0.2$ the human eye would have trouble guessing whether a line through a cloud of points would have  a positive or negative slope, until it is actually drawn.
+
+## Other types of correlation
+What if the variables *x* and *y* are clearly related but just not a straight-line relationship? 
+
+We consider some historic data on the increasing numbers of Cellphone subscriptions in the USA over several years. 
+
+```{r cellular}
+cellular = read.csv(file ='../../data/Cellular.csv', header=T)
+attach(cellular)
+plot(Subscribers ~Period )
+abline(lm(Subscribers ~Period ))
+```
+
+Clearly the relationship is very strong, but *r=`r round(cor(Subscribers,Period), 5)`* <1 because it not a straight-line relationship.
+
+If we want to emphasise the fact that there is a relationship, just not straight-line, we can use a different form of correlation.
+```{r correlations}
+
+cor(Subscribers,Period,  method ="spearman")
+
+cor(Income, Hours, method ="pearson")
+cor(Income, Hours, method ="spearman")
+cor(Income, Hours, method ="kendall")
+```
+The Spearman correlation =1  for Subscribers and Period  indicates that whenever the Period increases the number of Subscribers goes up as well. That is, there is a  perfect relationship in some sense, just not in a straight-line sense.
+
+The Pearson correlation for Income and Hours is the default one, given by the formula above. 
+
+The Spearman and Kendall correlations are found by replacing the *x* and *y* values by their *ranks*.  i.e. the smallest *y* value is replaced by 1, the second smallest  by 2, ...., the largest by *n* (the number of data points).  The same is done for the *x* values,  and then the usual formula is applied to the ranked values. 
+
+The only complication is what to do when we get ties (i.e. two or more repetitions of the same number.)  The Spearman solution is to still place  them in order but then replace  them by their average rank e.g.
+
+Hours:      2,  2,    3,   5,  5,  5,    6,  6,  6,   6,   6,    8, …
+
+Rank:       1,  2,    3,   4,  5,  6,    7,  8,  9,  10,  11,   12, … 
+
+AvRank    1.5, 1.5,   3,   5,  5,  5,    9,  9,  9,   9,   9,     …
+
+and the same for *y*.  Kendall's correlation uses a different way of handling ties. 
+
+## Correlation vs Causation
+
+Possible interpretations of association:
+    
+- Causation: *y* depends causally on *x*;
+    
+- Common Response: *y* does not depend causally on
+        *x*; both *y* and *x* are related (perhaps causally) to
+        **lurking variable** *z*;
+    
+- Confounding: *x* is (strongly) associated with
+        lurking variable *z*, so it is then impossible to tell whether
+        *y* depends causally on *x* or *z*.
+
+## Establishing a Causative Link...
+
+...is not easy
+
+1.  Use a carefully designed experiment.
+
+2.  If not possible to conduct an experiment, then the following questions should help:
+    
+      - Is the association between the variables strong?
+   
+      - Is the association consistent?
+      - Are higher doses associated with stronger responses?
+      - Do the alleged causes precede the effect in time?
+      - Is the alleged cause plausible?
+    
+If *yes* to all then a causal link seems probable. E.g. a causal link between lung cancer and smoking now fully
+        accepted by scientists because above criteria satisfied.
+
+
+
+
+

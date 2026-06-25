@@ -1,0 +1,208 @@
+
+In previous lectures we have considered model comparison of nested    regression models, and nested ANOVA type models.
+
+The comparison of nested general linear models using *F* tests follows
+    naturally.
+
+## Natural ordering of GLMs
+
+
+![image](../graphics/glm_comp.png)
+
+## Comparison on Nested Linear Models
+
+For any linear model $M0$ nested within $M1$, we can test:
+
+* $H_0$: $M0$ adequate vs
+
+* $H_1$: $M0$ not adequate.
+
+
+using an *F* test.
+
+The hypotheses can be stated in terms of parameters of model $M1$.
+
+The *F* test statistic is
+
+$$F = \frac{[RSS_{M0} - RSS_{M1}]/d}{RSS_{M1}/r}$$ where *d* is
+    the difference in the number of (regression) parameters between the
+    models, and *r* is the residual degrees of freedom for $M1$.
+
+
+
+If $H_0$ is correct then *F* has an *F* distribution with $d,r$
+    degrees of freedom.
+
+Extreme large values of the test statistic provide evidence against
+    $H_0$.
+
+Hence if $f_{obs}$ is the observed value of the test statistic,
+    and *X* is a random variable from an $F_{d,r}$ distribution,
+    then the *P*-value is given by $P= P(X \ge f_{obs})$
+
+This test can be carried out in R using `anova(m0.lm, m1.lm)` where `m0.lm` and `m1.lm` are respectively the $M0$ and $M1$ fitted models.
+
+## The Samara Data revisited
+
+Recall that we were modelling the mean speed of fall of samara
+    (fruit from a maple tree) as a function of the disk loading (a
+    covariate) and the tree from which it fell (a factor) for each
+    fruit.
+
+We fitted separate linear regressions for each of the three trees.
+
+We shall now consider simpler models:
+    
+- Parallel regressions for each tree (i.e. equal slope for `Load` for all        trees);
+- A single regression model for every fruit (i.e. equal slope and intercept for each tree).
+    
+We shall compare these models with each other, and with the separate regressions model.
+
+
+### Different Regressions Model
+
+`r xfun::embed_file("../../data/samara.csv")`
+
+```{r Samara.lm.m2, echo=-1, eval=-2}
+Samara <- read.csv(file="../../data/samara.csv", header=TRUE)
+Samara <- read.csv(file="samara.csv", header=TRUE)
+Samara$Tree <- factor(Samara$Tree)
+Samara.lm.m2 <- lm(Velocity~ Tree +Load + Tree:Load, data = Samara)
+summary(Samara.lm.m2)
+```
+
+
+### Parallel Regressions Model
+
+```{r Samara.lm.m1}
+Samara.lm.m1 <- lm(Velocity ~ Tree + Load, data=Samara)
+summary(Samara.lm.m1)
+```
+
+
+### Common Regressions Model
+
+```{r Samara.lm.m0}
+Samara.lm.m0 <- lm(Velocity ~ Load, data=Samara)
+summary(Samara.lm.m0)
+```
+
+### Comparing Models
+
+```{r }
+anova(Samara.lm.m1, Samara.lm.m2)
+anova(Samara.lm.m0, Samara.lm.m1)
+anova(Samara.lm.m0, Samara.lm.m2)
+```
+
+ 
+
+### Comments
+
+Models fitted as follows:
+
+- `Samara.lm.m2` is separate regressions model. It has 6        regression parameters (3 for intercepts, 3 for slopes) and RSS
+        of *0.16549*.
+- `Samara.lm.m1` is parallel regressions model. It has 4       regression parameters (3 for intercepts, 1 for slope) and RSS of     *0.20344*.
+- `Samara.lm.m0` is single regressions model. It has 2 regression  parameters (1 for intercept, 1 for slope) and RSS of *0.21476*.
+
+Comparison of $M2$ and $M1$ gives very borderline result
+    (*P=0.05011*). We would just barely retain $M1$ if we were working at a 5%
+    significance level.
+
+Comparison of $M1$ and $M0$ provides no evidence to prefer
+    $M1$ (*P=0.4319*).
+
+Comparison of $M2$ and $M0$ shows that $M0$ should be retained
+    at the 5% significance level (though there is weak evidence in
+    favour of $M2$).
+
+#### What happens if you put all three models in the same anova? 
+```{r }
+anova(Samara.lm.m0,  Samara.lm.m1, Samara.lm.m2)
+```
+
+We see that the p-value for comparing M0 and M1 is now *0.38306*  instead of *0.4319*. Why is there a change in the p-value? 
+
+The reason is that the denominator for the F test is based on the biggest model to hand (M2), namely using *RSS=0.16549* on *29* df, whereas for the previous analysis the biggest model to hand was M1, using *RSS=0.20344* on *31* df. This is enough of a difference to change the p-value to *0.38306*. 
+
+The lesson then is that if we are going to quote a p-value then we need to decide once and for all whether to use the `different slopes` model or not. 
+
+#### Fitted model is
+
+Overall, it seems that single regression is probably adequate.
+
+$$E[ \mbox{Velocity}] = -0.093 + 5.82  \mbox{Load}$$
+
+## Comparison of Models for Body Fat
+
+
+In this section, we are concerned with modelling a small data set on human body fat.
+
+The response is percentage fat. Age is a numerical covariate, gender is a factor.
+
+Various model comparisons and model summaries are provided. Decide which is the best model, and write down the fitted model equation for males and females.
+
+
+![image](../graphics/bodyfat.jpg)
+
+  
+
+### Data for Task 
+
+`r xfun::embed_file("../../data/fat.csv")`
+
+```{r getFat, echo=-1, eval=-2}
+Fat <- read.csv(file="../../data/fat.csv", header=TRUE)
+Fat <- read.csv(file="fat.csv", header=TRUE)
+head(Fat)
+```
+
+### Coplot for Data from Task 
+
+
+The function `coplot()`  produces a **conditioning plot**.
+
+Syntax is `coplot(y ~ x | A)`
+    
+
+This plots `y` against `x` for each level of factor `A`.
+
+```{r}
+coplot(Percent.Fat ~ Age | Gender, data = Fat)
+```
+
+A similar result si obtained using `ggplot()` with the `group` parameter specified. (not shown)
+
+### R code for models fitting and comparisons
+
+```{r fatModels}
+Fat.lm.0 <- lm(Percent.Fat ~ Age, data = Fat)
+Fat.lm.1 <-lm(Percent.Fat ~ Gender + Age, data = Fat)
+Fat.lm.2 <- lm(Percent.Fat~ Gender+Age + Gender:Age, data = Fat)
+anova(Fat.lm.0, Fat.lm.1)
+anova(Fat.lm.1, Fat.lm.2)
+summary(Fat.lm.0)
+summary(Fat.lm.1)
+summary(Fat.lm.2)
+```
+
+### Task: Fitted model equation of chosen model
+
+What is the preferred model's equation?
+
+
+##### Solution
+
+Since we are talking about a one degree of freedom difference, the p-value from 
+anova(Fat.lm.1, Fat.lm.2) is the same as the p-value for the interaction term in Fat.lm.2, namely 0.0679.  So we don't use the interaction model.  
+
+Similarly the difference between the first two models is one df, so the p-value from anova(Fat.lm.0, Fat.lm.1) would be the same as for the coefficient of GenderM, namely 0.0182. 
+
+So we need to use the second model.  
+
+The equation is Fat = 15.0708   -9.7914 * GenderM   +   0.3392 * Age  
+
+or Fat = 15.0708 +  0.3392 * Age    for females and 
+
+Fat = 5.2794 +  0.3392* Age for males.

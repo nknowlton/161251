@@ -1,0 +1,184 @@
+﻿﻿<!--- could switch data source to MASS::genotype --->
+
+In this lecture we introduce linear models with two factors.
+
+We look at the formulation of such models, and consider significance
+    tests for the factors.
+
+Estimation for models with two (or more) factors can be performed by
+    the method of least squares in the usual way.
+
+Fitted values and residuals are also defined as usual.
+
+## A Main Effects Model for Two Factors
+
+Suppose that there are two factors, *A* and *B*, which may be
+    related to the response variable.
+
+The most straightforward way of modelling these factors is to assume
+    that their effects are additive.
+
+This leads to what can be termed the main effects
+    two-way model.
+
+The rationale for using the phrase main effects will
+    become clear when we look at interactions between factors.
+
+## Model for Two Factors as a Multiple Linear Regression
+
+Written in the same way as was done for the one factor model:
+
+$$Y_i = \mu + \alpha_2 z_{Ai2} + \ldots + \alpha_K z_{AiK} 
+ + \beta_2 z_{Bi2} + \ldots + \beta_L z_{BiL} + \varepsilon_i~~~~~(i=1,2,\ldots,n)$$
+where $$z_{Aij} = 
+\left \{ 
+\begin{array}{ll}
+1 & \mbox{unit } i \mbox{ observed at level } j \mbox{ of } A\\
+0 & \mbox{otherwise}
+\end{array}
+\right .$$ and $$z_{Bij} = 
+\left \{ 
+\begin{array}{ll}
+1 & \mbox{unit } i \mbox{ observed at level } j \mbox{ of } B\\
+0 & \mbox{otherwise}
+\end{array}
+\right .$$
+
+No $\alpha_1 z_{Ai1}$ and $\beta_1 z_{Bi1}$ as we assume treatment
+constraints. That is, $\alpha_1 = 0$ and $\beta_1 = 0$.
+
+## Tests for Main Effects in a Two-Way Model
+
+In a two factor model we are usually interested in testing for the
+    statistical significance of both factors.
+
+The importance of a factor may depend upon other factors in the
+    model, in the same way that the importance of a numerical predictor
+    in a multiple linear regression model depends upon the other
+    explanatory variables in the model.
+
+The importance of the factors can be assessed by comparing
+    appropriate nested models using *F* tests.
+
+### Models Under Consideration
+
+There are a number of possible main effects models based on at most two
+factors A and B:
+
+- Both A and B have an effect on the response: $$M_{AB}:~~Y_i = \mu + \alpha_2 z_{Ai2} + \ldots + \alpha_K z_{AiK} + \beta_2 z_{Bi2} + \ldots + \beta_L z_{BiL} + \varepsilon_i$$
+- Only A has an effect on the response: $$M_A:~~Y_i = \mu + \alpha_2 z_{Ai2} + \ldots + \alpha_K z_{AiK} + \varepsilon_i$$
+- Only B has an effect on the response: $$M_B:~~Y_i = \mu + \beta_2 z_{Bi2} + \ldots + \beta_L z_{BiL} + \varepsilon_i$$
+- Neither A nor B have an effect on the response: $$M_0:~~Y_i = \mu + \varepsilon_i$$
+
+### Testing for the Importance of *B* Adjusted for *A*
+
+This involves comparing the nested models $M_{AB}$ and $M_A$.
+
+This can be done by testing
+$$H_0:~~\beta_2 = \beta_3 = \cdots = \beta_L = 0$$
+versus
+
+$$H_1:~~\beta_2, \beta_3, \cdots, \beta_L \mbox{ not all zero}$$
+
+The appropriate *F* test statistic (on $L-1, n-K-L+1$ degrees of
+    freedom) is
+
+$$F = \frac{(RSS_{A} - RSS_{AB})/(L-1)}{RSS_{AB}/(n-K-L+1)}$$
+
+As usual, large values of this *F* statistic provide evidence
+    against $H_0$ (hence give small *p*-values).
+
+The relevant figures for this *F* test can be displayed in an ANOVA
+    table.
+
+## ANOVA Tables for Two Factor Main Effects Model
+
+|                           |     Df      |    Sum Sq |   Mean Sq |     F value |     P value |
+| :------------------------ | :---------: | --------: | --------: | ----------: | ----------: |
+| Factor *A*              |   *K-1*   |   *SSA* |   *MSA* |     *f~A~* |     *P~A~* |
+| Factor *B* (adj. *A*) |   *L-1*   | $SSB|A$ | $MSB|A$ | $f_{B|A}$ | $P_{B|A}$ |
+| Residual                  | *n-K-L+1* |   *RSS* |   *RMS* |             |             |
+| Total                     |   *n-1*   |   *TSS* |           |             |             |
+
+The residual row refers to residuals from model *M~AB~*.
+
+The row for factor *A* gives the *F* statistic for testing the
+    importance of *A* without adjusting for *B*.
+
+The second row gives the *F* statistic for testing the importance
+    of *B* adjusted for *A* as just discussed.
+
+We can construct a new ANOVA table with first two rows swapped in order
+    to test for *A* adjusted for *B*.
+
+## Foster Feeding Rats
+
+
+
+In this example, we are looking at a dataset on baby rats fed by foster mothers.
+Genotype (A, B, I or J) are recorded for both rat and foster mother.
+The weight of baby rats is recorded at a given age.
+The factors are genotypes of rat and mother. Does weight depend on either?
+
+![who likes rats?](../graphics/rats.jpg)
+
+
+
+
+#### Analysis of the Data
+
+`r xfun::embed_file("../../data/ratgene.csv")`
+
+```{r Rat.data, echo=-1, eval=-2}
+Rat <- read.csv(file="../../data/ratgene.csv", header=TRUE)
+Rat <- read.csv(file="ratgene.csv", header=TRUE)
+head(Rat)
+```
+
+Let's first fit a two-way model with `Mother` variable first, and `Rat` variable second. 
+
+```{r Rat.lm.1}
+Rat.lm.1 <- lm(Weight ~  Rat + Mother, data=Rat)
+anova(Rat.lm.1)
+summary(Rat.lm.1)
+```
+
+This first model indicates that the genotype of the rat is unimportant
+    (*P=0.802*), but that the genotype of the foster mother adjusted for
+    the genotype of the rat is statistically significant (*P=0.00886*).
+
+Now we fit the model with `Rat` variable first, and `Mother` variable second. 
+
+
+```{r Rat.lm.2}
+Rat.lm.2 <- lm(Weight ~  Mother + Rat, data=Rat)
+anova(Rat.lm.2)
+summary(Rat.lm.2)
+```
+
+There is little change in *p*-values when we alter the order of the terms to get the second model. Note that zero change only occurs in a special case (next lecture).
+
+
+### Comments and Conclusions
+
+Overall, it seems clear that weight is not associated with genotype
+    of the rat, so whether we adjust for this term is pretty much
+    immaterial.
+
+Weight is clearly associated with genotype of the foster mother.
+
+Genotype A is reference level (baseline) for both `Mother` and `Rat` genotypes.
+
+The `summary()` command (which gives parameter estimates) suggests that
+    genotype J makes for poor foster mothers.
+
+### Fitted Values for the Rats Model
+
+1.  Calculate the fitted value for genotype A rat with genotype J foster
+    mother.
+
+2.  Calculate the fitted value for genotype J rat with genotype A foster
+    mother.
+
+3.  Calculate the fitted value for genotype B rat with genotype B foster
+    mother.

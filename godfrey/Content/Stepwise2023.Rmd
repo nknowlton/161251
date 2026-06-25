@@ -1,0 +1,265 @@
+ 
+
+## Automated Variable Selection Procedures
+
+Automated variable selection procedures work along the following lines:
+
+
+1.  Choose a model to start with (often the model with no covariates, or
+    the model with all covariates included).
+
+2.  Test to see if there is an advantage in adding or removing    covariates.
+
+3.  Repeat adding/removing variables until there is no advantage in    changing the model.
+
+### Forward Model Selection
+
+In this technique:
+
+1. All one-X variable models are computed, and the one which has the smallest p-value is chosen. (provided any of the simple linear regression models are significant  at the  0.05% significance level, or whatever significance level is being used. ) 
+
+2.  Then all two-variable models *which include the first chosen X-variable* are computed.  The variable whose regression coefficient is most significant (smallest p-value) is chosen (provided the p-value < 0.05) 
+
+3. Then all three X-variable models which *include the two variables previously chosen* are computed ...
+We continue to add variables to the model until there are no more significant ones to add.   
+
+4. Then we stop.
+
+Note the criterion for “significance” can be chosen  by the user:  e.g. One may choose to  only include  variables   that have P-value <  the usual significance level $\alpha$=0.05.  
+
+In other software (e.g. Minitab) the default entry level for  for forward selection is P-value < $\alpha$= 0.25.  This is because we don’t want to ignore any potentially useful variables.  It is better to first find the possible predictors, and then weed them out, than to not know about them. 
+
+For computing the P-value for entering a variable,  we have two things we can look at.  On the one hand we can look to see if the   t- ratio for that variable's regression coefficient is significant. (For example,  when df=60, the t-ratio will be significant at $\alpha=0.05$ if  $|t| > 2$). 
+
+Equivalently, we since we are comparing two nested models, we can use the anova() function  (e.g. anova($model_1,model_2$), and check if the F statistic is significant with  P-value< 0.05.    
+
+The two approaches are equivalent since, when we add just one
+variable,  $F = t^2$ where $F \sim F_{1,df}$.
+
+### Backwards Variable Selection
+
+1.  This starts with model containing all possible explanatory variables (and possibly interactions).
+
+
+2.  For each variable in turn, we investigate the effect of removing the variable  (or interaction, if any)   from current model.  
+
+3.  Remove the least informative variable / interaction, unless this term is     nonetheless supplying significant information about the response.
+
+4.  Go to step 2. Stop only if all variables/interactions in the current model are  important.
+
+### Stepwise   (direction ="both")
+
+The phrase *Stepwise variable selection* is usually taken to mean that we start with a forward selection, but after each variable is entered into the model we check whether any other variables have fallen below the significance criterion $\alpha$, and if so we remove it from the model.  
+
+One approach is to use *F* tests (or equivalently *t* tests).
+
+## Example:  Hours of sunshine
+
+We consider the Climate data, but this time we will use the variable **Sun** as the response, and try to explain it in terms of the other variables (main effects only).
+We will use a backwards elimination approach.  Initially we will do this by hand for illustration purposes. 
+
+#### Backwards Elimination
+
+`r xfun::embed_file("../../data/Climate.csv")` 
+
+```{r read Climate data 30, eval=-1, echo=-2}
+climate = read.csv("Climate.csv",header=TRUE,row.names=1)
+climate = read.csv("../../data/Climate.csv",header=TRUE,row.names=1)
+climate.lm1= lm(Sun ~ . , data=climate)
+summary(climate.lm1)
+```
+
+We would drop the variable with highest P-value, in this case Lat.   NB only drop one variable at a time.   We can use the update() function to save typing. 
+
+
+```{r update}
+climate.lm2 = update(climate.lm1, . ~ .-Lat)
+summary(climate.lm2)
+```
+
+The highest P-value is for MnJlyTemp, so we update to drop this one as well. Note instead of outputting the whole summary we can use the function drop1() to inform us of our choices in terms of  dropping further variables.
+
+```{r update 2}
+climate.lm3 = update(climate.lm2, . ~ .-MnJlyTemp)
+drop1(climate.lm3, test="F")
+```
+
+The F test indicates that Height has p-value =0.08, so we can drop that one as well. 
+
+```{r update 3}
+climate.lm4 = update(climate.lm3, . ~ .-Height)
+drop1(climate.lm4, test="F")
+```
+
+Now we are told that Sea has p-value= 0.15, so we drop this as well. 
+
+```{r update 4}
+climate.lm5 = update(climate.lm4, . ~ .-Sea)
+drop1(climate.lm5, test="F")
+```
+
+Finally we drop   Rain, which  has p-value= 0.10.  Then we stop. 
+
+```{r update 5 }
+climate.lm6 = update(climate.lm5, . ~ .-Rain)
+drop1(climate.lm6, test="F")
+summary(climate.lm6)
+```
+We see that annual hours of Sunshine are greater in places with high Longitude (i.e. eastern side of NZ), high mean January temperature and, perhaps surprisingly that hours are apparently lower in the North Island  (but note NorthIsland and Longitude are correlated so this "apparently" may not be correct. )
+
+#### Forward selection 
+
+We try using forward selection instead. Do we finish with the same model? 
+
+```{r stepwise}
+climate.null= lm(Sun ~ 1, data= climate )
+add1(climate.null,  scope = ~Lat+Long+MnJanTemp+MnJlyTemp +Height+Rain+Sea+NorthIsland , data=climate, test="F")
+
+climate.s1 = update(climate.null, .~.+MnJanTemp)
+add1(climate.s1,  scope = ~Lat+Long+MnJanTemp+MnJlyTemp +Height+Rain+Sea+NorthIsland , data=climate, test="F")
+
+climate.s2 = update(climate.s1, .~.+Rain)
+add1(climate.s2,  scope = ~Lat+Long+MnJanTemp+MnJlyTemp +Height+Rain+Sea+NorthIsland , data=climate, test="F")
+
+summary(climate.s2)
+```
+
+You should find that the model chosen by   forward selection is entirely different to the model by backwards elimination.
+
+Usually the models are the same, but in this example they are not the same. 
+
+The reason for the difference is that sometimes two variables are both significant when **together**  in a regression, but are not significant enough to enter one-at-a-time in forwards selection.  That is why backwards elimination is usually the better approach. 
+
+## Model Selection using AIC
+
+- An alternative approach to selecting a good model is to define a    measure of the quality of a model, then choose the model of the    highest quality.
+
+- The so called information criteria can be used as measures
+    of model quality.
+
+We will now examine information criteria in general, the     Akaike information criterion (AIC) in particular, and    consider their use in model selection.
+
+## Information Criteria
+
+A good regression model (i.e. with a good choice of predictors)     will:
+    
+1.  fit the data well;
+2.  be simple (have as few predictors as possible).
+
+Hence quality of a model can be measured by a quantity of the form
+    $$\mbox{Measure of badness of fit} + k \times \mbox{Number of predictors} + \mbox{constant}$$ 
+    
+where *k* can be adjusted to control the relative
+importance of the two aspects of a model's quality just given.
+
+Note that any additive constant is of no real importance, since in     comparing the quality of different models (our real aim) the     constant term cancels out.
+
+## Akaike Information Criterion
+
+Several information criteria in statistics are of the    form of our simple equation for a "measure of badness of fit" given above.
+
+One such measure is the Akaike Information Criterion (AIC). For     a linear model with unknown error variance this is defined by
+    $$AIC = n \log (RSS/n) + 2p + \mbox{constant}.$$
+
+We can choose between models by selecting the
+    one with **smaller** AIC.
+
+N.B. This is not the only criterion in common use, but is perhaps the most common. Different software present different criteria.
+
+## Back to the Climate data
+
+We have found two different models, Climate.lm6 and Climate.s2.  These not only have  different numbers of variables, but are not even nested!  However we can compare them using the adjusted R-square, or the function AIC().
+Both criteria suggest that the model lm6 is to be preferred. 
+
+```{r comparing}
+summary(climate.lm6)$adj.r.square
+summary(climate.s2)$adj.r.square
+AIC(climate.lm6)
+AIC(climate.s2)
+```
+ 
+An alternative to `AIC()` is the `extractAIC()` command. The output from `extractAIC()` command is number of regression
+    parameters (*p+1*) and the model's AIC.   
+
+```{r comparing 2}
+extractAIC(climate.lm6)
+extractAIC(climate.s2)
+```
+
+
+
+## AIC in Stepwise Variable Selection
+
+We have seen that sequential variable selection can be conducted     using a sequence of *F* tests.
+
+
+An alternative is to compare models using AIC.
+
+Specifically, at each step of the algorithm we change to the model
+    with smallest AIC (from adding or dropping a single variable), and
+    stop only when we cannot reduce AIC by single term additions or
+    deletions.
+
+This procedure is implemented using the `step()` command in R.   
+
+```{r step}
+climate.null=lm(Sun~ 1, data=climate)
+climate.step <- step(climate.null, scope = ~Lat+Long+MnJanTemp+MnJlyTemp +Height+Rain+Sea+NorthIsland , data=climate,  direction="both")
+summary(climate.step)
+```
+
+Note AIC is more liberal than the F test, and has allowed a non-significant variable in.
+
+The syntax below shows how to do a backwards elimination. 
+This also results in including a non-significant variable.  However this has higher adjusted R-square. 
+
+```{r step2}
+climate.full=lm(Sun~ Lat+Long+MnJanTemp+MnJlyTemp +Height+Rain+Sea+NorthIsland, data=climate)
+climate.step2 <- step(climate.full, scope = ~ 1 , data=climate,  direction="backward")
+summary(climate.step2)
+```
+
+Question:  Which of these models is preferred? 
+
+###  Epilogue   (can be omitted)
+
+If I wanted to explore further, I would  investigate possible interactions.
+
+It is also worth thinking about whether the variables make sense. Is there a logical order for the variables?    Here    Lat, Long, Height, Sea and NorthIsland are all geographic variables, which may determine the weather.   
+
+On the other hand Sun, MnJanTemp, MnJlyTemp and Rain are in a sense all interconnected response weather variables, even though we are using Sun as the sole response for the regression. 
+
+So it makes logical sense to first let the geographic variables explain as much of the variation in Sun hours as possible. 
+
+```{r Sun vs geography}
+climate.null=lm(Sun~ 1, data=climate)
+climate.geog <- step(climate.null, scope = ~Lat*Long*Height*Sea*NorthIsland , data=climate,  direction="both")
+summary(climate.geog)
+plot(climate.geog$fitted.values ~ Long, pch=2-Sea ,col=NorthIsland+3, data=climate)
+ 
+```
+In the plot, green locations are for the South Island and blue for the North Island, triangles represent inland places and circles are places by the sea.    The plot indicates, that, for coastal towns/cities,  locations on  the eastern side of each island (higher longitude)  tend to have more sun than locations on the western side. But for inland places the longitude makes little difference. 
+
+Next we can try entering the other weather variables.
+
+```{r further stepwise}
+
+climate.geog2 <- step(climate.geog, scope = ~Lat*Long*Height*Sea*NorthIsland*MnJanTemp*MnJlyTemp*Rain , data=climate,  direction="both")
+summary(climate.geog2)
+```
+The AIC has let in some interactions that are non-significant.  We will weed them out based on F tests. 
+
+```{r weeding out non-significant terms}
+climate.geog3=update(climate.geog2, .~.- NorthIsland:Rain)
+drop1(climate.geog3,test="F")
+climate.geog4=update(climate.geog3, .~.- NorthIsland:MnJlyTemp)
+drop1(climate.geog4,test="F")
+
+climate.geog5=update(climate.geog4, .~.- Sea:Rain)
+drop1(climate.geog5,test="F")
+climate.geog6=update(climate.geog5, .~.- MnJlyTemp)
+drop1(climate.geog6,test="F")
+summary(climate.geog6)
+```
+
+The above is the final model.  It has a high $R^2$ but is probably a bit too complicated for such a small dataset.  A further step would be to weed further variables out using $R^2_{pred}$. 

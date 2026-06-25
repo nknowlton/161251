@@ -1,0 +1,184 @@
+
+A time series comprises observations taken at a sequence of time     points.
+
+In most situations these time points will be (approximately) evenly spaced. For example:
+    
+- Monthly rainfall figures
+- Quarterly unemployment rates
+
+Linear models can be applied to time series data, but typically it
+    will prove necessary to generalize the structure of the error terms
+    from the simple independent errors that we have assumed so far.
+
+## Tourism in Victoria
+
+
+
+
+
+Data are number of room nights occupied in hotels, motels and guesthouses in Victoria.
+Observations are monthly from January 1980 to December 1994.
+Data source: Australian Bureau of Statistics.
+
+![A motel room.](../graphics/motel.jpg) []()
+
+
+`r xfun::embed_file("../../data/Motel.csv")`
+
+
+```{r getTourismData, echo=-1, eval=-2}
+Tourism <- read.csv(file="../../data/Motel.csv", header=TRUE)
+Tourism <- read.csv(file="Motel.csv", header=TRUE)
+str(Tourism)
+Tourism$Yr = Tourism$Year -1979 + Tourism$Month/12
+head(Tourism)
+```
+
+Note that `Month` is coded `1, 2, ..., 12` and is currently an integer valued variable.
+
+`Yr` is constructed to represent a "fractional year after 1979" (accounting for
+    month). 
+
+
+We will use the average price variable in the practical exercise for this week.
+
+```{r plotTourism, fig.cap="There is clear evidence of upward trend and seasonal (monthly) variation."}
+Tourism$NYear = 1979 + Tourism$Yr # to get nicely spaced points along x axis
+plot(RoomNights~NYear, xlab= "Year", type="l", data=Tourism)
+```
+
+
+## Variation in a Time Series
+
+Possible sources of variation in a time series are:
+    
+- ***Secular trend*** (or just trend):  tendency of the series to increase or decrease over a long
+        period of time.
+- ***Seasonal variation***: describes fluctuations that
+        recur during specific parts of the year (e.g. quarterly or
+        monthly).
+- Residual variation (or ***innovations***): the part of the variation which is not explained by long term        trend or seasonal effects.
+- An additional ***cyclical*** source of variation (corresponding to business cycles, for example) is sometimes
+    identified.
+
+## Modelling A Time Series
+
+Time series data can be modelled using linear models (although there
+    are a number of alternative approaches).
+
+- Long term trend can be modelled using polynomial regression.
+- Seasonal effects can be represented by specifying the seasons (e.g. months, quarters) as a factor in the model.
+- Additional covariates can sometimes be incorporated in such models (e.g. standard economic indicators may be included to help explain   variation in sales data)
+
+## Back to the Tourism Data
+
+### Model Fitting and ANOVA
+
+```{r Tourism.lm}
+Tourism$Month <- factor(Tourism$Month)
+Tourism.lm <- lm(RoomNights~Yr + Month, data=Tourism)
+anova(Tourism.lm)
+```
+
+
+```{r sumTourism.lm}
+summary(Tourism.lm)
+```
+
+
+```{r FitsPlotTourism.lm}
+plot(RoomNights~NYear, xlab="Year", data=Tourism)
+lines(Tourism$NYear, fitted(Tourism.lm), col="blue")
+title("Fitted Linear Model")
+```
+
+### Comments
+
+`Yr` (which is essentially time) is the appropriate
+    covariate to track trend (not `Year`, which would ignore
+    secular trend during a year).
+
+It is important to remember to code `Month` as a factor so as
+    to represent seasonal effects.
+
+There is strong evidence of trend ($P < 2.2 \times 10^{-16}$ for
+    `Yr`) and of seasonality ($P < 2.2 \times 10^{-16}$ for `Month`) in the data.
+
+As might be expected, room bookings tend to be low in the winter
+    months. The pattern over summer is less clear. Perhaps December is a
+    bad month because of the Christmas effect?
+
+We have assumed a linear secular trend. Would quadratic be better?
+
+### More Model Fitting in R
+
+```{r Tourism.lm.2}
+Tourism.lm.2 <- lm(RoomNights~poly(Yr,2)+Month, data=Tourism)
+anova(Tourism.lm, Tourism.lm.2)
+```
+
+No evidence that quadratic trend improves on linear (*P=0.1418*).
+
+### Residuals Versus Time
+
+
+```{r TourismPlot}
+plot(Tourism$Yr, resid(Tourism.lm), type="l", xlab="Year-1979")
+```
+
+
+
+The time plot of residuals for the linear trend model suggests that
+    there are extended periods when the residuals are almost all
+    negative (1986-1988) and extended periods where the residuals are
+    almost all positive (1989-1990).
+
+Such behaviour should not be observed if the errors are independent.
+
+However, for time series data it is common for some residual
+    correlation between residuals to remain even when the trend and
+    seasonal variation has been removed.
+
+This type of correlation in the sequence of residuals is usually     called **autocorrelation**.
+
+## Stationary Processes and Autocorrelation
+
+Consider a random process in time: *Z~t~* where *t=1,2,...* and *Z~t~* represents the value of the process at time *t*.
+
+This process is said to be (weakly) stationary if:
+    
+- *E[Z~t~]* and *Var(Z~t~)* do not change with time   *t*.
+- The correlation *Corr(Z~t~, Z~t+k~)* depends only on the      time lag *k*.
+
+It is common to model the residuals from a time series as a
+    stationary random process with zero mean.
+
+For a stationary process, the **autocorrelation function** (or ACF) is defined by
+    $$\rho(k) = \mbox{Corr}(Z_t, Z_{t+k})$$
+
+The ACF (autocorrelation against time lag) can be plotted in R using    the `acf()` command.
+
+### Tourism Data: ACF Plot for Residuals
+
+```{r TourismACF}
+acf(resid(Tourism.lm))
+```
+
+
+
+
+- The ACF plot indicates a correlation of about $0.4$ at lag one.
+    Hence consecutive residuals are positively dependent.
+- The dashed horizontal lines on the plot are a 95% confidence interval
+    under the assumption that the true autocorrelation is zero.
+- Any correlation lying within this confidence interval may be just
+    noise.
+- Any correlation lying outside this confidence interval is probably
+    indicative of true serial dependence in the data.
+
+For the tourism data it seems that there is serial dependence in the
+    data, since the correlations at lags 1, 2, 3 and 4 all extend beyond
+    the confidence interval bounds.
+
+The existence of several significant correlations is common when autocorrelation exists. If the correlation between  the *i*^th^ and *j*^th^ variables is high, and so is the correlation between the *j*^th^ and *k*^th^ variables, we ought to expect the correlation between the *i*^th^ and *k*^th^ variables to also be high. When we are thinking about time series, the correlation for data from lags 0 and 1  is the same as the data from lags 1 and 2 because they are both sets formed by pairs of successive observations. If observations are correlated with their preceding observations, and those preceding observations are correlated with their preceding observations, then there is likely to be a correlation between observations and those that are back two time steps. This logic continues to three, four, and greater time lags and is especially likely when the correlation at the first lag is very, very high.
+

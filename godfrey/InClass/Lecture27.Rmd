@@ -1,0 +1,388 @@
+---
+title: "Lecture 27: Variable Selection"
+subtitle: 161.251 Regression Modelling
+author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
+date: "Week 9 of Semester 2, `r lubridate::year(lubridate::now())`"
+output:
+  html_document:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  html_notebook:
+    code_download: true
+    theme: yeti
+    highlight_style: pygments
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+  word_document: default
+  slidy_presentation: 
+    theme: yeti
+    highlight_style: pygments
+  pdf_document: default
+---
+
+
+
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+## Variable selection
+
+In previous lectures we have looked at tests for single explanatory variables and groups of explanatory variables.
+
+Often, however, a statistician will simply want to know what is the best group of explanatory variables for describing the response.
+
+In this lecture we will consider various criteria for model selection, and cover an example on finding a suitable variable set "by hand".
+
+## Overfitting and Underfitting
+
+We begin by considering the following question:  Should all the explanatory variables be used, or should some be omitted?
+
+Why might we want to omit variables? 
+
+-	Perhaps we want to detect variables which affect the response  but avoid collecting unnecessary measurements in the future. This is called variable screening
+
+-	Perhaps we want to predict from the model. Our predictions will be less accurate if the model is incorrectly specified.
+	
+We first consider the risks and benefits of including a predictor that might have coefficient $\beta=0$.
+
+##  Dropping or Including Variables that have $\beta=0$
+
+Suppose we have a regression model with several variables.  We might suspect one has regression coefficient $\beta=0$.  Should we drop it?
+
+Some mathematical theory shows that if we omit a variable which (truly) has regression coefficient  $\beta=0$  then
+
+- Variances of the remaining regression coefficients are reduced
+
+- Variances of predictions from the model  at any point $x_0$  are reduced. 
+
+Both these things are good.
+
+Conversely if we include a variable whose coefficient $\beta=0$ this  increases these variances unnecessarily. This is called **overfitting**. We want to avoid this.
+
+## Dropping or Including Variables that have $\beta \ne 0$
+
+On the other hand suppose we make a mistake and omit a variable that has regression coefficient $\ne 0$.   
+
+Then we have the opposite problem, called **underfitting**.  Mathematical theory shows the consequence of underfitting is that 
+
+-	if the wrongly-omitted variables are correlated with the remaining variables then the expected values of the remaining regression coefficients $\beta_0,\beta_1,...\beta_{p-1}$ are **biased**. (i.e. may be a too big or too small).
+
+- Whether or not the omitted variables are correlated with the existing ones, the predictions $\hat y_i$ are biased.
+
+Both these things are bad!
+
+**In practice we do not know if parameters are zero.** We could use a hypothesis test to help us decide, but this is not a definitive answer.
+
+## A Numerical Illustration of Under and Overfitting
+
+In this artificial example, we consider an industrial process whose Yield is thought  to depend on the process temperature at stage A of the process, and possibly also on the temperature at stage B.   
+
+i.e.  We consider the model 
+$$ Y=\beta_0 + \beta_1 A+ \beta_2 B +\varepsilon.$$
+	
+We will assume the values of $A$ and $B$ and $\varepsilon$ are given in the data below.  The errors are random $\varepsilon \sim \mbox{Normal}(0, 1)$.
+
+`r xfun::embed_file("../../data/simulation1.csv")` 
+
+```{r read Simulation1, eval=-1, echo=-2, message=FALSE}
+sim = read.csv("simulation1.csv",header=TRUE)
+sim = read.csv("../../data/simulation1.csv",header=TRUE)
+```
+
+
+What we want to know is, what are the implications of using an incorrect model, 	i.e. incorrect assumptions about the $\beta$s. To understand the implications, we simulate two scenarios. 
+	
+## Scenario 1: $\beta_0=50$, $\beta_1=10$ and $\beta_2=0$.
+
+For this illustration, the correct model doesn't depend on $B$ at all:
+$$Y  =  50 + 10 A + \varepsilon$$
+
+The following shows the result of modelling $Y$ by (1) $A$ alone and  (2) by $A$ and $B$.
+
+```{r overfitting}
+dat <- sim |> mutate(Y = 50 + 10*A + epsilon)
+lm1 = lm(Y ~ A, data=dat)
+lm2 = lm(Y ~ A + B, data=dat)
+lst(lm1, lm2) |> map_dfr(tidy, .id='model')
+```
+
+Adding the unnecessary variable doesn't introduce bias ($\hat\beta_1 \approx 10$), but the standard error of $\hat\beta_1$ is higher in the misspecified model.
+
+## Scenario 2: $\beta_0=50$, $\beta_1=5$ and $\beta_2=5$.
+
+We consider the model where $Y$ depends on both $A$ and $B$,
+$$	Y  =  50 + 5 A + 5 B + \varepsilon $$
+
+```{r underfitting}
+dat <- sim |> mutate(Y = 50 + 5*A + 5*B + epsilon)
+lm1 = lm(Y ~ A, data=dat)
+lm2 = lm(Y ~ A + B, data=dat)
+lst(lm1, lm2) |> map_dfr(tidy, .id='model')
+```
+
+In the first model, $B$ is wrongly ignored and $A$ is both biased and has a larger standard error. In the second model, the values of $\hat\beta_1$ and $\hat\beta_2$ are close to the true ones and the standard errors are the same as in the second analysis of Scenario 1.
+
+##
+
+In summary, if we omit a needed variable then we may introduce bias into our estimation.
+	
+The big problem with bias is that there may be no sign that we have a mistake. 
+
+In some cases we don't even *have* the needed variable, so we can't try it in the model. 
+
+At least in case 1, when we wrongly enter an unnecessary variable, it doesn't bias our estimates, just increases our standard errors. So at least we know exactly how bad things are. But with an omitted variable we don't know how bad things are.
+	
+For this reason, we may decide to err on the side of caution and add in variables even if we are uncertain about their relevance.  Then at least we can avoid bias. 
+
+## Model Selection: Bias and Variance
+
+Model selection, then, comes down to balancing the effects of variance and bias.
+
+- If we omit a variable, it may dramatically decrease the variance of the other parameter estimates. This is a plus. 
+
+- But if the variable is important, then the other parameter estimates may be biased.  This is a minus. 
+
+So what should we choose?  There is no settled rule for every circumstance, but in general we should probably be more concerned to avoid bias (especially since we don't know how bad this is!) than to avoid a small increase in variance (at least we do know how bad it is - we can see the standard errors.)
+
+Consequently we may decide to err on the side of including variables with P-values a little  bigger than 0.05, *especially if they seem to induce a sizeable change in the other coefficient estimates.*   This is another thing to watch out for in model selection. 
+
+## Review of Model Selection Criteria
+
+There are a number of measures we can use for model selection:
+
+- Coefficient of determination $R^2$
+
+- Adjusted Coefficient of determination $R^2_{Adj}$
+
+- Residual Standard Error $S$
+
+- $P$-values of individual coefficients
+
+Each of these are slightly different, so it pays to consider more than one.
+
+## Coefficient of determination $R^2$
+
+Recall that this is the proportion of total variation  which is explained by the model. (Alternatively, 1 minus the ratio of unexplained variation to total variation):
+$$ R^2 = \frac{SS_{Regn}}{SST}  = 1 - \frac{\sum(y_i-\hat y_i)^2}{\sum(y_i-\bar y)^2}. $$
+$R^2$ is useful for comparing two models with the **same** number of regression parameters.   If models have different numbers of regression parameters we use the adjusted version.
+
+## Adjusted Coefficient of determination $R^2_{Adj}$
+
+Recall that this is 1 minus the ratio of Mean Square Error to Mean Square Total: 
+$$ R^2_{Adj} = 1 - \frac{MSE}{MST}  = 1 - \frac{\sum(y_i-\hat y_i)^2/(n-p)}{\sum(y_i-\bar y)^2/(n-1)}.$$
+When considering adding a variable to a regression, the $R^2_{Adj}$ goes up if the variable is "worth" at least one row of data (one degree of freedom), which is a pretty low bar to cross.
+
+But at least if a variable can't meet that rule then we know to exclude it.
+
+## Residual Standard Error $S$
+
+This is the standard deviation of the residuals, 
+$$ S = \frac{1}{n-p}\sum{(y_i - \hat y_i)^2} $$
+or in other words the standard deviation of how the $y_i$s vary around the model predictions. We might choose to include a variable if it reduces the $S$.
+
+## $P$-value for individual coefficients
+
+We usually prefer models that only include variables with coefficient $P$-value is small (e.g. $< 0.05$).
+
+However the "0.05" criterion is somewhat arbitrary and occasionally we allow in variables with slightly higher $P$-values to potentially reduce bias.
+
+## Example:  Model Selection for Climate Data
+
+We wish to model the mean temperature in July (winter) in Aotearoa New Zealand using data from 36 towns. We have information on location (latitude, longitude, height (elevation), whether they're by the sea or in the North island) as well as climate information (mean temperature in January, total sunshine hours and total rainfall).
+
+`r xfun::embed_file("../../data/climate.csv")` 
+
+```{r read climate,eval=-1, echo=-2, message=FALSE}
+climate = read_csv("climate.csv")
+climate = read_csv("../../data/climate.csv")
+climate
+```
+
+## Climate Exploratory Data Analysis
+
+```{r, fig.width=10, fig.height=4}
+climate |>
+  pivot_longer(-c(Place, MnJlyTemp)) |>
+  ggplot() +
+  geom_point(mapping=aes(x=value, y=MnJlyTemp)) +
+  facet_wrap(vars(name), scales = 'free_x', ncol=4)
+```
+
+## Higher winter temperature associations
+
+- Lower elevations (height)
+- Lower latitudes (further north)
+- Higher longitudes (further east - recall how Ao/NZ is oriented on a map - possibly correlation with latitude, will check next!)
+- Higher summer temperatures
+- North island (could just be latitude?)
+- Increased rainfall - up to a point! (subtropical vs rainy westcoast - interaction with Island/latitude??)
+- Closeness to the sea
+- Increased sunshine hours
+
+Many of these are likely correlated.
+
+## Climate: Latitude/Longitude and North vs South
+
+```{r}
+ggplot(climate) +
+  geom_point(mapping=aes(x=Long, y=-Lat, shape=as_factor(NorthIsland), col=MnJlyTemp)) +
+  geom_text(mapping=aes(x=Long, y=-Lat, label=Place), size=2, hjust='right', nudge_x=0.1, nudge_y=0.2) +
+  coord_equal()
+```
+
+## 📊 Climate: Latitude/Longitude and North vs South
+
+Ok, so we can see that the temperature is being driven by latitude (further north is warmer) - the longitude effect is possibly just due to orientation. It's clear there's an elevation (height) effect as well, though that is possibly confounded with whether the town is close to the sea (it can't really be both!)
+
+So we'd expect some collinearity here and figuring out which are the best variables to be used might take a bit of playing!
+
+We'll start with Latitude, then add in Height and Sea:
+
+```{r}
+lm1 = lm( MnJlyTemp ~ Lat, data=climate)
+lm2 = lm( MnJlyTemp ~ Lat + Height, data=climate)
+lm3 = lm( MnJlyTemp ~ Lat + Height + Sea, data=climate)
+```
+
+## Climate: model 1 output
+
+```{r}
+lm1 |> summary()
+```
+
+## Climate: model 2 output
+
+```{r}
+lm2 |> summary()
+```
+
+## Climate: model 3 output
+
+```{r}
+lm3 |> summary()
+```
+
+## Climate: First three predictors.
+
+For these first three predictors:
+
+ - They  have significant p-values
+ - $S$ has gone down each time
+ - The adjusted $R^2$ and has gone up each time.
+ 
+There is no reason to doubt that `Lat`, `Height` and `Sea` should all be included.   
+
+Also note the regression coefficient for `Height` altered by about 2 standard errors, which suggests that `Sea` is correcting for bias, all the more reason for including it.
+
+This makes sense - sea level towns will mostly have a very low height, but there'll also be an additional warming effect of being close to the sea.
+
+## Climate: Adding island
+
+```{r fourth variable}
+lm4 = lm( MnJlyTemp ~ Lat+ Height + Sea + NorthIsland, data=climate)
+lm4 |> summary()
+```
+
+Same conclusions as before, we should include `NorthIsland`
+
+Including it has induced big changes in the coefficients (especially `Lat`) which again is evidence it is important.
+
+**Why do you think adding North vs South island is useful over and above Latitude? Wouldn't Latitude do everything here??**
+
+## Climate: Adding Rain
+
+```{r fifth variable}
+lm5 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland + Rain, data=climate)
+lm5 |> summary()
+```
+
+
+The `Rain` variable is not significant (P=0.1) which goes against including `Rain`.  However $S$ has gone down and the adjusted R-squared has gone up.  So we may decide that if our aim is to predict for new data, then we should include this variable in the model.
+
+## Climate: Adding Longitude
+
+```{r sixth variable, warning=FALSE}
+lm6 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland+ Rain + Long, data=climate)
+lm6 |> summary()
+```
+
+At this point all the indications are bad:  The P-value for `Long` is >0.5, the adjusted R-squared has gone down and S has gone up.
+
+So we should not include `Long` in the model.
+
+## 📊 Climate Data Case Study — Key Takeaways
+
+**Goal:** Predict NZ July temperature from location and climate covariates
+
+**Final model path:**  `MnJlyTemp ~ Lat + Height + Sea + NorthIsland + Rain`
+
+**Model progression**
+
+| Model | Variables                     | \(R^2_{\text{Adj}}\) | \(S\)  | Key variable \(p\) |
+|:-----:|-------------------------------|:--------------------:|:------:|:------------------:|
+| 1     | Lat                           | 0.570                | 1.82   | < 0.001            |
+| 2     | + Height                      | 0.837                | 1.12   | < 0.001            |
+| 3     | + Sea                         | 0.865                | 1.02   | < 0.001            |
+| 4     | + NorthIsland                 | 0.883                | 0.95   | < 0.001            |
+| 5     | + Rain                        | 0.889                | 0.92   | 0.10               |
+| 6     | + Long                        | 0.886                | 0.93   | 0.54               |
+
+## 📊 Climate Data Case Study — Key Takeaways Continued
+
+🔍 **What to watch for**
+
+- Coefficient shifts after adding variables indicate possible bias correction
+- Look for agreement among criteria, not just \(p\) values
+- Longitude rejected: \(p>0.5\), \(R^2_{\text{Adj}}\downarrow\), \(S\uparrow\)
+
+🚨 **Warning signs**
+
+- Large coefficient changes when adding or removing variables → potential bias
+- Sole reliance on \(p<0.05\) can miss important predictors
+- Ignoring \(R^2_{\text{Adj}}\) and \(S\) gives an incomplete picture
+- Criteria in conflict → justify with domain knowledge and prediction error
+
+**Recommendation:**  
+
+Retain `Lat`, `Height`, `Sea`, `NorthIsland`. Retain `Rain` when prediction accuracy is the goal, as it is here.
+
+## 🤔 Done? 🤔
+
+Not so fast! We now have a model, but is it any good? Does it meet our LINE assumptions? 
+
+After variable selection, you must check if the final model satisfies the assumptions of linear regression. Let's check the diagnostics for our chosen model: 
+
+`lm(MnJlyTemp ~ Lat + Height + Sea + NorthIsland + Rain, data = climate)`.
+
+## Final Model Diagnostics
+```{r diagnostic plots, echo=FALSE}
+# Generate the 4 standard diagnostic plots
+par(mfrow = c(2, 2))
+plot(lm5)
+```
+
+### Interpretation of Diagnostic Plots:
+
+- Residuals vs. Fitted: The red line is nearly flat and the points are randomly scattered around 0. This looks good and suggests the linearity assumption holds. No obvious patterns.
+- Normal Q-Q: The points fall very closely along the dashed line except one point (9). This indicates the residuals are normally distributed, which is great.
+- Scale-Location: The points are randomly scattered and the red line is relatively flat. This confirms the assumption of equal variance (homoscedasticity).
+- Residuals vs. Leverage: No points appear outside of the dashed Cook's distance lines, meaning we don't have any single data points that are overly influential on our results.
+
+**Conclusion**: Our final model not only makes intuitive sense but also passes the standard diagnostic checks! It appears to be a robust and reliable model.

@@ -1,0 +1,101 @@
+---
+title: "Index of Lecture Material"
+subtitle: 161.251 Regression Modelling
+author: "Presented by Jonathan Godfrey, Olivia and Barry " 
+date: "Semester 2, `r lubridate::year(lubridate::now())`"
+output:
+  html_document:
+    theme: yeti
+    highlight_style: pygments
+---
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+
+## Week  1 
+
+[Lecture 1: Paper Overview](Lecture1.html) 
+[Lecture 2: The Basics of Regression Modelling](Lecture2.html) 
+[Lecture 3: Simple Linear Regression](Lecture3.html) 
+[Lecture 4: Linear Regression Modelling with R](Lecture4.html) 
+[Lecture 42: Appendix: Regression through the origin](Lecture42.html)
+
+## Week  2 
+
+[Lecture 5: Checking the Assumptions](Lecture5.html) 
+[Lecture 6: Outliers and Influential Points](Lecture6.html) 
+[Lecture 7: What to do When Assumptions Fail](Lecture7.html) 
+[Lecture 43: Appendix: Transformations in regression models](Lecture43.html)
+
+## Week  3 
+
+[Lecture 8: Prediction in Simple Linear Regression](Lecture8.html) 
+[Lecture 9: Introduction to Multiple Linear Regression](Lecture9.html) 
+[Lecture 10: Testing in Multiple Regression Models (1)](Lecture10.html) 
+[Lecture 44: Appendix: Models with Many Factors](Lecture44.html)
+
+## Week  4 
+
+[Lecture 11: Testing in Multiple Regression Models (2)](Lecture11.html) 
+[Lecture 12: Basic Matrix Algebra](Lecture12.html) 
+[Lecture 13: Matrices and Linear Regression Models](Lecture13.html)
+
+## Week  5 
+
+[Lecture 14: Comparison of Multiple Linear Regression Models](Lecture14.html) 
+[Lecture 15: Models with binary predictors](Lecture15.html)
+
+## Week  6 
+
+[Lecture 16: Polynomial Regression Models](Lecture16.html) 
+[Lecture 17: Models using orthogonal polynomials](Lecture17.html) 
+[Lecture 18: Piecewise Regression Models](Lecture18.html)
+
+## Week  7 
+
+[Lecture 19: Linear Models with One Factor](Lecture19.html) 
+[Lecture 20: Diagnostics and Multiple Comparisons for Oneway ANOVA](Lecture20.html) 
+[Lecture 21: Factor or Numerical Covariate?](Lecture21.html)
+
+## Week  8 
+
+[Lecture 22: Introduction to the Two Factor Model](Lecture22.html) 
+[Lecture 23: Orthogonal Factorial Models](Lecture23.html) 
+[Lecture 24: Factors with Interactions](Lecture24.html) 
+[Lecture 45: Appendix: Nonlinear least squares](Lecture45.html)
+
+## Week  9 
+
+[Lecture 25: The General Linear Model](Lecture25.html) 
+[Lecture 26: Comparison of general linear models](Lecture26.html) 
+[Lecture 27: Variable Selection](Lecture27.html)
+
+## Week  10 
+
+[Lecture 28: Stepwise models](Lecture28.html) 
+[Lecture 29: Multicollinearity](Lecture29.html)
+
+## Week  11 
+
+[Lecture 30: Weighted regression](Lecture30.html) 
+[Lecture 32: Serial Correlation](Lecture32.html) 
+[Lecture 34: Introduction to Linear Modelling for Time Series](Lecture34.html)
+
+## Week  12 
+
+[Lecture 31: Time Models with Independent Errors](Lecture31.html) 
+[Lecture 35: Models with Autoregressive Errors](Lecture35.html)

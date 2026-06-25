@@ -1,0 +1,349 @@
+# Appendix: Nonlinear least squares{#Nonlinear}
+
+[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture39.html)
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+```
+
+
+<!--- Do not edit anything above this line. --->
+
+
+This topic introduces the concept of nonlinear regression models, iterative fitting by direct search, Gauss-Newton algorithm. 
+
+## When the Response is a Nonlinear Function of the Regression Parameters
+
+We consider what happens when the relationship between $Y$ (response) and $X$ (predictor) is known to be a particular curve that cannot be made linear by transformation.
+
+That is, suppose		$$	y = f(x)  +  \varepsilon$$    
+
+Where  $f(x)$  denotes some function of $x$ (e.g. a curve),  and where the error variation $\varepsilon$ around the curve is  normally distributed with constant variance as before.  
+
+Suppose we have a general idea of the shape of the curve, but the precise details depend on some unknown parameters, say  $\alpha, \beta$ and $\gamma$. 
+
+The task, as in ordinary linear regression, reduces to that of estimating the parameters.  Now in principle we can estimate $\alpha, \beta$ and $\gamma$   by least squares as before.  That is,  we simply choose those estimates that make the squared error of our curve as small as possible: 
+i.e. the least squares problem is to  minimize
+$$ SS_{error} = \sum \left(y_i - f(x_i; \alpha,\beta,\gamma )\right) ^2 $$
+or equivalently minimise the residual standard error 
+$S = \sqrt{SS_{error}/{(n-p)}}$. 
+
+  
+
+The only difficulty or difference to the previous situation is that we do not have simple formulas to use arising out of the matrix linear algebra, as the curve $f(x)$ is not linear in $\alpha, \beta$ and $\gamma$.     
+
+A couple of examples of functions $f(x)$ that are nonlinear in the parameters are: 
+
+
+1.   Suppose 
+
+$$ f(x_i; \alpha,\beta_0,\beta_1) =  \alpha~~ \frac{ e^{\beta_0+ \beta_1 x}}{ 1+e^{\beta_0+ \beta_1 x} }  + \varepsilon$$
+
+ This is the so-called logistic curve,  which models a phenomenon  (such as sales) that goes from zero   to some upper limit $\alpha$.  
+ 
+ (Note $\alpha$ is an asymptote for the **curve** but the individual data can go randomly above or below the curve).   
+ 
+This model  cannot be  made linear, but  in principle we  can use any mathematical method we wish  to find those estimates  of $\alpha,\beta_0$,$\beta_1$ that minimize   
+$SS_{error} = \sum (y_i - \hat y_i )^2$ 
+where 
+$$\hat y_i = \hat\alpha~~\frac{e^{\hat\beta_0+ \hat\beta_1 x} }{ 1+e^{\hat\beta_0+ \hat\beta_1 x} } ~~.$$
+
+
+
+2.	A somewhat simpler example, but also nonlinear, is 
+
+$$ y_i = \beta_0 + \beta_1 x_i^{\alpha} $$
+
+
+		 
+where $\alpha$ is  unknown.  Again this cannot be made linear in $\alpha,\beta_0$ and $\beta_1$ but in this example the model fitting could be done simply by guessing $\alpha$ and creating a new explanatory variable $x_{new}   =  x^\alpha$. 
+Then $\beta_0$ and $\beta_1$ can be found by linear regression of $y$ on $x_{new}$. 
+
+
+## Case Study using  Direct Search
+The following example concerns some data on 
+$Y$ = the number of  *manhours* used in surgical cases in 15 US navy hospitals,    versus   $X$= the number of *cases* treated.
+
+The purpose of the analysis was to develop a preliminary manpower equation for estimation of manhours per month expended on surgical services.
+
+`r xfun::embed_file("../../data/Manhours.csv")`
+
+```{r read Manhours, eval=-1, echo=-2}
+manhours = read.csv("Manhours.csv",header=TRUE)
+manhours = read.csv("../../data/Manhours.csv",header=TRUE)
+
+manhours 
+plot(Manhours ~ Cases, data=manhours) 
+mh1 = lm(Manhours~Cases, data=manhours)  
+abline(coef(mh1))
+```
+
+We could use trial and error. A straight-line model $\alpha=1$ does not seem suitable. We could try a model $\sqrt X$  (i.e. $\alpha=0.5$).   
+
+
+```{r first fits}
+
+Cases= manhours$Cases
+Manhours = manhours$Manhours
+
+summary(mh1)
+
+Casenew =Cases^0.5
+mh2 = lm(Manhours~ Casenew  )
+summary(mh2)
+plot( Manhours ~ Casenew, main="Cases ^ 0.5") 
+abline(coef(mh2))
+```
+
+Note the residual standard error is smaller for this model. 
+Let's try the fourth root.
+
+
+```{r second fit}
+Casenew =Cases^0.25
+mh3 = lm(Manhours~ Casenew  )
+summary(mh3)
+plot( Manhours ~ Casenew, main="Cases ^ 0.25") 
+abline(coef(mh3))
+```
+
+
+Again the residual standard error is smaller.  Suppose we try a grid of values for $\alpha$
+
+```{r grid1}
+alpha = rse= rep(0,10)
+for( i in 1:10 ){
+alpha[i] = i/10
+casenew = Cases^alpha[i]
+rse[i] = summary(lm(Manhours~casenew))$sigma}
+cbind(alpha,rse)
+```
+
+It looks like the minimum is for $\alpha$ between 0.2 and 0.4
+
+
+```{r grid2}
+alpha = rse= rep(0,20)
+for( i in 1:20 ){
+alpha[i] = 0.2+ i/100
+casenew = Cases^alpha[i]
+rse[i] = summary(lm(Manhours~casenew))$sigma}
+cbind(alpha,rse)
+```
+It looks like the minimum is for $\alpha$ between 0.26 and 0.28.
+```{r grid3}
+alpha = rse= rep(0,20)
+for( i in 1:20 ){
+alpha[i] = 0.26+ i/1000
+casenew = Cases^alpha[i]
+rse[i] = summary(lm(Manhours~casenew))$sigma}
+cbind(alpha,rse)
+```
+It looks like the minimum $S$ is obtained for $\alpha \approx 0.269$.  The procedure could be repeated to obtain the minimum RSE to more significant figures but, in view of the small changes we are achieving,  little will be achieved by going further. 
+
+```{r last fit }
+casenew =Cases^0.269
+mh3 = lm(Manhours~ casenew  )
+summary(mh3)
+plot( Manhours ~ casenew, main="Cases ^ 0.269") 
+abline(coef(mh3))
+```
+
+### Comments on direct search
+
+Direct searching on a grid may get to a solution, but the method has disadvantages. 
+
+1. It is time-consuming, requiring programming and/or human intervention.
+
+2. If we have several parameters to search for, we may have to use a grid in two, three or more dimensions, which is computationally intensive. 
+
+3. Even once we get to a point estimate, we do not have a standard error for the estimate, so we do not know really how accurate it is.  We cannot compute confidence intervals or hypothesis tests regarding the parameters. 
+
+We now consider a more convenient method that overcomes all these handicaps. 
+
+## The Gauss-Newton Algorithm
+
+The alternative to using direct search is to use a mathematical technique such as the Gauss-Newton Algorithm .
+
+The idea of the algorithm is to approximate the curve   $f(x_i; \alpha,\beta,\gamma)$   by a sum of straight lines involving $\alpha,\beta$ and $\gamma$.  That is, a  *linearized*  approximation  to the curve.   
+
+The mathematical ideas are in an word document on Stream, but are not examinable. 
+
+The main points are: 
+
+1.	The process of model-fitting is iterative.  That is, it involves a series of repeated linear regressions with slightly different data each time, converging to a fixed answer as we get closer and closer to the optimal estimates.
+
+2.	The Gauss-Newton method is guaranteed to converge quickly to the optimal estimates, provided that our initial starting point is close enough.
+
+3.	The method also produces approximate hypothesis tests and confidence intervals.  
+
+The nls()   nonlinear least squares procedure implements the Gauss-Newton algorithm.
+
+We need to specify the formula, and (preferably) reasonable starting values. 
+
+```{r, echo=F}
+rm(alpha)
+```
+
+```{r gauss-newton 1}
+manhours.nls = nls(Manhours~beta0 + beta1*(Cases^alpha), start=list(alpha=0.25,beta0=-16000,beta1=4400), data=manhours)  
+
+summary(manhours.nls)
+
+plot(Manhours~Cases)
+lines(predict(manhours.nls)~ Cases)
+```
+
+We can calculate an approximate confidence interval for $\alpha$ using  $$ \hat\alpha \pm t_{n-p}(0.025)*SE(\hat\alpha)$$
+
+```{r confidence interval}
+summary(manhours.nls)$coefficients
+est= summary(manhours.nls)$coefficients[1]  
+se=summary(manhours.nls)$coefficients[4]
+lower= est + qt(0.025,df=15-3)*se
+upper= est + qt(0.975,df=15-3)*se
+cbind(est,se,lower,upper)
+
+```
+
+We can conclude from this that we could not reject a hypothesis  that $\alpha$ equalled any value between -0.07 and 0.6.  
+
+In particular, we could have stuck with the square-root transformation ($\alpha=0.5$) or used the *log* transformation (recall this takes the place of $\alpha=0$ in the ladder of powers).
+
+## Example:  A Growth Curve Model with an Maximum  
+
+Recall the fev data relating forced expiration volume (FEV) to girls' ages. This seemed to flatten off after about age 10. 
+
+We will model the growth using a logistic curve with unknown maximum.
+
+$$ f(x_i; \alpha,\beta_0,\beta_1) =  \alpha~~\frac{e^{\beta_0+ \beta_1 x}}{ 1+e^{\beta_0+ \beta_1 x} }  + \varepsilon$$
+
+
+`r xfun::embed_file("../../data/FEV.csv")` 
+
+```{r getFevData, eval=-1, echo=-2}
+fev <- read.csv(file="fev.csv", header=TRUE)
+fev <- read.csv(file="../../data/fev.csv", header=TRUE)
+
+FEV = fev$FEV
+Age= fev$Age
+
+plot(FEV~Age )
+
+```
+
+
+From the graph the maximum $\alpha \approx 3$, so setting 
+$$FEV \approx 3 ~~\frac{e^{\beta_0 + \beta_1 Age}}{ 1+ e^{\beta_0 + \beta_1 Age}}$$ 
+we can rearrange this as  
+$$1+ e^{\beta_0 + \beta_1 Age}   \approx  \frac{3}{FEV} ~  e^{\beta_0 + \beta_1 Age}  $$ 
+
+Gather up the $e^{\beta_0 + \beta_1 Age}$ terms 
+
+
+$$ \frac{1}{3/FEV - 1} \approx e^{\beta_0 + \beta_1 Age}$$
+and then if we take logs we can use the left-hand side as the "response" in a regression
+
+$$ Y_{new} = \log\left(\frac{1}{3/FEV - 1}\right)\approx  \beta_0 + \beta_1 Age $$
+to give us starting values for $\beta_0$ and $\beta_1$:
+
+```{r start}
+start.calc =lm( -log(3/FEV -1) ~ Age)
+
+```
+
+
+```{r}
+summary(start.calc)
+```
+
+So we will use starting values $\alpha=3$, $\beta_0= -1.3$ and $\beta_1=0.28$
+
+
+```{r fev.nls}
+fev.nls= nls(  FEV ~alpha*exp(beta0 + beta1*Age)/(1+ exp(beta0 + beta1*Age)), start=list(alpha=3,beta0= -1.3,beta1= 0.28) )  
+summary(fev.nls)
+
+plot(FEV~Age )
+lines(30:200/10,predict(fev.nls, newdata=data.frame(Age =30:200/10) )   , lty=1,col=2,lwd=3)
+```
+
+
+This has converged. Note the residual standard error is 
+`r round(summary(fev.nls)$sigma,4)`, which is  slightly bigger than for the piecewise model looked at earlier (S=0.39) but the curve seems more reasonable than having a sharp corner.  
+
+We can get a slightly better fit by adding a quadratic term in Age. In the following we use starting value $\beta_2=0$.
+
+```{r fev.nls2a}
+fev.nls2= nls(  FEV ~alpha*exp(beta0 + beta1*Age+ beta2*Age^2)/(1+ exp(beta0 + beta1*Age+ beta2*Age^2)), start=list(alpha=3,beta0= -1.3,beta1=0.28, beta2=0), data=fev)  
+summary(fev.nls2)
+plot(FEV~Age)
+lines(30:200/10,predict(fev.nls2, newdata=data.frame(Age =30:200/10) )   , lty=1,col=2,lwd=3)
+
+``` 
+
+
+
+## Piecewise Regression with an Unknown Knot
+
+Recall that sometimes we wish to fit a piecewise regression model, but the location of the knot is unknown. 
+
+This then is becomes a nonlinear regression model, with the location of the knot taking the role of the alpha parameter above (not meaning that it enters the equation the same way, but that if the knot is known, then every other parameter can be fitted by  linear regression).   
+
+Strictly speaking the  Gauss-Newton algorithm does not quite work, as the knot gives a ‘corner’ to the lines, or even a jump in the level of the lines, and this means that the calculus on which the method was originally based breaks down.  However the nls() routine can be made to cope. 
+
+### Nonlinear regression for a change-slope model: the Thai Baht.
+
+The data here refer to the Thai Baht  Exchange Rate $Y$ vs Time  (time measured in hundreds of days,  *hDays*. )   The graph below shows $Y$ vs *hDays* with a cubic model.  The model looks like it would be unsafe for extrapolation on the right.
+
+
+`r xfun::embed_file("../../data/baht.csv")` 
+
+```{r baht, eval=-1, echo=-2}
+baht= read.csv( "baht.csv",header=TRUE)
+baht= read.csv( "../../data/baht.csv",header=TRUE)
+
+Y= baht$Y
+hDays = baht$hDays 
+
+plot(Y ~hDays) 
+cubic = lm(Y~poly(hDays,3));   summary(cubic)$sigma
+lines(predict(cubic)~hDays, col=2,lwd=2)
+```
+
+We consider a piecewise model 
+$$ Y = \beta_0 + \beta_1. hDays + \beta_2 (hDays-k)_+ $$
+where $k$ is unknown but probably near 2. We will use this guess to give starting values for the other parameters.
+
+```{r piecewise}
+start.guess = lm( Y ~ hDays + I( (abs(hDays-2)+hDays-2)/2) )
+summary(start.guess)
+```
+This gives starting estimates $\beta_0\approx 0.34, ~~ \beta_1 \approx -0.02,~~ \beta_2 \approx 0.022, ~~k=2$.
+
+The following code fits the model, but some iteration control parameters were needed, presumably because of the corner. 
+(Other statistical software such as SPSS and Minitab  have less problems fitting this model.)
+
+```{r piecewise.nls}
+
+baht.nls = nls(  Y ~ beta0 + beta1*hDays + beta2*I( (abs(hDays-k)+hDays-k)/2) , start=list(beta0=0.34 , beta1= -0.02,beta2= 0.022, k=2), data=baht, nls.control(warnOnly=TRUE, minFactor=1/2048))  
+summary(baht.nls)
+plot(Y~hDays)
+lines(predict(baht.nls )~hDays ,   col=2,lwd=3)
+
+```
+
+The graph seems much more reasonable. Note it changed the $k$ to 1.57. 
+
+In terms of residual standard error, which is the better-fitting model, the cubic or the change-point model? (From above the cubic graph  S =`r round(summary(cubic)$sigma, 6)`).
+

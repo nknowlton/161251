@@ -1,0 +1,157 @@
+
+
+
+As we have seen, simple linear regression seeks to model the relationship between the  mean of the response *y* and a single predictor *x*.
+
+You will have met simple linear regression in earlier Statistics papers,  so some of the material in this topic should be revision.
+
+This topic seeks to introduce some notation and remind you of some fundamental concepts of regression.
+
+## Pulse and Height
+
+The following R code
+
+- reads the pulse data into R (from a text file); and then 
+- prints out the data for simple viewing.
+
+```{r getPulseData, echo=-1, eval=-2}
+Pulse <- read.csv(file="../../data/pulse.csv", header=T)
+Pulse <- read.csv(file="https://r-resources.massey.ac.nz/161221/data/pulse.csv", header=TRUE)
+Pulse
+```
+`r xfun::embed_file("../../data/pulse.csv")` 
+
+- We would normally then look at some plots. Only one scatter plot is possible. We could display it using either a simple plot, or a more fancy ggplot, but it is essentially the same graph.
+
+```{r plot}
+plot( Pulse~Height, data=Pulse)
+```
+
+```{r PulsePlot, fig.cap="Plot of resting pulse rate (beats per minute) versus height (in centimeters) for a sample of 50 hospital patients. Source: A Handbook of Small Data Sets by Hand, Daly, Lunn, McConway and Ostrowski."}
+library(ggplot2)
+ggplot(Pulse, mapping = aes(x=Height, y=Pulse)) + geom_point() +
+labs(ylab="Resting pulse rate (beats per minute)", xlab="Height (in centimeters) ") 
+```
+
+
+It is of interest to know whether pulse rate is truly dependent on height.
+
+View pulse as response (*y*) variable and height as predictor  (*x*) variable.
+
+We can formally test whether this really is the case by using a simple linear regression model.
+
+Note there is one observation (patient resting pulse 116) which is distant from the main bulk of data.
+
+## Basics of Simple Linear Regression: Data
+
+Quantitative data occur in pairs: *(x~1~,y~1~), ...,(x~n~,y~n~)*.
+
+*y~i~* denotes the **response** variable and *x~i~* the explanatory variable for the *i*^th^ individual.
+
+The aim is to estimate the **mean** response for any given value of the explanatory variable.
+
+It therefore makes sense to think of the *x* values  *x~1~,...,x~n~* as fixed constants, while *y~1~, ..., y~n~* are **chance** values taken by random variables *Y~1~,..., Y~n~*.
+
+## Basics of Simple Linear Regression: Model
+
+Now recall the linear regression model is
+
+$$Y_i = \beta_0 + \beta_1 x_i + \varepsilon_i$$ 
+
+where
+- $\beta_0, \beta_1$ are **regression parameters**.
+- $\varepsilon_1, \ldots ,\varepsilon_n$ are error terms, about  which we make the following **assumptions**.
+
+-----------------------------------------------------
+A1. The expected value of the errors $E[\varepsilon_i] = 0$ for *i=1,...,n*.
+
+A2. The errors $\varepsilon_1, \ldots ,\varepsilon_n$ are independent.
+
+A3.  The error variance $\mbox{var}(\varepsilon_i) = \sigma^2$ (an unknown constant) for *i=1,...,n*.
+
+A4. The errors $\varepsilon_1, \ldots ,\varepsilon_n$ are normally distributed.
+
+--------------------------------------------------------
+N.B. A2 is a new assumption not mentioned before. Near the end of the course we will consider what happens if this assumption is wrong. 
+
+We refer back to these four assumptions many times in this course; they will often be referred to using the shorthand  **A1** to **A4**.
+
+
+The validity of the simple regression model given above  and assumption A1  implies that
+
+$$E[Y_i] = \mu_i = \beta_0 + \beta_1 x_i$$
+
+So we say that $E[Y_i] = \mu_i$ is the expected value of *Y~i~* given (or  **conditional upon**) *x~i~*.
+
+
+## Parameter Estimation
+
+
+How do we estimate the parameters $\beta_0$ and $\beta_1$? 
+
+The simplest method, which is optimal if the assumptions A1-A4 are correct, is to use the method of least squares.
+
+
+Least squares estimates (LSEs) $\hat{\beta_0}$ and $\hat{\beta_1}$, are those values that minimize the sum of squares
+
+$$\begin{aligned} SS(\beta_0, \beta_1) &=& \sum_{i=1}^n (y_i - \mu_i)^2\\
+&=& \sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2.
+\end{aligned}$$
+
+
+Using calculus it can be shown that $\hat{\beta_0}$ and $\hat{\beta_1}$ are given by
+$$\hat{\beta_1} = \frac{s_{xy}}{s_{xx}}$$ 
+where
+
+$s_{xy} = \sum_{i=1}^n (x_i - \bar x)(y_i - \bar y)$;
+
+$s_{xx} = \sum_{i=1}^n (x_i - \bar x)^2$;
+
+and $\hat{\beta_0} = \bar y - \hat{\beta_1} \bar x \; .$
+
+The last formula implies that the least squares regression line goes through the centroid $\left(\bar x, \bar y \right)$ of the data. 
+
+
+## Properties of LSEs
+
+Some maths shows sampling distributions of $\hat{\beta_0}$ and $\hat{\beta_1}$ are:
+
+$$\hat{\beta_1} \sim N \left(\beta_1,  \frac{\sigma^2}{s_{xx}}\right )$$
+ and
+$$\hat{\beta_0} \sim N \left(\beta_0 , \, \sigma^2\left[\frac{1}{n} + 
+\frac{\bar x^2}{s_{xx}} \right] \right)\; .$$
+
+
+The details of the  above formulas are not important.  The *practical* point of the formulas is that 
+
+1. the estimates are unbiased (centred on the right thing). This implies that random sampling should give you about the right answer (at least if we have a big enough dataset),   and 
+2. the estimates are normally distributed, which means we can calculate confidence intervals and hypothesis tests for $\beta_0$ and $\beta_1$.
+
+The variance terms (second term within each of the N( , ) formulae) are given for completeness of your notes, but are not something we will need to calculate ourselves. 
+
+
+## Estimating the Error Variance
+
+In practice, we are almost certainly working with sample data, which means the error variance, $\sigma^2$ is also an unknown parameter.   
+
+It is important to estimate it because its square root $\sigma$ gives us information about the natural variation in the data i.e.  about how far away the individual datapoints $Y_i$ typically are from the central line  $E[Y] =\beta_0 + \beta_1 x$.
+
+It can be estimated using the **residual sum of squares (RSS)**, defined by 
+
+$$RSS = \sum_{i=1}^n (y_i - \hat{\mu_i})^2 = \sum_{i=1}^n (y_i - \hat{\beta_0} - \hat{\beta_1} x_i )^2 \; .$$ 
+
+where $\hat{\mu_i} = \hat{\beta_0} + \hat{\beta_1} x_i$ is the *i*^th^
+ **fitted value**.
+ 
+ We often use the notation $\hat y_i$  instead of $\hat{\mu_i}$.    
+ 
+ The $e_i = y_i - \hat{y_i}$ is the *i*^th^  **residual**. 
+
+Some maths give an estimate of $\sigma^2$ is given by 
+
+$$s^2 = \frac{1}{n-2} RSS.$$
+
+The $$s  = \sqrt{ \frac{1}{n-2} \sum{(y_i- \hat y_i)^2}}$$
+is sometimes called the **residual standard error**.  i.e. it is the **standard deviation of the residuals**. 
+The reason for the "n-2" will be explained later.
+
