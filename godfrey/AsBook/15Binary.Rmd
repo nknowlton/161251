@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -202,4 +206,3 @@ anova(English.lm1, English.lm2)
 ```
 
 The coefficient associated with our constructed variable `revisionGirls` is significant (*p*-value $\approx 0.04$), which indicates that there is a difference in the slope between boys and girls.
-

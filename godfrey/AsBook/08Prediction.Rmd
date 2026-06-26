@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -186,4 +190,3 @@ predict(Boil.lm, newdata=x0, interval="prediction", level=0.95)
 predict(Boil.lm, newdata=x0, interval="confidence", level=0.95)
 predict(Boil.lm, newdata=x0, interval="confidence", level=0.99)
 ```
-

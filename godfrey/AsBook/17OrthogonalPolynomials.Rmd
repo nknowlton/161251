@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -298,5 +302,4 @@ In this simple regression, it is relatively easy to see the manipulation that to
 
 
 The re-scaling of a variable is not limited to polynomial regression situations. Re-scaling of a variable  could prove worthwhile in any regression context when that variable has a relatively small range as compared to its distance from zero.
-
 

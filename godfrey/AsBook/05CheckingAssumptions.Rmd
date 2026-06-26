@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -293,4 +297,3 @@ Linear regression model assumptions do not appear valid.
 Hence conclusions based on this model are questionable.
 
 Problems with model seem largely down to a few **odd** data points or **outliers**.
-

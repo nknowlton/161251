@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -183,4 +187,3 @@ We can use $\mbox{Var}(\boldsymbol{y}) = \sigma^2 I$ since the responses are
 
 The leading diagonal of this matrix is the basis for the standard errors of our parameter estimates seen in our regression output.
 is 
-

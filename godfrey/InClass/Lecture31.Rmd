@@ -1,23 +1,23 @@
 ---
-title: "Lecture 31: Splines LOESS and Regularized Models"
+title: "Lecture 31: Splines and LOESS: Flexible Regression Curves"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
 date: "Week 11 of Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   html_notebook:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   ioslides_presentation:
     widescreen: true
     smaller: true
   word_document: default
   slidy_presentation: 
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   pdf_document: default
 ---
@@ -37,145 +37,193 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
 <!--- Do not edit anything above this line. --->
-## Beyond Parametric Models
+## Splines and LOESS: Flexible Regression Curves
 
-So far we have focused on parametric regression models — models where the form of the relationship between $Y$ and $X$ is specified by a small number of parameters (e.g. $\beta_0 + \beta_1 x$, or $\beta_0 + \beta_1 x + \beta_2 x^2$).
+So far we have focused on parametric regression models, where the mean response is described by a small number of coefficients. In this lecture we use the Seoul Bike Sharing data to study a different problem: the relationship between demand and weather is clearly nonlinear.
 
-In this lecture we introduce three approaches that relax the strict parametric form:
+By the end of this lecture, students should be able to:
 
-- **Splines**: piecewise polynomials joined at knots
-- **LOESS**: locally estimated scatterplot smoothing
-- **Regularized models**: ridge regression and lasso
+1. Explain why a straight-line mean function can be too restrictive.
+2. Use LOESS to explore nonlinear structure.
+3. Fit regression splines using basis functions.
+4. Explain the difference between ordinary and natural splines.
+5. Recognise how added flexibility creates the need for regularisation.
 
-## Why Go Beyond Parametric Models?
+### Running Example: Hourly Bike Demand
 
-- Parametric models impose a global structure on the data
-- Real relationships may be more complex than a straight line or simple polynomial
-- We may want to let the data "speak for themselves" without imposing a rigid functional form
-- Regularization helps when we have many predictors relative to observations
+`r xfun::embed_file("../Data/seoul_bike_hourly.csv")`
 
-## Splines
-
-### What is a Spline?
-
-A spline is a piecewise polynomial function that is smooth at the join points (knots).
-
-- We already saw piecewise linear models in Lecture 18
-- Splines generalize this to higher-degree polynomials with smoothness constraints
-- Common types: linear splines, cubic splines, natural cubic splines, B-splines
-
-### Cubic Splines
-
-A cubic spline with $K$ knots at locations $\kappa_1, \ldots, \kappa_K$ is a piecewise cubic polynomial that is continuous and has continuous first and second derivatives at each knot.
-
-```{r spline-example, eval=FALSE}
-library(splines)
-# Natural cubic spline with 3 degrees of freedom
-model <- lm(y ~ ns(x, df = 3), data = mydata)
+```{r read seoul hourly, message=FALSE}
+seoul_hourly = read_csv("../Data/seoul_bike_hourly.csv")
+seoul_hourly
 ```
 
-### Choosing Knots
+The core question for this lecture is:
 
-- Number of knots controls flexibility (more knots = more wiggly)
-- Placement: typically at quantiles of $x$
-- Too many knots → overfitting; too few → underfitting
-- Cross-validation can help choose the number of knots
+> How does hourly bike demand change with temperature?
 
-## LOESS: Locally Estimated Scatterplot Smoothing
+### Why Go Beyond Straight Lines?
+
+A straight-line model can underfit. A highly flexible curve can overfit. Our aim is to describe the mean relationship without losing the regression framing.
+
+```{r seoul temperature scatter, warning=FALSE, message=FALSE}
+seoul_hourly |>
+  ggplot(aes(x = temperature, y = rented_bike_count)) +
+  geom_point(alpha = 0.06) +
+  labs(
+    x = "Temperature (C)",
+    y = "Hourly rented bike count",
+    title = "Bike demand changes nonlinearly with temperature"
+  )
+```
+
+## Example 1: LOESS
 
 ### The LOESS Idea
 
-Instead of fitting one global model, LOESS fits many small local models:
+LOESS fits many small local regressions instead of one global line.
 
-1. For each point $x_0$ where we want a prediction, select a neighbourhood of nearby points
-2. Fit a low-degree polynomial (usually linear or quadratic) using weighted least squares, where points closer to $x_0$ get more weight
-3. The predicted value at $x_0$ is the fitted value from this local model
+1. Choose a target point.
+2. Borrow nearby observations.
+3. Fit a weighted local regression.
 
-### LOESS in R
+### LOESS with the Seoul Bike Data
 
-```{r loess-example, eval=FALSE}
-# LOESS with span = 0.5 (50% of data used in each local fit)
-loess_fit <- loess(y ~ x, data = mydata, span = 0.5)
-# Predict on a grid
-x_grid <- seq(min(x), max(x), length.out = 100)
-y_pred <- predict(loess_fit, newdata = data.frame(x = x_grid))
+```{r loess-seoul, warning=FALSE, message=FALSE}
+seoul_hourly |>
+  ggplot(aes(x = temperature, y = rented_bike_count)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.15,
+    se = FALSE,
+    linewidth = 1
+  ) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.45,
+    se = FALSE,
+    linewidth = 1
+  ) +
+  labs(
+    x = "Temperature (C)",
+    y = "Hourly rented bike count",
+    title = "LOESS span controls the smoothness of the fitted curve"
+  )
 ```
 
 ### The Span Parameter
 
-- `span` controls the fraction of data used in each local neighbourhood
-- Small span → very local, wiggly fit (may overfit)
-- Large span → smoother, more global fit (may underfit)
-- Typical values: 0.2 to 0.8
-- Can be chosen by cross-validation or AICc
+- `span` controls how local the fit is.
+- Small span gives a more flexible but noisier curve.
+- Large span gives a smoother and more stable curve.
 
-### LOESS vs Splines
+LOESS is especially useful for seeing the empirical shape of the data before we decide on a formal regression model.
 
-| Feature | LOESS | Splines |
-|---------|-------|---------|
-| Global model? | No (local fits) | Yes (global basis) |
-| Prediction formula | No closed form | Yes (basis expansion) |
-| Extrapolation | Poor | Better (with care) |
-| Computation | $O(n^2)$ for prediction | $O(n)$ after fitting |
-| Interpretability | Low | Moderate |
+## Example 2: Splines
 
-## Regularized Regression
+### The Key Conceptual Point
 
-### The Problem with Many Predictors
+A spline model is still linear in its coefficients:
 
-When we have many predictors (possibly more than observations), ordinary least squares:
+$$y = \beta_0 + \beta_1 b_1(x) + \beta_2 b_2(x) + \cdots + \beta_k b_k(x) + \varepsilon.$$
 
-- May have high variance
-- May not have a unique solution (if $p > n$)
-- Tends to overfit
+It is nonlinear in the original predictor, but linear in the unknown coefficients. That means we can still use standard regression tools.
 
-### Ridge Regression
+### Linear, Spline, and Natural Spline Fits
 
-Ridge regression adds a penalty on the size of coefficients:
+```{r spline-seoul-models, warning=FALSE, message=FALSE}
+library(splines)
 
-$$\hat{\beta}^{\text{ridge}} = \arg\min_\beta \left\{ \sum_{i=1}^n (y_i - x_i^T\beta)^2 + \lambda \sum_{j=1}^p \beta_j^2 \right\}$$
+seoul_temp = seoul_hourly |>
+  select(temperature, rented_bike_count) |>
+  filter(is.finite(temperature), is.finite(rented_bike_count))
 
-- Shrinks coefficients toward zero but never exactly to zero
-- $\lambda$ controls the amount of shrinkage (chosen by cross-validation)
-- Works well when many predictors each contribute a little
+lm_linear = lm(rented_bike_count ~ temperature, data = seoul_temp)
+lm_bs = lm(rented_bike_count ~ bs(temperature, df = 5), data = seoul_temp)
+lm_ns = lm(rented_bike_count ~ ns(temperature, df = 5), data = seoul_temp)
 
-### Lasso
+temp_grid = tibble(
+  temperature = seq(min(seoul_temp$temperature), max(seoul_temp$temperature), length.out = 250)
+)
 
-The lasso (Least Absolute Shrinkage and Selection Operator) uses an $L_1$ penalty:
+predictions = temp_grid |>
+  mutate(
+    linear = predict(lm_linear, newdata = temp_grid),
+    bs = predict(lm_bs, newdata = temp_grid),
+    natural_spline = predict(lm_ns, newdata = temp_grid)
+  ) |>
+  pivot_longer(
+    cols = c(linear, bs, natural_spline),
+    names_to = "model",
+    values_to = "fitted_bikes"
+  )
 
-$$\hat{\beta}^{\text{lasso}} = \arg\min_\beta \left\{ \sum_{i=1}^n (y_i - x_i^T\beta)^2 + \lambda \sum_{j=1}^p |\beta_j| \right\}$$
-
-- Shrinks some coefficients exactly to zero → automatic variable selection
-- Produces sparse models
-- $\lambda$ chosen by cross-validation
-
-### Ridge vs Lasso
-
-```{r glmnet-example, eval=FALSE}
-library(glmnet)
-# Ridge (alpha = 0)
-ridge_fit <- cv.glmnet(x, y, alpha = 0)
-# Lasso (alpha = 1)
-lasso_fit <- cv.glmnet(x, y, alpha = 1)
+seoul_temp |>
+  ggplot(aes(x = temperature, y = rented_bike_count)) +
+  geom_point(alpha = 0.05) +
+  geom_line(
+    data = predictions,
+    aes(x = temperature, y = fitted_bikes, linetype = model),
+    linewidth = 1
+  ) +
+  labs(
+    x = "Temperature (C)",
+    y = "Hourly rented bike count",
+    linetype = "Model",
+    title = "Splines allow flexible but still regression-based fits"
+  )
 ```
 
-| Feature | Ridge | Lasso |
-|---------|-------|-------|
-| Penalty | $L_2$ (squared) | $L_1$ (absolute) |
-| Coefficient shrinkage | Toward zero | Some to exactly zero |
-| Variable selection | No | Yes |
-| Correlated predictors | Shares coefficient | Picks one |
-| When to use | Many small effects | Sparse true model |
+### Natural Splines vs Ordinary Splines
 
-## Summary
+```{r spline-boundary, warning=FALSE, message=FALSE}
+predictions |>
+  filter(model %in% c("bs", "natural_spline")) |>
+  ggplot(aes(x = temperature, y = fitted_bikes, colour = model)) +
+  geom_line(linewidth = 1) +
+  labs(
+    x = "Temperature (C)",
+    y = "Fitted hourly bike count",
+    colour = "Model",
+    title = "Natural splines constrain the fit near the boundaries"
+  )
+```
 
-- **Splines** extend polynomial regression with piecewise fits and smoothness constraints
-- **LOESS** provides flexible, assumption-light smoothing through local weighted regression
-- **Ridge regression** shrinks coefficients to handle multicollinearity and high-dimensional data
-- **Lasso** performs automatic variable selection by shrinking some coefficients to exactly zero
+Natural splines are often a sensible default because we tend to trust the extremes of the predictor range less than the middle.
 
-These methods bridge the gap between rigid parametric models and the need for flexible, data-driven modelling.
+## A Second Nonlinear Signal
+
+Temperature is not the only candidate for nonlinear modelling. Solar radiation may also have a curved relationship with demand.
+
+```{r seoul solar loess, warning=FALSE, message=FALSE}
+seoul_hourly |>
+  ggplot(aes(x = solar_radiation, y = rented_bike_count)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method = "loess", formula = y ~ x, se = FALSE, linewidth = 1) +
+  labs(
+    x = "Solar radiation",
+    y = "Hourly rented bike count",
+    title = "Other weather predictors may also need flexible mean functions"
+  )
+```
+
+## Lecture Summary
+
+- LOESS is a flexible local smoother that is very useful for exploring shape.
+- Splines create flexible mean functions inside a regression framework.
+- Natural splines help control unstable boundary behaviour.
+
+## Bridge to the Next Lecture
+
+The Seoul bike data now present a new problem. After modelling nonlinear weather effects, we switch from hourly demand to daily demand and ask how time itself can enter the regression model through trend and seasonal predictors.

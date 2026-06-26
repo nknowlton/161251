@@ -1,0 +1,193 @@
+## Regularized Regression: Ridge, Lasso, and Cross-Validation
+
+In the previous lecture we made regression models more flexible by adding spline basis terms. In the Seoul bike data, that immediately raises a new question: what happens when we combine flexible weather effects with many calendar and seasonal predictors?
+
+By the end of this lecture, students should be able to:
+
+1. Explain why large or highly correlated predictor sets can destabilise ordinary least squares.
+2. Write the penalised least-squares objectives for ridge and lasso regression.
+3. Distinguish L2 shrinkage from L1 shrinkage.
+4. Use cross-validation to choose the tuning parameter `lambda`.
+5. Recognise regularisation as a general tool for controlling model complexity.
+
+```{r regularized-setup, include=FALSE}
+library(glmnet)
+```
+
+`r xfun::embed_file("../Data/seoul_bike_hourly.csv")`
+
+```{r read seoul hourly, eval=-1, echo=-2, message=FALSE}
+seoul_hourly = read_csv("../Data/seoul_bike_hourly.csv")
+seoul_hourly
+```
+
+## Why Regularise?
+
+Ordinary least squares can struggle when:
+
+- predictors overlap strongly,
+- the design matrix becomes large,
+- flexible terms are added aggressively,
+- or the analyst wants prediction stability more than a sparse symbolic model.
+
+Regularisation keeps the regression framework, but adds a penalty that discourages overly complex coefficient vectors.
+
+## The Core Equations
+
+**Ordinary least squares** chooses $\beta$ to minimise
+
+$$\sum_{i=1}^n (y_i - \hat{y}_i)^2.$$
+
+**Ridge regression** adds an $L_2$ penalty:
+
+$$\hat{\beta}^{\text{ridge}} = \arg\min_\beta \left\{ \sum_{i=1}^n (y_i - \hat{y}_i)^2 + \lambda \sum_{j=1}^p \beta_j^2 \right\}.$$
+
+**Lasso regression** adds an $L_1$ penalty:
+
+$$\hat{\beta}^{\text{lasso}} = \arg\min_\beta \left\{ \sum_{i=1}^n (y_i - \hat{y}_i)^2 + \lambda \sum_{j=1}^p |\beta_j| \right\}.$$
+
+The tuning parameter $\lambda$ controls how strongly we penalise coefficient size.
+
+## Ridge vs Lasso with the Seoul Bike Data
+
+This is a natural continuation of the variable-selection and multicollinearity discussions from Lectures 27 and 29. We have:
+
+- weather predictors,
+- hour and season effects,
+- holiday information,
+- and now spline terms for temperature as well.
+
+```{r seoul candidate columns}
+seoul_hourly |>
+  select(
+    rented_bike_count,
+    hour,
+    season,
+    holiday,
+    functioning_day,
+    temperature,
+    humidity,
+    wind_speed,
+    visibility,
+    dew_point_temperature,
+    solar_radiation,
+    rainfall,
+    snowfall
+  )
+```
+
+### Overlapping Predictors
+
+```{r ridge-lasso-overlap, warning=FALSE, message=FALSE}
+seoul_hourly |>
+  ggplot(aes(x = temperature, y = dew_point_temperature)) +
+  geom_point(alpha = 0.5) +
+  labs(
+    x = "Temperature",
+    y = "Dew point temperature",
+    title = "Some predictors carry overlapping information"
+  )
+```
+
+## Fitting Ridge and Lasso
+
+```{r ridge-lasso-fit, warning=FALSE, message=FALSE}
+X <- model.matrix(
+  rented_bike_count ~ hour + season + holiday + functioning_day +
+    splines::ns(temperature, df = 5) +
+    humidity + wind_speed + visibility +
+    dew_point_temperature + solar_radiation + rainfall + snowfall,
+  data = seoul_hourly
+)[, -1]
+y <- seoul_hourly$rented_bike_count
+
+set.seed(42)
+
+ridge_fit <- cv.glmnet(X, y, alpha = 0, standardize = TRUE)
+lasso_fit <- cv.glmnet(X, y, alpha = 1, standardize = TRUE)
+
+par(mfrow = c(1, 2))
+plot(ridge_fit, main = "Ridge Regression")
+plot(lasso_fit, main = "Lasso")
+```
+
+Cross-validation chooses `lambda` from the data. The two reference values are usually:
+
+- `lambda.min`: the value with smallest estimated prediction error,
+- `lambda.1se`: a more conservative choice that often gives a simpler model.
+
+This is the same design problem we saw earlier in the course, but richer:
+
+- Lecture 27 asked which predictors belong in the model.
+- Lecture 29 showed that overlapping predictors can destabilise coefficients.
+- Here we allow the full design matrix and control its complexity by penalising coefficient size.
+
+## Coefficient Comparison
+
+```{r ridge-lasso-coefs, warning=FALSE, message=FALSE}
+ridge_coef_matrix <- coef(ridge_fit, s = "lambda.min") |>
+  as.matrix()
+ridge_coef <- tibble(
+  term = rownames(ridge_coef_matrix),
+  estimate = as.numeric(ridge_coef_matrix[, 1])
+) |>
+  filter(term != "(Intercept)") |>
+  mutate(model = "Ridge")
+
+lasso_coef_matrix <- coef(lasso_fit, s = "lambda.min") |>
+  as.matrix()
+lasso_coef <- tibble(
+  term = rownames(lasso_coef_matrix),
+  estimate = as.numeric(lasso_coef_matrix[, 1])
+) |>
+  filter(term != "(Intercept)") |>
+  mutate(model = "Lasso")
+
+bind_rows(ridge_coef, lasso_coef) |>
+  mutate(term = fct_reorder(term, abs(estimate))) |>
+  ggplot(aes(x = estimate, y = term)) +
+  geom_point() +
+  facet_wrap(~ model, scales = "free_x") +
+  labs(
+    x = "Coefficient estimate",
+    y = NULL,
+    title = "Ridge shrinks coefficients; lasso can remove terms"
+  )
+```
+
+```{r ridge-lasso-counts, warning=FALSE, message=FALSE}
+cat("Ridge: number of non-zero coefficients:",
+    sum(coef(ridge_fit, s = "lambda.min") != 0), "\n")
+cat("Lasso: number of non-zero coefficients:",
+    sum(coef(lasso_fit, s = "lambda.min") != 0), "\n")
+```
+
+## Ridge vs Lasso Summary
+
+| Feature | Ridge | Lasso |
+|---------|-------|-------|
+| Penalty | $L_2$ (squared) | $L_1$ (absolute) |
+| Coefficient shrinkage | Toward zero | Some to exactly zero |
+| Variable selection | No | Yes |
+| Correlated predictors | Shares coefficient weight | Often keeps a smaller subset |
+| When to use | Many small effects | Many candidates, only some likely to matter |
+
+## Bridge to Time-Indexed Regression
+
+Regularisation controls coefficient complexity. It does **not** remove time structure from the mean or make dependent residuals independent.
+
+```{r seoul daily preview, warning=FALSE, message=FALSE}
+seoul_daily <- read_csv("../Data/seoul_bike_daily.csv", show_col_types = FALSE)
+
+seoul_daily |>
+  select(
+    day_index,
+    rented_bike_count,
+    mean_temperature,
+    total_solar_radiation,
+    season
+  ) |>
+  slice(1:8)
+```
+
+In the next lecture we will switch to the daily aggregate and ask a different question: how do we model trend and seasonality in the mean response over time?

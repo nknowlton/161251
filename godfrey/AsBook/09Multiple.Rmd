@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -367,6 +371,5 @@ x0 <- data.frame(Lat=40.3525, Height= 20)
 
 predict( Climate.lm3,  newdata=x0, interval="prediction", level=0.95)
 ```
-
 
 

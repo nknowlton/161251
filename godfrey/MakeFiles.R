@@ -33,18 +33,18 @@ author: "Presented by ', LectureList$Presenter[i], '"
 output:
   html_document:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   html_notebook:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   ioslides_presentation:
     widescreen: true
     smaller: true
   word_document: default
   slidy_presentation: 
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   pdf_document: default
 ---
@@ -62,18 +62,18 @@ date: "Week ', Week, ' of Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   html_notebook:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   ioslides_presentation:
     widescreen: true
     smaller: true
   word_document: default
   slidy_presentation: 
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   pdf_document: default
 ---
@@ -107,7 +107,7 @@ author: "Presented by Jonathan Godfrey and Nick Knowlton"
 date: "Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
 ---
 ', file = "InClass/Index.Rmd")

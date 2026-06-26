@@ -5,7 +5,7 @@ author: "Presented by Jonathan Godfrey and Nick Knowlton"
 date: "Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
 ---
 <!--- Data is on
@@ -20,6 +20,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -32,21 +36,21 @@ library(broom)
 [Lecture 2: The Basics of Regression Modelling](Lecture2.html) 
 [Lecture 3: Simple Linear Regression](Lecture3.html) 
 [Lecture 4: Linear Regression Modelling with R](Lecture4.html) 
-[Lecture 36: Appendix: Regression through the origin](Lecture5.html)
+[Lecture 37: Appendix: Regression through the origin](Lecture5.html)
 
 ##  Week 2 — Jonathan Godfrey 
 
 [Lecture 5: Checking the Assumptions](Lecture1.html) 
 [Lecture 6: Outliers and Influential Points](Lecture2.html) 
 [Lecture 7: What to do When Assumptions Fail](Lecture3.html) 
-[Lecture 37: Appendix: Transformations in regression models](Lecture4.html)
+[Lecture 38: Appendix: Transformations in regression models](Lecture4.html)
 
 ##  Week 3 — Jonathan Godfrey 
 
 [Lecture 8: Prediction in Simple Linear Regression](Lecture1.html) 
 [Lecture 9: Introduction to Multiple Linear Regression](Lecture2.html) 
 [Lecture 10: Testing in Multiple Regression Models (1)](Lecture3.html) 
-[Lecture 38: Appendix: Models with Many Factors](Lecture4.html)
+[Lecture 39: Appendix: Models with Many Factors](Lecture4.html)
 
 ##  Week 4 — Jonathan Godfrey 
 
@@ -76,7 +80,7 @@ library(broom)
 [Lecture 22: Introduction to the Two Factor Model](Lecture1.html) 
 [Lecture 23: Orthogonal Factorial Models](Lecture2.html) 
 [Lecture 24: Factors with Interactions](Lecture3.html) 
-[Lecture 39: Appendix: Nonlinear least squares](Lecture4.html)
+[Lecture 40: Appendix: Nonlinear least squares](Lecture4.html)
 
 ##  Week 9 — Nick Knowlton 
 
@@ -86,16 +90,17 @@ library(broom)
 
 ##  Week 10 — Nick Knowlton 
 
-[Lecture 28: Stepwise models](Lecture1.html) 
-[Lecture 29: Multicollinearity](Lecture2.html) 
+[Lecture 28: Stepwise and Penalised Regression](Lecture1.html) 
+[Lecture 29: Multicollinearity and Ridge Regression](Lecture2.html) 
 [Lecture 30: Weighted regression](Lecture3.html)
 
 ##  Week 11 — Nick Knowlton 
 
-[Lecture 31: Splines LOESS and Regularized Models](Lecture1.html) 
-[Lecture 32: Time Models with Independent Errors](Lecture2.html) 
-[Lecture 33: Autocorrelated Errors](Lecture3.html)
+[Lecture 31: Splines and LOESS: Flexible Regression Curves](Lecture1.html) 
+[Lecture 32: Time-Indexed Regression: From Flexible Models to Trend](Lecture2.html) 
+[Lecture 33: Regression Models for Trend and Seasonality](Lecture3.html)
 
 ##  Week 12 — Nick Knowlton 
 
-[Lecture 34: Modeling with Autoregressive Errors](Lecture1.html)
+[Lecture 34: Diagnosing Autocorrelated Errors](Lecture1.html) 
+[Lecture 35: Regression with Autoregressive Errors](Lecture2.html)

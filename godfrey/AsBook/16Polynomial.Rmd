@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -196,6 +200,5 @@ When these two vectors end up in the same model matrix, the magnitude of the lar
 We can avoid some of this problem by re-scaling the original *x* variable, by centering (subtract the mean), seen next lecture; we could then multiply by a scalar to bring the resulting values into the range *-1* to *1*, before  using the powers (not shown in this course).
 
 This re-scaling keeps the same information within the original *x* variable as it hasn't changed shape or been re-ordered in any way. It's like deciding to measure something in centimetres or re-scaling to metres; the true measurements won't change, just their representation in numeric terms.
-
 
 

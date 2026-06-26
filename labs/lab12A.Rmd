@@ -13,6 +13,9 @@ knitr::opts_chunk$set(comment="", dev="png")
 library(tidyverse)
 library(broom)
 library(nlme)
+library(tsibble)
+library(fable)
+library(feasts)
 ```
 
 # Computer Laboratory Exercise 12A

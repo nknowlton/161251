@@ -227,3 +227,104 @@ acf(residuals(tourism.gls, type="normalized"))
 What might be the next step?  It looks like there is a significant 12-month correlation, which would also make sense.
 
 But we will leave the task of adjusting for more complicated correlation structures for another course.
+
+## Modern Time Series Models: ETS and ARIMA
+
+While GLS with AR(1) errors works well for simple cases, modern time series analysis offers more flexible frameworks. We'll briefly introduce two approaches: **ETS** (Error, Trend, Seasonal) models and **ARIMA** (AutoRegressive Integrated Moving Average) models.
+
+### ETS Models: Automatic Smoothing
+
+ETS models automatically learn the level, trend, and seasonal components of a time series. The model selects the best combination of error type (additive/multiplicative), trend type (none/additive/damped), and seasonal type (none/additive/multiplicative).
+
+```{r ets-example, message=FALSE, warning=FALSE}
+# Convert tourism data to tsibble
+tourism_ts <- tourism |>
+  mutate(Date = as.Date(paste0(Year, "-", month(Date), "-15"))) |>
+  as_tsibble(index = Date)
+
+# Fit ETS model
+ets_fit <- tourism_ts |>
+  model(ETS(RoomNights))
+
+# View model details
+report(ets_fit)
+```
+
+The ETS model automatically identified the appropriate trend and seasonal structure. Notice how it provides a complete state space model with estimated smoothing parameters.
+
+### ARIMA Models: Autocorrelation and Differencing
+
+ARIMA models work directly with the autocorrelation structure. They combine:
+- **AR (autoregressive)**: using past values to predict current values
+- **I (integrated)**: differencing to achieve stationarity
+- **MA (moving average)**: using past forecast errors
+
+The `ARIMA()` function automatically selects the order of differencing ($d$), autoregressive terms ($p$), and moving average terms ($q$).
+
+```{r arima-example, message=FALSE, warning=FALSE}
+# Fit ARIMA model
+arima_fit <- tourism_ts |>
+  model(ARIMA(RoomNights))
+
+report(arima_fit)
+```
+
+The ARIMA model identified the need for differencing and selected appropriate AR and MA terms based on the autocorrelation structure.
+
+## Dynamic Regression: Combining Predictors with Time Series Errors
+
+The most powerful approach for regression with time series data is **dynamic regression** — fitting a regression model while allowing the errors to follow an ARIMA process. This combines the interpretability of regression (we can see the effect of predictors) with the flexibility of time series modeling (we account for autocorrelation).
+
+The model has two parts:
+1. **Regression equation**: $y_t = \beta_0 + \beta_1 x_{1t} + \beta_2 x_{2t} + \cdots + \eta_t$
+2. **Error equation**: $\eta_t$ follows an ARIMA process
+
+This is the modern equivalent of GLS with AR(1) errors, but more flexible — the errors can follow any ARIMA structure, not just AR(1).
+
+```{r dynamic-regression, message=FALSE, warning=FALSE}
+# Dynamic regression: regression with ARIMA errors
+dyn_reg <- tourism_ts |>
+  model(ARIMA(RoomNights ~ Time + Month))
+
+report(dyn_reg)
+```
+
+Notice how the output shows both the regression coefficients (for Time and Month) and the ARIMA error structure. This gives us the best of both worlds: interpretable predictor effects and properly modeled temporal dependence.
+
+### Comparing Models
+
+Let's compare the three approaches on the tourism data:
+
+```{r model-comparison, message=FALSE, warning=FALSE}
+# Compare models using accuracy measures
+tourism_ts |>
+  model(
+    ETS = ETS(RoomNights),
+    ARIMA = ARIMA(RoomNights),
+    Dynamic = ARIMA(RoomNights ~ Time + Month)
+  ) |>
+  accuracy()
+```
+
+The accuracy measures (RMSE, MAE, etc.) help us see which model fits best. For forecasting, we would also use time series cross-validation.
+
+### Connection to GLS
+
+The GLS approach with AR(1) errors that we saw earlier is actually a special case of dynamic regression. When the ARIMA error structure is ARIMA(1,0,0) — that is, AR(1) with no differencing and no MA terms — the dynamic regression model is equivalent to GLS with `corAR1()`.
+
+The modern `fable` approach makes it easier to:
+- Try different ARIMA structures (not just AR(1))
+- Automatically select the best error structure
+- Combine multiple predictors with flexible error modeling
+- Generate forecasts with proper uncertainty intervals
+
+## Summary
+
+We've seen three ways to handle time series data in regression:
+
+1. **GLS with AR(1) errors**: Good for simple autocorrelation, uses the `nlme` package
+2. **ETS models**: Automatic smoothing of level, trend, and seasonality
+3. **ARIMA models**: Direct modeling of autocorrelation structure
+4. **Dynamic regression**: Combines regression predictors with ARIMA errors (most flexible)
+
+For this course, dynamic regression is the destination — it allows us to model the effects of predictors while properly accounting for temporal dependence in the errors.

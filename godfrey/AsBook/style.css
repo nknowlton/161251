@@ -1,14 +1,151 @@
+/* Sandstone theme (bootswatch.com/sandstone) applied to bookdown gitbook */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+:root {
+  --sandstone-primary: #325d88;
+  --sandstone-success: #93c54b;
+  --sandstone-info: #29abe0;
+  --sandstone-warning: #f47c3c;
+  --sandstone-danger: #d9534f;
+  --sandstone-dark: #3e3f3a;
+  --sandstone-light: #f8f5f0;
+  --sandstone-border: #dfd7ca;
+  --sandstone-text: #3e3f3a;
+  --sandstone-link: #93c54b;
+  --sandstone-link-hover: #769e3c;
+}
+
+/* Base typography */
+body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--sandstone-text);
+}
+
+/* Links */
+a {
+  color: var(--sandstone-link);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--sandstone-link-hover);
+  text-decoration: underline;
+}
+
+/* Bookdown sidebar */
+.book .book-summary {
+  background-color: var(--sandstone-light);
+  border-right: 1px solid var(--sandstone-border);
+}
+.book .book-summary ul.summary li a,
+.book .book-summary ul.summary li span {
+  color: var(--sandstone-text);
+}
+.book .book-summary ul.summary li.active > a {
+  color: var(--sandstone-primary);
+  font-weight: 500;
+}
+.book .book-summary ul.summary li a:hover {
+  color: var(--sandstone-primary);
+  text-decoration: none;
+}
+
+/* Bookdown header bar */
+.book .book-header {
+  background-color: var(--sandstone-primary);
+  color: #fff;
+}
+.book .book-header h1 {
+  color: #fff;
+}
+.book .book-header .btn {
+  color: #fff;
+}
+.book .book-header .btn:hover {
+  background-color: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--sandstone-text);
+  font-weight: 500;
+}
+h1 a, h2 a, h3 a {
+  color: var(--sandstone-text);
+}
+
+/* Code blocks */
+pre {
+  word-break: normal;
+  word-wrap: normal;
+  background-color: var(--sandstone-light);
+  border: 1px solid var(--sandstone-border);
+  border-radius: 4px;
+}
+pre code {
+  white-space: inherit;
+  color: var(--sandstone-text);
+}
+code {
+  color: #e83e8c;
+  background-color: var(--sandstone-light);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 90%;
+}
+
+/* Tables */
+table {
+  border-color: var(--sandstone-border);
+}
+thead {
+  border-bottom: 2px solid var(--sandstone-border);
+}
+th {
+  color: var(--sandstone-text);
+  border-color: var(--sandstone-border);
+}
+td {
+  border-color: var(--sandstone-border);
+}
+table tbody tr:nth-of-type(odd) {
+  background-color: var(--sandstone-light);
+}
+
+/* Figure captions */
 p.caption {
   color: #777;
   margin-top: 10px;
 }
-p code {
-  white-space: inherit;
+
+/* TOC (table of contents) font size */
+.book .book-summary ul.summary li a,
+.book .book-summary ul.summary li span {
+  font-size: 14px;
 }
-pre {
-  word-break: normal;
-  word-wrap: normal;
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid var(--sandstone-success);
+  padding-left: 1rem;
+  color: var(--sandstone-text);
 }
-pre code {
-  white-space: inherit;
+
+/* Bookdown TOC */
+.book .book-body .body-inner {
+  color: var(--sandstone-text);
+}
+
+/* Search input */
+.book .book-summary .book-search input {
+  color: var(--sandstone-text);
+  background-color: #fff;
+  border: 1px solid var(--sandstone-border);
+}
+
+/* Page footer */
+.book .book-footer {
+  color: #777;
+  border-top: 1px solid var(--sandstone-border);
 }

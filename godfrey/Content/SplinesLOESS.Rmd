@@ -15,72 +15,271 @@ In this lecture we introduce three approaches that relax the strict parametric f
 - We may want to let the data "speak for themselves" without imposing a rigid functional form
 - Regularization helps when we have many predictors relative to observations
 
-## Splines
+## Motivation: The Flexibility Problem
+
+A straight line can underfit. A high-degree polynomial can overfit. Flexible regression needs control.
+
+```{r motivation, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(splines)
+library(glmnet)
+
+auto_mpg <- read_csv("../../data/auto_mpg.csv", show_col_types = FALSE)
+
+auto_mpg |>
+  ggplot(aes(x = horsepower, y = mpg)) +
+  geom_point(alpha = 0.5) +
+  labs(
+    x = "Horsepower",
+    y = "Miles per gallon",
+    title = "Fuel economy falls nonlinearly as horsepower increases"
+  )
+```
+
+Today's methods all control flexibility in different ways:
+
+- **Splines** control where and how curves bend
+- **LOESS** controls locality through a smoothing span
+- **Ridge and lasso** control coefficient size through penalties
+
+---
+
+## Example 1: LOESS — Exploratory Local Smoothing
+
+### The LOESS Idea
+
+Instead of fitting one global model, LOESS fits many small local regressions:
+
+1. For each point $x_0$ where we want a prediction, select a neighbourhood of nearby points
+2. Fit a low-degree polynomial (usually linear or quadratic) using weighted least squares, where points closer to $x_0$ get more weight
+3. The predicted value at $x_0$ is the fitted value from this local model
+
+### LOESS with Auto MPG
+
+```{r loess-auto, warning=FALSE, message=FALSE}
+auto_mpg |>
+  ggplot(aes(x = horsepower, y = mpg)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.3,
+    se = FALSE,
+    linewidth = 1
+  ) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.8,
+    se = FALSE,
+    linewidth = 1
+  ) +
+  labs(
+    x = "Horsepower",
+    y = "Miles per gallon",
+    title = "LOESS span controls the smoothness of the fitted curve"
+  )
+```
+
+### The Span Parameter
+
+- `span` controls the fraction of data used in each local neighbourhood
+- Small span (0.3) → more local, more flexible, noisier
+- Large span (0.8) → smoother, less flexible, more stable
+- Typical values: 0.2 to 0.8
+- Can be chosen by cross-validation or AICc
+
+### LOESS as a Visual Tool
+
+LOESS is excellent for exploratory graphics. It is less convenient when the model needs to be written down, interpreted through coefficients, or combined into a larger regression design.
+
+```{r loess-spline-compare, warning=FALSE, message=FALSE}
+# Fit a natural spline for comparison
+spline_hp <- lm(mpg ~ ns(horsepower, df = 4), data = auto_mpg)
+
+hp_grid <- tibble(horsepower = seq(
+  min(auto_mpg$horsepower),
+  max(auto_mpg$horsepower),
+  length.out = 200
+))
+
+hp_predictions <- hp_grid |>
+  mutate(
+    natural_spline = predict(spline_hp, newdata = hp_grid)
+  ) |>
+  pivot_longer(
+    cols = c(natural_spline),
+    names_to = "model",
+    values_to = "mpg_hat"
+  )
+
+auto_mpg |>
+  ggplot(aes(x = horsepower, y = mpg)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.5,
+    se = FALSE,
+    linewidth = 1,
+    colour = "#E69F00"
+  ) +
+  geom_line(
+    data = hp_predictions,
+    aes(x = horsepower, y = mpg_hat, linetype = model),
+    linewidth = 1,
+    colour = "#0072B2"
+  ) +
+  labs(
+    x = "Horsepower",
+    y = "Miles per gallon",
+    linetype = "Model",
+    title = "LOESS shows the shape; splines give a regression model"
+  )
+```
+
+The LOESS curve is useful for seeing the empirical shape of the data. The natural spline captures a similar nonlinear pattern but remains a formal regression model — easier to combine with other predictors, compare models, and make predictions.
+
+### Slide Summary: LOESS
+
+| Aspect | Description |
+|--------|-------------|
+| **Purpose** | Explore the shape of a relationship |
+| **Mechanism** | Fit simple regressions in local neighbourhoods |
+| **Control** | Span |
+| **Strength** | Very good visual diagnostic |
+| **Limitation** | Less convenient as a formal regression model |
+
+---
+
+## Example 2: Splines — Flexible Regression
 
 ### What is a Spline?
 
 A spline is a piecewise polynomial function that is smooth at the join points (knots).
 
 - We already saw piecewise linear models in Lecture 18
-- Splines generalize this to higher-degree polynomials with smoothness constraints
+- Splines generalise this to higher-degree polynomials with smoothness constraints
 - Common types: linear splines, cubic splines, natural cubic splines, B-splines
 
-### Cubic Splines
+### The Key Conceptual Point
 
-A cubic spline with $K$ knots at locations $\kappa_1, \ldots, \kappa_K$ is a piecewise cubic polynomial that is continuous and has continuous first and second derivatives at each knot.
+A spline model is still a linear model in its coefficients:
 
-```{r spline-example, eval=FALSE}
-library(splines)
-# Natural cubic spline with 3 degrees of freedom
-model <- lm(y ~ ns(x, df = 3), data = mydata)
+$$y = \beta_0 + \beta_1 b_1(x) + \beta_2 b_2(x) + \cdots + \beta_k b_k(x) + \varepsilon$$
+
+The $b_j(x)$ terms are transformed versions of $x$. The model is nonlinear in $x$ because $x$ has been expanded into spline basis functions — but it is still linear in the $\beta$ coefficients.
+
+### Splines with Wage Data
+
+The relationship between `age` and `wage` is nonlinear and interpretable. Students can reason about the biology and social mechanisms without needing domain-specific knowledge.
+
+```{r spline-wage-data, warning=FALSE, message=FALSE}
+wage <- read_csv("../../data/wage.csv", show_col_types = FALSE)
+
+wage |>
+  ggplot(aes(x = age, y = wage)) +
+  geom_point(alpha = 0.15) +
+  geom_smooth(method = "lm", se = FALSE, colour = "#D55E00") +
+  labs(
+    x = "Age",
+    y = "Wage",
+    title = "A straight line is too rigid for this relationship"
+  )
 ```
 
-### Choosing Knots
+### Fitting Linear, B-Spline, and Natural Spline Models
 
-- Number of knots controls flexibility (more knots = more wiggly)
-- Placement: typically at quantiles of $x$
-- Too many knots → overfitting; too few → underfitting
-- Cross-validation can help choose the number of knots
+```{r spline-wage-models, warning=FALSE, message=FALSE}
+# Linear model
+lm_linear <- lm(wage ~ age, data = wage)
 
-## LOESS: Locally Estimated Scatterplot Smoothing
+# B-spline with 5 degrees of freedom
+lm_bs <- lm(wage ~ bs(age, df = 5), data = wage)
 
-### The LOESS Idea
+# Natural spline with 5 degrees of freedom
+lm_ns <- lm(wage ~ ns(age, df = 5), data = wage)
 
-Instead of fitting one global model, LOESS fits many small local models:
-
-1. For each point $x_0$ where we want a prediction, select a neighbourhood of nearby points
-2. Fit a low-degree polynomial (usually linear or quadratic) using weighted least squares, where points closer to $x_0$ get more weight
-3. The predicted value at $x_0$ is the fitted value from this local model
-
-### LOESS in R
-
-```{r loess-example, eval=FALSE}
-# LOESS with span = 0.5 (50% of data used in each local fit)
-loess_fit <- loess(y ~ x, data = mydata, span = 0.5)
 # Predict on a grid
-x_grid <- seq(min(x), max(x), length.out = 100)
-y_pred <- predict(loess_fit, newdata = data.frame(x = x_grid))
+age_grid <- tibble(age = seq(min(wage$age), max(wage$age), length.out = 200))
+
+predictions <- age_grid |>
+  mutate(
+    linear = predict(lm_linear, newdata = age_grid),
+    bs = predict(lm_bs, newdata = age_grid),
+    natural_spline = predict(lm_ns, newdata = age_grid)
+  ) |>
+  pivot_longer(
+    cols = c(linear, bs, natural_spline),
+    names_to = "model",
+    values_to = "fitted_wage"
+  )
+
+wage |>
+  ggplot(aes(x = age, y = wage)) +
+  geom_point(alpha = 0.12) +
+  geom_line(
+    data = predictions,
+    aes(x = age, y = fitted_wage, linetype = model),
+    linewidth = 1
+  ) +
+  labs(
+    x = "Age",
+    y = "Wage",
+    linetype = "Model",
+    title = "Splines allow flexible but controlled nonlinear regression"
+  )
 ```
 
-### The Span Parameter
+### What the Models Do
 
-- `span` controls the fraction of data used in each local neighbourhood
-- Small span → very local, wiggly fit (may overfit)
-- Large span → smoother, more global fit (may underfit)
-- Typical values: 0.2 to 0.8
-- Can be chosen by cross-validation or AICc
+- The **ordinary linear model** has one slope across all ages. It cannot capture the rise and plateau pattern.
+- The **B-spline model** allows the slope and curvature to change across age ranges. It follows the data more closely.
+- The **natural spline** behaves like a spline in the middle of the data but becomes linear near the boundaries. That reduces unstable edge behaviour.
 
-### LOESS vs Splines
+### Natural Splines vs Ordinary B-Splines
 
-| Feature | LOESS | Splines |
-|---------|-------|---------|
-| Global model? | No (local fits) | Yes (global basis) |
-| Prediction formula | No closed form | Yes (basis expansion) |
-| Extrapolation | Poor | Better (with care) |
-| Computation | $O(n^2)$ for prediction | $O(n)$ after fitting |
-| Interpretability | Low | Moderate |
+The key difference is **boundary behaviour**:
 
-## Regularized Regression
+```{r spline-boundary, warning=FALSE, message=FALSE}
+# Focus on the boundary region
+predictions |>
+  filter(model %in% c("bs", "natural_spline")) |>
+  ggplot(aes(x = age, y = fitted_wage, colour = model)) +
+  geom_line(linewidth = 1) +
+  labs(
+    x = "Age",
+    y = "Fitted wage",
+    colour = "Model",
+    title = "Natural splines constrain the curve to be linear at the boundaries"
+  )
+```
+
+Natural splines are often a better default for regression because we rarely trust highly curved behaviour at the edges, where there are fewer observations.
+
+### Slide Summary: Regression Splines
+
+| Aspect | Description |
+|--------|-------------|
+| **Purpose** | Model nonlinear relationships inside a regression framework |
+| **Mechanism** | Replace $x$ with spline basis functions |
+| **Control** | Degrees of freedom or knots |
+| **Strength** | Works naturally with `lm()`, prediction, and model comparison |
+| **Limitation** | Boundary behaviour can be unstable |
+
+### Slide Summary: Natural Splines
+
+| Aspect | Description |
+|--------|-------------|
+| **Purpose** | A more stable spline model near the edges of the data |
+| **Mechanism** | Constrain the fitted curve to be linear in the tails |
+| **Control** | Degrees of freedom or knots |
+| **Strength** | Often a sensible default for regression |
+| **Limitation** | Still requires choosing the amount of flexibility |
+
+---
+
+## Example 3: Ridge and Lasso — Penalised Regression
 
 ### The Problem with Many Predictors
 
@@ -90,35 +289,127 @@ When we have many predictors (possibly more than observations), ordinary least s
 - May not have a unique solution (if $p > n$)
 - Tends to overfit
 
-### Ridge Regression
+### The Core Equations
 
-Ridge regression adds a penalty on the size of coefficients:
+**Ordinary least squares** chooses $\beta$ to minimise:
 
-$$\hat{\beta}^{\text{ridge}} = \arg\min_\beta \left\{ \sum_{i=1}^n (y_i - x_i^T\beta)^2 + \lambda \sum_{j=1}^p \beta_j^2 \right\}$$
+$$\sum_{i=1}^n (y_i - \hat{y}_i)^2$$
 
-- Shrinks coefficients toward zero but never exactly to zero
-- $\lambda$ controls the amount of shrinkage (chosen by cross-validation)
-- Works well when many predictors each contribute a little
+**Ridge regression** adds an $L_2$ penalty:
 
-### Lasso
+$$\hat{\beta}^{\text{ridge}} = \arg\min_\beta \left\{ \sum_{i=1}^n (y_i - \hat{y}_i)^2 + \lambda \sum_{j=1}^p \beta_j^2 \right\}$$
 
-The lasso (Least Absolute Shrinkage and Selection Operator) uses an $L_1$ penalty:
+**Lasso** adds an $L_1$ penalty:
 
-$$\hat{\beta}^{\text{lasso}} = \arg\min_\beta \left\{ \sum_{i=1}^n (y_i - x_i^T\beta)^2 + \lambda \sum_{j=1}^p |\beta_j| \right\}$$
+$$\hat{\beta}^{\text{lasso}} = \arg\min_\beta \left\{ \sum_{i=1}^n (y_i - \hat{y}_i)^2 + \lambda \sum_{j=1}^p |\beta_j| \right\}$$
 
-- Shrinks some coefficients exactly to zero → automatic variable selection
-- Produces sparse models
-- $\lambda$ chosen by cross-validation
+### Ridge vs Lasso with Bike Sharing Data
 
-### Ridge vs Lasso
+The bike sharing daily dataset is ideal because the predictors have intuitive redundancy: `temp` and `feels_like_temp` overlap strongly, `month` and `season` overlap, `weekday` and `workingday` partly overlap. This gives the penalty something real to do.
 
-```{r glmnet-example, eval=FALSE}
-library(glmnet)
-# Ridge (alpha = 0)
-ridge_fit <- cv.glmnet(x, y, alpha = 0)
-# Lasso (alpha = 1)
-lasso_fit <- cv.glmnet(x, y, alpha = 1)
+```{r ridge-lasso-bike-data, warning=FALSE, message=FALSE}
+bike <- read_csv("../../data/bike_daily.csv", show_col_types = FALSE)
+
+bike |>
+  select(
+    count,
+    season,
+    year,
+    month,
+    holiday,
+    weekday,
+    workingday,
+    weather,
+    temp,
+    feels_like_temp,
+    humidity,
+    windspeed
+  )
 ```
+
+### Overlapping Predictors
+
+```{r ridge-lasso-overlap, warning=FALSE, message=FALSE}
+bike |>
+  ggplot(aes(x = temp, y = feels_like_temp)) +
+  geom_point(alpha = 0.5) +
+  labs(
+    x = "Temperature",
+    y = "Feels-like temperature",
+    title = "Some predictors carry overlapping information"
+  )
+```
+
+### Fitting Ridge and Lasso
+
+```{r ridge-lasso-fit, warning=FALSE, message=FALSE}
+# Create model matrix
+X <- model.matrix(count ~ . - 1, data = bike)
+y <- bike$count
+
+set.seed(42)
+
+# Ridge (alpha = 0)
+ridge_fit <- cv.glmnet(X, y, alpha = 0)
+
+# Lasso (alpha = 1)
+lasso_fit <- cv.glmnet(X, y, alpha = 1)
+
+# Plot cross-validation curves
+par(mfrow = c(1, 2))
+plot(ridge_fit, main = "Ridge Regression")
+plot(lasso_fit, main = "Lasso")
+```
+
+The plots show cross-validation error versus log(lambda). The vertical dashed lines indicate $\lambda_{\min}$ (optimal lambda) and $\lambda_{1\text{se}}$ (more conservative choice). Cross-validation chooses the penalty strength from the data, not by hand.
+
+### Coefficient Comparison
+
+```{r ridge-lasso-coefs, warning=FALSE, message=FALSE}
+# Extract coefficients at lambda.min
+ridge_coef_matrix <- coef(ridge_fit, s = "lambda.min") |>
+  as.matrix()
+ridge_coef <- tibble(
+  term = rownames(ridge_coef_matrix),
+  estimate = as.numeric(ridge_coef_matrix[, 1])
+) |>
+  filter(term != "(Intercept)") |>
+  mutate(model = "Ridge")
+
+lasso_coef_matrix <- coef(lasso_fit, s = "lambda.min") |>
+  as.matrix()
+lasso_coef <- tibble(
+  term = rownames(lasso_coef_matrix),
+  estimate = as.numeric(lasso_coef_matrix[, 1])
+) |>
+  filter(term != "(Intercept)") |>
+  mutate(model = "Lasso")
+
+bind_rows(ridge_coef, lasso_coef) |>
+  mutate(term = fct_reorder(term, abs(estimate))) |>
+  ggplot(aes(x = estimate, y = term)) +
+  geom_point() +
+  facet_wrap(~ model, scales = "free_x") +
+  labs(
+    x = "Coefficient estimate",
+    y = NULL,
+    title = "Ridge shrinks coefficients; lasso can remove terms"
+  )
+```
+
+Notice the key difference:
+
+- **Ridge** shrinks coefficients towards zero but keeps all predictors in the model
+- **Lasso** shrinks some coefficients exactly to zero, performing automatic variable selection
+
+```{r ridge-lasso-counts, warning=FALSE, message=FALSE}
+cat("Ridge: number of non-zero coefficients:", 
+    sum(coef(ridge_fit, s = "lambda.min") != 0), "\n")
+cat("Lasso: number of non-zero coefficients:", 
+    sum(coef(lasso_fit, s = "lambda.min") != 0), "\n")
+```
+
+### Ridge vs Lasso Summary
 
 | Feature | Ridge | Lasso |
 |---------|-------|-------|
@@ -128,10 +419,41 @@ lasso_fit <- cv.glmnet(x, y, alpha = 1)
 | Correlated predictors | Shares coefficient | Picks one |
 | When to use | Many small effects | Sparse true model |
 
-## Summary
+### Slide Summary: Ridge
 
-- **Splines** extend polynomial regression with piecewise fits and smoothness constraints
-- **LOESS** provides flexible, assumption-light smoothing through local weighted regression
+| Aspect | Description |
+|--------|-------------|
+| **Penalty** | $L_2$, $\sum \beta_j^2$ |
+| **Main effect** | Shrinks coefficients towards zero |
+| **Best use** | Many correlated predictors, each possibly carrying some information |
+| **Interpretation** | Keeps predictors but reduces instability |
+
+### Slide Summary: Lasso
+
+| Aspect | Description |
+|--------|-------------|
+| **Penalty** | $L_1$, $\sum |\beta_j|$ |
+| **Main effect** | Shrinks some coefficients exactly to zero |
+| **Best use** | Many candidate predictors, only some likely to matter |
+| **Interpretation** | Regularisation plus variable selection |
+
+---
+
+## Synthesis: All Methods Control Flexibility
+
+| Method | Controls flexibility by... |
+|--------|---------------------------|
+| **LOESS** | Adjusting the span — how local the fit is |
+| **Splines** | Changing the basis used for $x$ (degrees of freedom, knots) |
+| **Ridge** | Penalising the $L_2$ size of coefficients ($\lambda$) |
+| **Lasso** | Penalising the $L_1$ size of coefficients ($\lambda$) |
+
+Cross-validation gives a practical way to choose how much flexibility to allow for all these methods.
+
+### Summary
+
+- **LOESS** provides flexible, assumption-light smoothing through local weighted regression — excellent for exploratory visualisation
+- **Splines** extend polynomial regression with piecewise fits and smoothness constraints, keeping the benefits of a formal regression model
 - **Ridge regression** shrinks coefficients to handle multicollinearity and high-dimensional data
 - **Lasso** performs automatic variable selection by shrinking some coefficients to exactly zero
 

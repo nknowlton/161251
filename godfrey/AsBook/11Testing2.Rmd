@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -271,4 +275,3 @@ The interpretation of these tests depends on what other variables
     are included in the model.
 
 To test the importance of groups of multiple covariates requires *F* tests, using the type of technology that was introduced in the previous lecture.
-

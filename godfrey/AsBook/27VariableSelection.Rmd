@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -39,7 +43,7 @@ Why might we want to omit variables?
 	
 We first consider the risks and benefits of including a predictor that might have coefficient $\beta=0$.
 
-##  Dropping or Including Variables that have $\beta=0$
+### Dropping or Including Variables that have $\beta=0$
 
 Suppose we have a regression model with several variables.  We might suspect one has regression coefficient $\beta=0$.  Should we drop it?
 
@@ -53,7 +57,7 @@ Both these things are good.
 
 Conversely if we include a variable whose coefficient $\beta=0$ this  increases these variances unnecessarily. This is called **overfitting**. We want to avoid this.
 
-## Dropping or Including Variables that have $\beta \ne 0$
+### Dropping or Including Variables that have $\beta \ne 0$
 
 On the other hand suppose we make a mistake and omit a variable that has regression coefficient $\ne 0$.   
 
@@ -86,7 +90,7 @@ sim = read.csv("../../data/simulation1.csv",header=TRUE)
 
 What we want to know is, what are the implications of using an incorrect model, 	i.e. incorrect assumptions about the $\beta$s. To understand the implications, we simulate two scenarios. 
 	
-## Scenario 1: $\beta_0=50$, $\beta_1=10$ and $\beta_2=0$.
+### Scenario 1: $\beta_0=50$, $\beta_1=10$ and $\beta_2=0$.
 
 For this illustration, the correct model doesn't depend on $B$ at all:
 $$Y  =  50 + 10 A + \varepsilon$$
@@ -102,7 +106,7 @@ lst(lm1, lm2) |> map_dfr(tidy, .id='model')
 
 Adding the unnecessary variable doesn't introduce bias ($\hat\beta_1 \approx 10$), but the standard error of $\hat\beta_1$ is higher in the misspecified model.
 
-## Scenario 2: $\beta_0=50$, $\beta_1=5$ and $\beta_2=5$.
+### Scenario 2: $\beta_0=50$, $\beta_1=5$ and $\beta_2=5$.
 
 We consider the model where $Y$ depends on both $A$ and $B$,
 $$	Y  =  50 + 5 A + 5 B + \varepsilon $$
@@ -116,7 +120,7 @@ lst(lm1, lm2) |> map_dfr(tidy, .id='model')
 
 In the first model, $B$ is wrongly ignored and $A$ is both biased and has a larger standard error. In the second model, the values of $\hat\beta_1$ and $\hat\beta_2$ are close to the true ones and the standard errors are the same as in the second analysis of Scenario 1.
 
-##
+### Summary: Bias vs Variance Trade-off
 
 In summary, if we omit a needed variable then we may introduce bias into our estimation.
 	
@@ -154,13 +158,13 @@ There are a number of measures we can use for model selection:
 
 Each of these are slightly different, so it pays to consider more than one.
 
-## Coefficient of determination $R^2$
+### Coefficient of determination $R^2$
 
 Recall that this is the proportion of total variation  which is explained by the model. (Alternatively, 1 minus the ratio of unexplained variation to total variation):
 $$ R^2 = \frac{SS_{Regn}}{SST}  = 1 - \frac{\sum(y_i-\hat y_i)^2}{\sum(y_i-\bar y)^2}. $$
 $R^2$ is useful for comparing two models with the **same** number of regression parameters.   If models have different numbers of regression parameters we use the adjusted version.
 
-## Adjusted Coefficient of determination $R^2_{Adj}$
+### Adjusted Coefficient of determination $R^2_{Adj}$
 
 Recall that this is 1 minus the ratio of Mean Square Error to Mean Square Total: 
 $$ R^2_{Adj} = 1 - \frac{MSE}{MST}  = 1 - \frac{\sum(y_i-\hat y_i)^2/(n-p)}{\sum(y_i-\bar y)^2/(n-1)}.$$
@@ -168,13 +172,13 @@ When considering adding a variable to a regression, the $R^2_{Adj}$ goes up if t
 
 But at least if a variable can't meet that rule then we know to exclude it.
 
-## Residual Standard Error $S$
+### Residual Standard Error $S$
 
 This is the standard deviation of the residuals, 
 $$ S = \frac{1}{n-p}\sum{(y_i - \hat y_i)^2} $$
 or in other words the standard deviation of how the $y_i$s vary around the model predictions. We might choose to include a variable if it reduces the $S$.
 
-## $P$-value for individual coefficients
+### $P$-value for individual coefficients
 
 We usually prefer models that only include variables with coefficient $P$-value is small (e.g. $< 0.05$).
 
@@ -192,7 +196,7 @@ climate = read_csv("../../data/climate.csv")
 climate
 ```
 
-## Climate Exploratory Data Analysis
+### Climate Exploratory Data Analysis
 
 ```{r, fig.width=10, fig.height=4}
 climate |>
@@ -202,7 +206,7 @@ climate |>
   facet_wrap(vars(name), scales = 'free_x', ncol=4)
 ```
 
-## Higher winter temperature associations
+### Higher winter temperature associations
 
 - Lower elevations (height)
 - Lower latitudes (further north)
@@ -215,7 +219,7 @@ climate |>
 
 Many of these are likely correlated.
 
-## Climate: Latitude/Longitude and North vs South
+### Climate: Latitude/Longitude and North vs South
 
 ```{r}
 ggplot(climate) +
@@ -224,7 +228,7 @@ ggplot(climate) +
   coord_equal()
 ```
 
-## 📊 Climate: Latitude/Longitude and North vs South
+#### 📊 Climate: Latitude/Longitude and North vs South
 
 Ok, so we can see that the temperature is being driven by latitude (further north is warmer) - the longitude effect is possibly just due to orientation. It's clear there's an elevation (height) effect as well, though that is possibly confounded with whether the town is close to the sea (it can't really be both!)
 
@@ -238,25 +242,27 @@ lm2 = lm( MnJlyTemp ~ Lat + Height, data=climate)
 lm3 = lm( MnJlyTemp ~ Lat + Height + Sea, data=climate)
 ```
 
-## Climate: model 1 output
+### Building the Climate Model
+
+#### Model 1: Lat only
 
 ```{r}
 lm1 |> summary()
 ```
 
-## Climate: model 2 output
+#### Model 2: Lat + Height
 
 ```{r}
 lm2 |> summary()
 ```
 
-## Climate: model 3 output
+#### Model 3: Lat + Height + Sea
 
 ```{r}
 lm3 |> summary()
 ```
 
-## Climate: First three predictors.
+#### First three predictors — assessment
 
 For these first three predictors:
 
@@ -270,7 +276,7 @@ Also note the regression coefficient for `Height` altered by about 2 standard er
 
 This makes sense - sea level towns will mostly have a very low height, but there'll also be an additional warming effect of being close to the sea.
 
-## Climate: Adding island
+#### Model 4: Adding NorthIsland
 
 ```{r fourth variable}
 lm4 = lm( MnJlyTemp ~ Lat+ Height + Sea + NorthIsland, data=climate)
@@ -283,7 +289,7 @@ Including it has induced big changes in the coefficients (especially `Lat`) whic
 
 **Why do you think adding North vs South island is useful over and above Latitude? Wouldn't Latitude do everything here??**
 
-## Climate: Adding Rain
+#### Model 5: Adding Rain
 
 ```{r fifth variable}
 lm5 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland + Rain, data=climate)
@@ -293,7 +299,7 @@ lm5 |> summary()
 
 The `Rain` variable is not significant (P=0.1) which goes against including `Rain`.  However $S$ has gone down and the adjusted R-squared has gone up.  So we may decide that if our aim is to predict for new data, then we should include this variable in the model.
 
-## Climate: Adding Longitude
+#### Model 6: Adding Longitude
 
 ```{r sixth variable, warning=FALSE}
 lm6 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland+ Rain + Long, data=climate)
@@ -304,7 +310,7 @@ At this point all the indications are bad:  The P-value for `Long` is >0.5, the 
 
 So we should not include `Long` in the model.
 
-## 📊 Climate Data Case Study — Key Takeaways
+### 📊 Climate Data Case Study — Key Takeaways
 
 **Goal:** Predict NZ July temperature from location and climate covariates
 
@@ -321,7 +327,7 @@ So we should not include `Long` in the model.
 | 5     | + Rain                        | 0.889                | 0.92   | 0.10               |
 | 6     | + Long                        | 0.886                | 0.93   | 0.54               |
 
-## 📊 Climate Data Case Study — Key Takeaways Continued
+### 📊 Climate Data Case Study — Key Takeaways Continued
 
 🔍 **What to watch for**
 
@@ -340,7 +346,7 @@ So we should not include `Long` in the model.
 
 Retain `Lat`, `Height`, `Sea`, `NorthIsland`. Retain `Rain` when prediction accuracy is the goal, as it is here.
 
-## 🤔 Done? 🤔
+### 🤔 Done? Model Diagnostics
 
 Not so fast! We now have a model, but is it any good? Does it meet our LINE assumptions? 
 
@@ -348,14 +354,14 @@ After variable selection, you must check if the final model satisfies the assump
 
 `lm(MnJlyTemp ~ Lat + Height + Sea + NorthIsland + Rain, data = climate)`.
 
-## Final Model Diagnostics
+#### Final Model Diagnostic Plots
 ```{r diagnostic plots, echo=FALSE}
 # Generate the 4 standard diagnostic plots
 par(mfrow = c(2, 2))
 plot(lm5)
 ```
 
-### Interpretation of Diagnostic Plots:
+#### Interpretation of Diagnostic Plots:
 
 - Residuals vs. Fitted: The red line is nearly flat and the points are randomly scattered around 0. This looks good and suggests the linearity assumption holds. No obvious patterns.
 - Normal Q-Q: The points fall very closely along the dashed line except one point (9). This indicates the residuals are normally distributed, which is great.
@@ -364,3 +370,51 @@ plot(lm5)
 
 **Conclusion**: Our final model not only makes intuitive sense but also passes the standard diagnostic checks! It appears to be a robust and reliable model.
 
+## Running Example Preview: Seoul Bike Sharing Demand
+
+Later in the course we will return to one richer applied dataset several times: hourly bike demand from the Seoul Bike Sharing System.
+
+`r xfun::embed_file("../Data/seoul_bike_hourly.csv")`
+
+```{r read seoul hourly, message=FALSE}
+seoul_hourly = read_csv("../Data/seoul_bike_hourly.csv")
+seoul_hourly
+```
+
+The response is `rented_bike_count`, and there are many plausible explanatory variables:
+
+- `hour`, `season`, `holiday`, `functioning_day`
+- `temperature`, `humidity`, `wind_speed`, `visibility`
+- `dew_point_temperature`, `solar_radiation`, `rainfall`, `snowfall`
+
+This is a useful reminder that model selection is rarely about one obviously correct formula. In a real prediction problem, many variables may look reasonable at first glance.
+
+```{r seoul candidate models, message=FALSE}
+seoul_basic = lm(
+  rented_bike_count ~ temperature + humidity + wind_speed,
+  data = seoul_hourly
+)
+
+seoul_richer = lm(
+  rented_bike_count ~ temperature + humidity + wind_speed +
+    visibility + dew_point_temperature + solar_radiation +
+    rainfall + snowfall + hour + season + holiday + functioning_day,
+  data = seoul_hourly
+)
+
+tibble(
+  model = c("basic weather model", "richer weather + calendar model"),
+  adj_r_squared = c(
+    summary(seoul_basic)$adj.r.squared,
+    summary(seoul_richer)$adj.r.squared
+  ),
+  sigma = c(summary(seoul_basic)$sigma, summary(seoul_richer)$sigma),
+  aic = c(AIC(seoul_basic), AIC(seoul_richer))
+)
+```
+
+The richer model wins on all three criteria: higher adjusted $R^2$ (55% vs 38% of variation explained), lower residual standard error (433 vs 510 bikes), and lower AIC (131,228 vs 134,080). This is not surprising — adding 9 more predictors almost always improves in-sample fit. The real question is whether all those extra variables are *worth* their degrees of freedom, or whether a smaller subset would predict almost as well. That is exactly what the next lecture on stepwise selection addresses.
+
+The point here is not that the richer model must be correct. It is that realistic datasets often give us many plausible predictors, and we need principled ways to decide which are worth keeping.
+
+In the next lecture we will ask how automated procedures search through those choices.

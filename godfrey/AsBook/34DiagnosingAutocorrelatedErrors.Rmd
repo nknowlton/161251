@@ -1,0 +1,147 @@
+# Diagnosing Autocorrelated Errors{#DiagnosingAutocorrelatedErrors}
+
+[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture34.html)
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
+```
+
+
+<!--- Do not edit anything above this line. --->
+```{r diagnosing-autocorrelation-setup, include=FALSE}
+library(DescTools)
+library(lmtest)
+```
+
+## Diagnosing Autocorrelated Errors
+
+Once a regression model has captured the main mean structure, the next question is whether the residuals behave independently. In this lecture we continue with the Seoul Bike daily model from the previous lecture and focus on diagnosis rather than correction.
+
+By the end of this lecture, students should be able to:
+
+1. Explain what autocorrelation means in regression residuals.
+2. Describe the consequences of autocorrelation for standard errors and tests.
+3. Use residual plots, runs tests, Durbin-Watson, ACF plots, and Ljung-Box tests.
+4. Recognise when autocorrelated errors suggest a need for a more appropriate model.
+
+`r xfun::embed_file("../Data/seoul_bike_daily.csv")`
+
+```{r read seoul daily, message=FALSE}
+seoul_daily = read_csv("../Data/seoul_bike_daily.csv")
+seoul_daily
+```
+
+```{r build seoul mean model}
+seoul_daily = seoul_daily |>
+  mutate(
+    S1 = sin(2 * pi * day_index / 365),
+    C1 = cos(2 * pi * day_index / 365),
+    S2 = sin(4 * pi * day_index / 365),
+    C2 = cos(4 * pi * day_index / 365)
+  )
+
+seoul_mean = lm(
+  rented_bike_count ~ day_index + S1 + C1 + S2 + C2 +
+    mean_temperature + total_rainfall + total_solar_radiation,
+  data = seoul_daily
+)
+```
+
+### What Is Autocorrelation?
+
+In an ordinary regression model we usually assume that the errors are uncorrelated. If nearby residuals tend to move together, we say the errors are autocorrelated.
+
+This can happen because:
+
+- an important time-related predictor has been omitted,
+- the response genuinely has carry-over behaviour,
+- or both.
+
+Positive autocorrelation usually produces the familiar long, slow wandering pattern in a residual plot.
+
+### Residual Plot Over Time
+
+```{r seoul residual plot}
+plot(residuals(seoul_mean) ~ seoul_daily$day_index, type = "b")
+abline(h = 0, lty = 2)
+```
+
+If long runs of positive or negative residuals appear, that is already evidence against independence.
+
+### Why It Matters
+
+- Least squares estimates are still unbiased under broad conditions, but they are no longer efficient.
+- Standard errors can be badly wrong.
+- Confidence intervals and hypothesis tests can become misleading.
+
+So the real problem is not just a messy residual plot. It is that the inferential output from an ordinary `lm()` fit may no longer be trustworthy.
+
+### Analysis of Runs
+
+One simple way to formalise that impression is to look at the signs of the residuals and count how many runs occur.
+
+```{r runs-test}
+RunsTest(residuals(seoul_mean))
+```
+
+A small p-value suggests the signs are not appearing in random order.
+
+### Durbin-Watson Test
+
+The Durbin-Watson test is a classical test for first-order autocorrelation in regression residuals.
+
+```{r durbin-watson}
+dwtest(seoul_mean, alternative = "greater")
+```
+
+Here the one-sided alternative reflects our suspicion of positive autocorrelation.
+
+### ACF: Visualising Dependence Across Lags
+
+The autocorrelation function helps us see how strongly residuals at time $t$ are related to residuals at time $t-k$.
+
+```{r acf-plot, fig.width=8, fig.height=4}
+acf(residuals(seoul_mean), main = "ACF of Seoul Bike Residuals")
+```
+
+For positively autocorrelated data, the ACF often decays slowly rather than dropping quickly toward zero.
+
+### Ljung-Box Test
+
+The Ljung-Box test examines several autocorrelations together rather than focusing on a single lag.
+
+```{r ljung-box}
+Box.test(residuals(seoul_mean), lag = 14, type = "Ljung-Box")
+```
+
+A small p-value indicates that the residual series still contains dependence structure that our fitted model has not explained.
+
+### Diagnostic Summary
+
+When several of the following point in the same direction,
+
+- residual plots show long runs,
+- the runs test is significant,
+- the Durbin-Watson test is significant,
+- the ACF decays slowly,
+- and the Ljung-Box test rejects,
+
+we should stop treating the errors as independent.
+
+## Bridge to the Next Lecture
+
+Diagnosis tells us that ordinary least squares is not enough. The next lecture keeps the same Seoul Bike mean structure and adds an autoregressive error process, beginning with the AR(1) case and fitting with generalized least squares.

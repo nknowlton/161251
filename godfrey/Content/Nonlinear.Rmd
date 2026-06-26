@@ -209,7 +209,7 @@ We will model the growth using a logistic curve with unknown maximum.
 $$ f(x_i; \alpha,\beta_0,\beta_1) =  \alpha~~\frac{e^{\beta_0+ \beta_1 x}}{ 1+e^{\beta_0+ \beta_1 x} }  + \varepsilon$$
 
 
-`r xfun::embed_file("../../data/FEV.csv")` 
+`r xfun::embed_file("../../data/fev.csv")` 
 
 ```{r getFevData, eval=-1, echo=-2}
 fev <- read.csv(file="fev.csv", header=TRUE)

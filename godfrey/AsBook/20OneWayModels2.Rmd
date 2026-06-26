@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -232,6 +236,5 @@ The problem of interpretation of test results is more difficult. In the end some
 typically a good way to examine the inter-group  differences.
 However one must remember that conclusions may need to be 
 "taken with a grain of salt".
-
 
 

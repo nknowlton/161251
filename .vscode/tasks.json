@@ -1,0 +1,71 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "AI Prose Audit: Check current file",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/scripts/check_ai_writing.py",
+        "${file}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Prose Audit: Open Codex prompt",
+      "type": "shell",
+      "command": "code",
+      "args": [
+        "-g",
+        "${workspaceFolder}/.github/prompts/ai-prose-audit.prompt.md"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "never"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Prose Audit: Open GHCP prompt",
+      "type": "shell",
+      "command": "code",
+      "args": [
+        "-g",
+        "${workspaceFolder}/.github/chatmodes/ai-prose-audit.chatmode.md"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "never"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Prose Audit: Open checklist",
+      "type": "shell",
+      "command": "code",
+      "args": [
+        "-g",
+        "${workspaceFolder}/.github/instructions/ai-prose-audit.instructions.md"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "never"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

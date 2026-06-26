@@ -1,4 +1,23 @@
 
+```{r seasonality-setup, include=FALSE}
+library(tidyverse)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
+```
+
+## Time Series Data: A Regression Perspective
+
+Time series data differs from cross-sectional data in that observations are collected over time, creating potential dependencies between successive measurements. This violates the standard regression assumption of independent errors.
+
+In this lecture and the next, we'll address two key questions:
+
+1. **This lecture**: How do we model systematic patterns like trend and seasonality using regression predictors?
+2. **Next lecture**: What happens when residuals remain correlated after fitting our model?
+
+For now, we assume the independence assumption holds and focus on capturing temporal structure through well-chosen predictors.
+
 ## Independent vs non-independent errors
 
 Assumption A2 of   linear regression 
@@ -195,6 +214,65 @@ The graph suggests:  first, that  the peak in power costs in winter is steeper t
 (The graph actually shows a tiny peak in March but it is not clear whether this is real or an “artifact”    of the model  i.e. something forced by the fact we are fitting the data using simple wavy curves and so one is going to get wiggles whether real or not.) 
 
 The only way to check would be to add in even more terms such as sines and cosines with 3 times the frequency.  However we do not have a lot of data so we will stop here. 
+
+## Fourier Terms: A Systematic Approach
+
+The sine and cosine terms we've been adding are examples of **Fourier terms**. For monthly data with period $m = 12$, we can create pairs of sine and cosine terms at different frequencies:
+
+$$S_k(t) = \sin\left(\frac{2\pi k t}{m}\right), \quad C_k(t) = \cos\left(\frac{2\pi k t}{m}\right)$$
+
+where $k = 1, 2, \ldots, K$ and $K \leq m/2$. Each pair $(S_k, C_k)$ captures oscillations at frequency $k/m$ cycles per time unit.
+
+- $k = 1$: fundamental frequency (1 cycle per 12 months)
+- $k = 2$: second harmonic (2 cycles per 12 months, i.e., 6-month period)
+- $k = 3$: third harmonic (3 cycles per 12 months, i.e., 4-month period)
+
+Adding more harmonics increases flexibility, similar to adding more knots in a spline. The key advantage is that Fourier terms provide a **systematic, orthogonal basis** for seasonal patterns.
+
+```{r fourier-terms, tidy=FALSE}
+# Create Fourier terms systematically
+Electricity |> 
+  mutate(
+    S1 = sin(2 * pi * Time / 12),
+    C1 = cos(2 * pi * Time / 12),
+    S2 = sin(4 * pi * Time / 12),
+    C2 = cos(4 * pi * Time / 12)
+  ) -> Electricity_fourier
+
+# Fit model with Fourier terms
+Electricity.lm_fourier <- lm(resids ~ S1 + C1 + S2 + C2, data = Electricity_fourier)
+summary(Electricity.lm_fourier)
+```
+
+This is equivalent to what we did manually with `SinTime`, `CosTime`, `Sin2Time`, `Cos2Time`, but the Fourier approach is more systematic and extends naturally to higher harmonics or different seasonal periods.
+
+## STL Decomposition: A Visual Diagnostic
+
+**STL** (Seasonal and Trend decomposition using LOESS) provides a visual way to separate a time series into three components:
+
+1. **Trend**: long-term movement
+2. **Seasonal**: repeating periodic patterns
+3. **Remainder**: what's left after removing trend and seasonality
+
+STL is not a regression model — it's a **descriptive diagnostic** that helps us understand what patterns exist in the data before we build our regression model.
+
+```{r stl-decomposition, warning=FALSE, message=FALSE}
+# Create a monthly time series object for STL decomposition
+Electricity_ts <- ts(Electricity$Bill, start = c(1994, 5), frequency = 12)
+
+# STL decomposition using base R
+Electricity_stl <- stl(Electricity_ts, s.window = 7, t.window = 7)
+
+# Plot the decomposition
+plot(Electricity_stl, main = "STL Decomposition of Electricity Bills")
+```
+
+The decomposition shows:
+- **Trend component**: gradual increase in bills over time
+- **Seasonal component**: regular winter peaks
+- **Remainder**: irregular fluctuations
+
+This visual diagnostic confirms what our regression models are trying to capture: a trend (via `Time`) and seasonality (via sine/cosine terms or indicators). The remainder should look like random noise if our model is adequate.
 
 ### Putting it together
 

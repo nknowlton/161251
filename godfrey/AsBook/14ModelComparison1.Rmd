@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -242,7 +246,6 @@ summary(Climate.lm1)
 
 - The *t*-statistic for NorthIsland  is *t=2.408* with corresponding *P*-value *P=0.02219*.
 - Note that *f* = 5.797 = 2.408^2^ = *t^2^*.
-
 
 
 

@@ -6,18 +6,18 @@ date: "Week 5 of Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   html_notebook:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   ioslides_presentation:
     widescreen: true
     smaller: true
   word_document: default
   slidy_presentation: 
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   pdf_document: default
 ---
@@ -37,6 +37,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 

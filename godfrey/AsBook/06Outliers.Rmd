@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -235,4 +239,3 @@ max(cooks.distance(Hills2.lm))
 max(hatvalues(Hills.lm)) # leverages
 max(hatvalues(Hills2.lm)) 
 ```
-

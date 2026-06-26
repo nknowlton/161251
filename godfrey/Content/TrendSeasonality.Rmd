@@ -1,0 +1,122 @@
+```{r trend-seasonality-setup, include=FALSE}
+library(lubridate)
+```
+
+## Regression Models for Trend and Seasonality
+
+When observations are recorded over time, the mean structure may change systematically. In this lecture we continue the Seoul Bike example, but now move to a daily aggregate so that the time pattern is easier to see.
+
+By the end of this lecture, students should be able to:
+
+1. Use trend terms to model long-term movement.
+2. Use indicator variables to represent seasonal effects.
+3. Build sinusoidal and Fourier terms for periodic behaviour.
+4. Interpret the final model as a regression description of the mean over time.
+
+`r xfun::embed_file("../Data/seoul_bike_daily.csv")`
+
+```{r read seoul daily, message=FALSE}
+seoul_daily = read_csv("../Data/seoul_bike_daily.csv")
+seoul_daily
+```
+
+### A Regression View of Time Structure
+
+We focus on the mean function:
+
+- `day_index` captures long-term change,
+- `season` captures a coarse repeating pattern,
+- sine and cosine terms provide a compact seasonal representation,
+- weather variables can still matter after we account for time.
+
+We begin by assuming residual independence so that we can concentrate on building the mean structure.
+
+### Trend Alone
+
+```{r trend-only, warning=FALSE, message=FALSE}
+ggplot(seoul_daily, aes(x = day_index, y = rented_bike_count)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    x = "Day index",
+    y = "Daily rented bike count",
+    title = "Daily bike demand changes over time"
+  )
+```
+
+```{r trend-model}
+seoul_trend = lm(rented_bike_count ~ day_index, data = seoul_daily)
+summary(seoul_trend)
+```
+
+A simple trend captures some of the structure, but clearly not all of it.
+
+### Season Indicators
+
+```{r season-model}
+seoul_season = lm(rented_bike_count ~ day_index + season, data = seoul_daily)
+summary(seoul_season)
+```
+
+This is the simplest regression-first way to say that the mean level differs by season.
+
+### Fourier Terms for Seasonality
+
+For a yearly cycle we can build sine and cosine terms:
+
+$$S_1(t) = \sin\left(\frac{2\pi t}{365}\right), \qquad C_1(t) = \cos\left(\frac{2\pi t}{365}\right).$$
+
+```{r seoul fourier setup}
+seoul_daily = seoul_daily |>
+  mutate(
+    S1 = sin(2 * pi * day_index / 365),
+    C1 = cos(2 * pi * day_index / 365),
+    S2 = sin(4 * pi * day_index / 365),
+    C2 = cos(4 * pi * day_index / 365)
+  )
+```
+
+```{r fourier-model}
+seoul_fourier = lm(
+  rented_bike_count ~ day_index + S1 + C1 + S2 + C2,
+  data = seoul_daily
+)
+summary(seoul_fourier)
+```
+
+These Fourier terms provide a more systematic alternative to using many separate seasonal indicators.
+
+### Adding Weather Back Into the Mean
+
+Even after accounting for time, weather still matters.
+
+```{r seoul mean model}
+seoul_mean = lm(
+  rented_bike_count ~ day_index + S1 + C1 + S2 + C2 +
+    mean_temperature + total_rainfall + total_solar_radiation,
+  data = seoul_daily
+)
+summary(seoul_mean)
+```
+
+```{r mean model plot, warning=FALSE, message=FALSE}
+seoul_daily |>
+  mutate(fitted = fitted(seoul_mean)) |>
+  ggplot(aes(x = day_index, y = rented_bike_count)) +
+  geom_line(alpha = 0.6) +
+  geom_line(aes(y = fitted), colour = "red", linewidth = 1) +
+  labs(
+    x = "Day index",
+    y = "Daily rented bike count",
+    title = "A regression model for trend, seasonality, and weather"
+  )
+```
+
+## A Brief Diagnostic Look
+
+```{r residual look}
+plot(residuals(seoul_mean) ~ seoul_daily$day_index)
+abline(h = 0, lty = 2)
+```
+
+The fitted mean structure is much richer than a simple line, but it may still leave systematic dependence in the residuals. That is the question for the next lecture.

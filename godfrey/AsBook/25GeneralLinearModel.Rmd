@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -207,6 +211,5 @@ They will have to have the same number of coefficients though.
 If you need to convince yourself that two different parameterisations lead to the same underlying model, look at the fitted values for each parameterisation.
 
 Same fitted values means same residuals etc.
-
 
 

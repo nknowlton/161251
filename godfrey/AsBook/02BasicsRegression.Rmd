@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -165,4 +169,3 @@ This course focuses (primarily) on models with a particular linear form.
 Typically we will assume that the response is normally distributed.
 
 Linear regression models can be used for description, prediction, parameter estimation and variable screening.
-

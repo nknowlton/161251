@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -205,6 +209,5 @@ The residual standard error for the simple piecewise model is almost the same as
 
 
 The outcome is that by constructing new variables, we have increased our ability to fit meaningful and more easily interpretable models. We haven't even allowed for some curvature in the piecewise model, but that will need to be left for extension work.
-
 
 

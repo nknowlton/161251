@@ -1,0 +1,206 @@
+# Splines and LOESS: Flexible Regression Curves{#SplinesAndLOESS}
+
+[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture31.html)
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
+```
+
+
+<!--- Do not edit anything above this line. --->
+## Splines and LOESS: Flexible Regression Curves
+
+So far we have focused on parametric regression models, where the mean response is described by a small number of coefficients. In this lecture we use the Seoul Bike Sharing data to study a different problem: the relationship between demand and weather is clearly nonlinear.
+
+By the end of this lecture, students should be able to:
+
+1. Explain why a straight-line mean function can be too restrictive.
+2. Use LOESS to explore nonlinear structure.
+3. Fit regression splines using basis functions.
+4. Explain the difference between ordinary and natural splines.
+5. Recognise how added flexibility creates the need for regularisation.
+
+### Running Example: Hourly Bike Demand
+
+`r xfun::embed_file("../Data/seoul_bike_hourly.csv")`
+
+```{r read seoul hourly, message=FALSE}
+seoul_hourly = read_csv("../Data/seoul_bike_hourly.csv")
+seoul_hourly
+```
+
+The core question for this lecture is:
+
+> How does hourly bike demand change with temperature?
+
+### Why Go Beyond Straight Lines?
+
+A straight-line model can underfit. A highly flexible curve can overfit. Our aim is to describe the mean relationship without losing the regression framing.
+
+```{r seoul temperature scatter, warning=FALSE, message=FALSE}
+seoul_hourly |>
+  ggplot(aes(x = temperature, y = rented_bike_count)) +
+  geom_point(alpha = 0.06) +
+  labs(
+    x = "Temperature (C)",
+    y = "Hourly rented bike count",
+    title = "Bike demand changes nonlinearly with temperature"
+  )
+```
+
+## Example 1: LOESS
+
+### The LOESS Idea
+
+LOESS fits many small local regressions instead of one global line.
+
+1. Choose a target point.
+2. Borrow nearby observations.
+3. Fit a weighted local regression.
+
+### LOESS with the Seoul Bike Data
+
+```{r loess-seoul, warning=FALSE, message=FALSE}
+seoul_hourly |>
+  ggplot(aes(x = temperature, y = rented_bike_count)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.15,
+    se = FALSE,
+    linewidth = 1
+  ) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.45,
+    se = FALSE,
+    linewidth = 1
+  ) +
+  labs(
+    x = "Temperature (C)",
+    y = "Hourly rented bike count",
+    title = "LOESS span controls the smoothness of the fitted curve"
+  )
+```
+
+### The Span Parameter
+
+- `span` controls how local the fit is.
+- Small span gives a more flexible but noisier curve.
+- Large span gives a smoother and more stable curve.
+
+LOESS is especially useful for seeing the empirical shape of the data before we decide on a formal regression model.
+
+## Example 2: Splines
+
+### The Key Conceptual Point
+
+A spline model is still linear in its coefficients:
+
+$$y = \beta_0 + \beta_1 b_1(x) + \beta_2 b_2(x) + \cdots + \beta_k b_k(x) + \varepsilon.$$
+
+It is nonlinear in the original predictor, but linear in the unknown coefficients. That means we can still use standard regression tools.
+
+### Linear, Spline, and Natural Spline Fits
+
+```{r spline-seoul-models, warning=FALSE, message=FALSE}
+library(splines)
+
+seoul_temp = seoul_hourly |>
+  select(temperature, rented_bike_count) |>
+  filter(is.finite(temperature), is.finite(rented_bike_count))
+
+lm_linear = lm(rented_bike_count ~ temperature, data = seoul_temp)
+lm_bs = lm(rented_bike_count ~ bs(temperature, df = 5), data = seoul_temp)
+lm_ns = lm(rented_bike_count ~ ns(temperature, df = 5), data = seoul_temp)
+
+temp_grid = tibble(
+  temperature = seq(min(seoul_temp$temperature), max(seoul_temp$temperature), length.out = 250)
+)
+
+predictions = temp_grid |>
+  mutate(
+    linear = predict(lm_linear, newdata = temp_grid),
+    bs = predict(lm_bs, newdata = temp_grid),
+    natural_spline = predict(lm_ns, newdata = temp_grid)
+  ) |>
+  pivot_longer(
+    cols = c(linear, bs, natural_spline),
+    names_to = "model",
+    values_to = "fitted_bikes"
+  )
+
+seoul_temp |>
+  ggplot(aes(x = temperature, y = rented_bike_count)) +
+  geom_point(alpha = 0.05) +
+  geom_line(
+    data = predictions,
+    aes(x = temperature, y = fitted_bikes, linetype = model),
+    linewidth = 1
+  ) +
+  labs(
+    x = "Temperature (C)",
+    y = "Hourly rented bike count",
+    linetype = "Model",
+    title = "Splines allow flexible but still regression-based fits"
+  )
+```
+
+### Natural Splines vs Ordinary Splines
+
+```{r spline-boundary, warning=FALSE, message=FALSE}
+predictions |>
+  filter(model %in% c("bs", "natural_spline")) |>
+  ggplot(aes(x = temperature, y = fitted_bikes, colour = model)) +
+  geom_line(linewidth = 1) +
+  labs(
+    x = "Temperature (C)",
+    y = "Fitted hourly bike count",
+    colour = "Model",
+    title = "Natural splines constrain the fit near the boundaries"
+  )
+```
+
+Natural splines are often a sensible default because we tend to trust the extremes of the predictor range less than the middle.
+
+## A Second Nonlinear Signal
+
+Temperature is not the only candidate for nonlinear modelling. Solar radiation may also have a curved relationship with demand.
+
+```{r seoul solar loess, warning=FALSE, message=FALSE}
+seoul_hourly |>
+  ggplot(aes(x = solar_radiation, y = rented_bike_count)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method = "loess", formula = y ~ x, se = FALSE, linewidth = 1) +
+  labs(
+    x = "Solar radiation",
+    y = "Hourly rented bike count",
+    title = "Other weather predictors may also need flexible mean functions"
+  )
+```
+
+## Lecture Summary
+
+- LOESS is a flexible local smoother that is very useful for exploring shape.
+- Splines create flexible mean functions inside a regression framework.
+- Natural splines help control unstable boundary behaviour.
+
+## Bridge to the Next Lecture
+
+The Seoul bike data now present a new problem. After modelling nonlinear weather effects, we switch from hourly demand to daily demand and ask how time itself can enter the regression model through trend and seasonal predictors.

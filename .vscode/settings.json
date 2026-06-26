@@ -1,0 +1,9 @@
+{
+  "files.associations": {
+    "agents/ai-prose-audit/*.md": "markdown",
+    "*.prompt.md": "markdown",
+    "*.chatmode.md": "markdown",
+    "*.instructions.md": "markdown"
+  },
+  "task.quickOpen.history": 10
+}

@@ -23,7 +23,7 @@ Goldberger begins his text by calculating the average `WG` value for individuals
 
 Goldberger then regresses the average `WG` on `ED`. 
 
-##
+### CPS5 grouped data
 
 `r xfun::embed_file("../../data/CPS5grouped.csv")`
 
@@ -33,7 +33,7 @@ CPS5grouped =read.csv("../../data/CPS5grouped.csv")
 CPS5grouped
 ```
 
-##
+### Grouped data scatterplot
 
 ```{r, message=FALSE}
 ggplot(data=CPS5grouped,
@@ -43,7 +43,7 @@ ggplot(data=CPS5grouped,
   labs(x="Education (hours)", y = "Average wage ($)")
 ```
 
-##
+### Grouped regression summary
 
 The data appears to be quite close to the line, which often happens when we have data which have been averaged. The regression suggests we have a high $R^2 >0.9$.   
 
@@ -52,7 +52,7 @@ grouped.lm <- lm(AvWage ~ EDgroup, data=CPS5grouped)
 summary(grouped.lm)
 ```
 
-##
+### The problem with equal weighting
 
 However note that the left-hand points represent only a few individuals compared to some of the right-hand points, represented by the size of the circles scaling with the number of individuals $N$ contributing to the average. 
 We would like the regression line to be closer to those points that represent far more people.
@@ -62,7 +62,7 @@ This doesn't really make sense.
 
 If we use the ungrouped data the relationship between Wage and Education is much weaker in terms of goodness of fit of the model.
 
-##
+### Ungrouped CPS5 data
 
 `r xfun::embed_file("../../data/CPS5.csv")`
 
@@ -72,7 +72,7 @@ CPS5 = read.csv("../../data/CPS5.csv", header=TRUE)
 head(CPS5);
 ```
 
-##
+### Ungrouped scatterplot
 
 ```{r}
 ggplot(data=CPS5,
@@ -82,7 +82,7 @@ ggplot(data=CPS5,
   labs(x="Education (years)", y="Wage ($)")
 ```
 
-##
+### Ungrouped regression summary
 
 ```{r}
 cps5.lm  = lm(WG ~ ED, data=CPS5)
@@ -91,7 +91,7 @@ summary(cps5.lm)
 
 We see there is an outlier, which could be a typo (decimal point in the wrong place?) However the main focus here is that there is a lot more variation among the individual data than there is among the averaged data, so the $R^2$ is much lower. Also the regression coefficients have different values. 
 
-## Why Grouped Regression Results Differ
+### Why Grouped Regression Results Differ
 
 *Formulas not examinable but conclusion is important.*
 
@@ -115,14 +115,14 @@ So the difference between this sum and the sum (2) is that the squared residual 
 
 Essentially we interpret the weight as the **amount of information represented by the datapoint**.  So here in this simple example "amount of information" is easily measured as the sample size $w_j = n_j$ at each education level.       
 
-##
+#### Error SS decomposition
 
 But in fact we don't have all the $y_{ij}$ equal. Instead what we do is to add and subtract $\bar y_j$ inside the parentheses in equation (3), and then expand the square:
 $$\begin{aligned}SS_{error} &=  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j + \bar y_j - \beta_0- \beta_1 x_{ij})^2\\&=  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j)^2  + \sum^m_{j=1}\sum^{n_j}_{i=1}(\bar y_j - \beta_0- \beta_1 \bar x_j)^2 ~~~~~(*)\\&=  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j)^2  + \sum^m_{j=1} n_j~(\bar y_j - \beta_0- \beta_1 \bar x_j)^2\end{aligned}$$
 
 (*) Equality happens because the cross-product term $\sum^m_{j=1} \sum^{n_j}_{i=1} ~2~(y_{ij} -\bar y_j) (\bar y_j - \beta_0- \beta_1 \bar x_j) =0$. 
 
-##
+#### Key insight: SS decomposition
 
 The key fact is that the error SS splits into two parts: 
 
@@ -144,7 +144,7 @@ cps.wls = lm(AvWage ~ EDgroup, weights=N, data=CPS5grouped)
 summary(cps.wls)
 ```
 
-##
+#### OLS comparison
 
 ```{r}
 summary(cps5.lm)
@@ -154,7 +154,7 @@ We see that the coefficient estimates are the same, but the standard errors and 
 
 The following plot shows the averaged data with the unweighted (dashed) and weighted (solid red) lines. The weighted line is closer to where more data are. 
 
-##
+#### WLS vs OLS plot
 
 ```{r WLS vs OLS, message=FALSE}
 ggplot(data=CPS5grouped,
@@ -177,7 +177,7 @@ augment(cps.wls, CPS5grouped) |>
   labs(y="Simple residuals", x="Education group (years)")
 ```
 
-##
+#### Pearson residuals
 
 Instead we use "weighted" or  Pearson" Residuals $r_j = \sqrt{w_j}\varepsilon_j$.
  
@@ -215,7 +215,7 @@ supervisors = read.csv("../../data/supervisors.csv")
 supervisors
 ```
 
-##
+#### Supervisors scatterplot
 
 ```{r, message=FALSE}
 ggplot(supervisors,
@@ -225,7 +225,7 @@ ggplot(supervisors,
   labs(x = "Number of workers (X)", y = "Number of supervisors (Y)")
 ```
 
-##
+#### OLS residual diagnostics
 
 Note that the line is overshooting the cluster of points on the left.  
 The residual plots show curvature and heteroscedasticity.  
@@ -237,7 +237,7 @@ par(mfrow=c(1,2))
 plot(sup.lm, which=c(1,5))
 ```
 
-##
+#### Heteroscedasticity pattern
 
 Considering the heteroscedasticity, look at the amount of vertical spread of residuals when $x$= 400, 800 and 1600. 
 As $X$ doubles, the spread roughly doubles.  
@@ -251,7 +251,7 @@ But what we could do is divide through by $x_i$.  The model becomes
 $$\begin{aligned}\frac{y_i}{x_i} &= \frac{\beta_0}{x_i} + \beta_1\frac{x_i}{x_i}  + \frac{\varepsilon_i}{x_i}\\Y_i &=\beta_0 X_i + \beta_1 + \eta_i\end{aligned}$$
 where $Y_i = \frac{y_i}{x_i}$, $X_i = \frac{1}{x_i}$ and $\eta_i = \frac{\varepsilon_i}{x_i}$.
 
-##
+#### Constant variance after transformation
 
 The error term $\eta_i$ now has constant standard deviation as
 
@@ -265,14 +265,14 @@ $$\sum \left(\frac{y_i}{x_i} - \frac{\beta_0}{x_i} - \beta_1 \right)^2   ~~= ~~ 
 
 which is a weighted regression with $w_i = 1/ x_i^2$.  So the task with this transformation is the same as weighted least squares with these weights.
 
-##
+#### WLS for supervisors
 
 ```{r wls for supervisors}
 sup.wls = lm(Y ~ X  , data=supervisors, weights = 1/X^2 )
 summary(sup.wls)
 ```
 
-##
+#### WLS vs OLS supervisors plot
 
 ```{r, message=FALSE}
 ggplot(data=supervisors,
@@ -283,7 +283,7 @@ ggplot(data=supervisors,
   labs(x="Number of workers (X)", y = "Number of supervisors (Y)")
 ```
 
-##
+#### Weighted residuals plot
 
 The plot shows that weighted line (red, solid) is now going closer to the data at the left, where the random error is smallest, whereas the OLS line (dotted) overshot the data at left.
 
@@ -320,7 +320,7 @@ cps.wls2 <- lm(AvWage ~ EDgroup, weights=Wt, data=CPS5weighted)
 summary(cps.wls2)
 ```
 
-##
+#### CPS5 re-weighted plot
 
 ```{r, message=FALSE, fig.height=4}
 ggplot(data=CPS5weighted,
@@ -332,3 +332,45 @@ ggplot(data=CPS5weighted,
 ```
 
 The standard deviations are much higher for the highly-educated groups, so that counteracts some of the effect of higher sample sizes.
+
+## Running Example Bridge: Weighted Summaries for Seoul Bike Data
+
+The Seoul bike data also show why grouped summaries need care. If we average demand within temperature bands, some groups represent many more hourly observations than others.
+
+```{r seoul weighted read, message=FALSE}
+seoul_hourly = read_csv("../Data/seoul_bike_hourly.csv")
+```
+
+```{r seoul grouped}
+seoul_grouped = seoul_hourly |>
+  mutate(
+    temp_band = cut(
+      temperature,
+      breaks = c(-20, -10, 0, 10, 20, 30, 40),
+      include.lowest = TRUE
+    )
+  ) |>
+  group_by(temp_band) |>
+  summarise(
+    avg_bike_count = mean(rented_bike_count),
+    avg_temperature = mean(temperature),
+    N = n(),
+    .groups = "drop"
+  )
+
+seoul_grouped
+```
+
+```{r seoul grouped plot, message=FALSE}
+ggplot(seoul_grouped, aes(x = avg_temperature, y = avg_bike_count)) +
+  geom_point(aes(size = N)) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  geom_smooth(method = "lm", aes(weight = N), se = FALSE, colour = "red") +
+  labs(
+    x = "Average temperature within band",
+    y = "Average bike demand",
+    title = "Aggregated groups with different support should not be treated equally"
+  )
+```
+
+In this grouped view, weights represent how much information each summary point carries. That is a different issue from the time dependence we study later, but it is another reminder that the same applied dataset can raise several distinct regression questions.

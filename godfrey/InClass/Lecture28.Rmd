@@ -1,23 +1,23 @@
 ---
-title: "Lecture 28: Stepwise models"
+title: "Lecture 28: Stepwise and Penalised Regression"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
 date: "Week 10 of Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   html_notebook:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   ioslides_presentation:
     widescreen: true
     smaller: true
   word_document: default
   slidy_presentation: 
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   pdf_document: default
 ---
@@ -37,6 +37,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -45,58 +49,32 @@ library(broom)
 
 ## Automated Variable Selection Procedures
 
-Automated variable selection procedures work along the following lines:
-
-1.  Choose a model to start with (often the model with no covariates, or
-    the model with all covariates included).
-
-2.  Test to see if there is an advantage in adding or removing covariates.
-
-3.  Repeat adding/removing variables until there is no advantage in changing the model.
+Automated variable selection procedures work along the following lines: 1. Choose a model to start with (often the model with no covariates, or the model with all covariates included). 2. Test to see if there is an advantage in adding or removing covariates. 3. Repeat adding/removing variables until there is no advantage in changing the model.
 
 ## Forward Model Selection
 
-In this technique:
+In this technique: 1. All one-X variable models are computed, and the one which has the smallest p-value is chosen (provided any of the simple linear regression models are significant at the 5% significance level, or whatever significance level is being used). 2. Then all two-variable models *which include the first chosen X-variable* are computed. The variable whose regression coefficient is most significant (smallest p-value) is chosen (provided the p-value < 0.05). 3. Then all three X-variable models which *include the two variables previously chosen* are computed ... We continue to add variables to the model until there are no more significant ones to add. 4. Then we stop.
 
-1. All one-X variable models are computed, and the one which has the smallest p-value is chosen. (provided any of the simple linear regression models are significant  at the  5% significance level, or whatever significance level is being used. ) 
+Note the criterion for "significance" can be chosen by the user: e.g. One may choose to only include variables that have P-value < the usual significance level $\alpha$=0.05.
 
-2.  Then all two-variable models *which include the first chosen X-variable* are computed.  The variable whose regression coefficient is most significant (smallest p-value) is chosen (provided the p-value < 0.05) 
+### When to stop
 
-3. Then all three X-variable models which *include the two variables previously chosen* are computed ...
-We continue to add variables to the model until there are no more significant ones to add.   
+Sometimes it is useful to consider a higher P-value for entry into the model for forward selection, such as P-value < $\alpha$= 0.25. This is because we don't want to ignore any potentially useful variables. It is potentially better to first find the possible predictors, and then weed them out, than to not know about them.
 
-4. Then we stop.
-
-Note the criterion for "significance" can be chosen  by the user:  e.g. One may choose to  only include  variables   that have P-value <  the usual significance level $\alpha$=0.05.  
-
-## When to stop
-
-Sometimes it is useful to consider a higher P-value for entry into the model for forward selection, such as P-value < $\alpha$= 0.25.  This is because we don't want to ignore any potentially useful variables.  It is potentially better to first find the possible predictors, and then weed them out, than to not know about them.
-
-For computing the P-value for entering a variable,  we have two things we can look at.  On the one hand we can look to see if the t-value for that variable's regression coefficient is significant. (For example,  when df=60, the t-value will be significant at $\alpha=0.05$ if  $|t| > 2$). 
-
-Equivalently, we since we are comparing two nested models, we can use the `anova()` function  (e.g. anova($model_1,model_2$), and check if the F statistic is significant with  P-value < 0.05.    
-
-The two approaches are equivalent since, when we add just one
-variable,  $F = t^2$ where $F \sim F_{1,df}$.
+For computing the P-value for entering a variable, we have two things we can look at. On the one hand we can look to see if the t-value for that variable's regression coefficient is significant. (For example, when df=60, the t-value will be significant at $\alpha=0.05$ if $|t| > 2$). Equivalently, we since we are comparing two nested models, we can use the `anova()` function (e.g. anova($model_1,model_2$), and check if the F statistic is significant with P-value < 0.05. The two approaches are equivalent since, when we add just one variable, $F = t^2$ where $F \sim F_{1,df}$.
 
 ## Backwards Variable Selection
 
-1.  This starts with model containing all possible explanatory variables (and possibly interactions).
+1. This starts with model containing all possible explanatory variables (and possibly interactions).
+2. For each variable in turn, we investigate the effect of removing the variable (or interaction, if any) from current model.
+3. Remove the least informative variable or interaction, unless the term is supplying significant information about the response.
+4. Go to step 2. Stop only if all variables or interactions in the current model are important.
 
-2.  For each variable in turn, we investigate the effect of removing the variable  (or interaction, if any)   from current model.  
+## Stepwise (direction ="both")
 
-3.  Remove the least informative variable or interaction, unless the term is supplying significant information about the response.
+The phrase *Stepwise variable selection* is usually taken to mean that we start with a forward selection, but after each variable is entered into the model we check whether any other variables have fallen below the significance criterion $\alpha$, and if so we remove it from the model. One approach is to use *F* tests (or equivalently *t* tests).
 
-4.  Go to step 2. Stop only if all variables or interactions in the current model are  important.
-
-## Stepwise   (direction ="both")
-
-The phrase *Stepwise variable selection* is usually taken to mean that we start with a forward selection, but after each variable is entered into the model we check whether any other variables have fallen below the significance criterion $\alpha$, and if so we remove it from the model.  
-
-One approach is to use *F* tests (or equivalently *t* tests).
-
-## Example: Hours of sunshine (backwards)
+### Example: Hours of sunshine (backwards)
 
 Use backwards elimination on a full model of `Sun` from the `climate` data.
 
@@ -109,7 +87,7 @@ climate.lm1= lm(Sun ~ . , data=climate)
 summary(climate.lm1)
 ```
 
-## 
+#### Drop Lat
 
 We would drop the variable with highest P-value, in this case `Lat`.   NB only drop one variable at a time.   We can use the `update()` function to save typing. 
 
@@ -118,7 +96,7 @@ climate.lm2 = update(climate.lm1, . ~ .-Lat)
 summary(climate.lm2)
 ```
 
-##
+#### Drop MnJlyTemp
 
 The highest P-value is for `MnJlyTemp`, so we update to drop this one as well. Note instead of outputting the whole summary we can use the function `drop1()` to inform us of our choices in terms of dropping further variables.
 
@@ -129,7 +107,7 @@ drop1(climate.lm3, test="F")
 
 The F test indicates that `Height` has p-value =0.08, so we can drop that one as well. 
 
-##
+#### Drop Height
 
 ```{r update 3}
 climate.lm4 = update(climate.lm3, . ~ .-Height)
@@ -138,7 +116,7 @@ drop1(climate.lm4, test="F")
 
 Now we are told that `Sea` has p-value= 0.15, so we drop this as well. 
 
-##
+#### Drop Sea
 
 ```{r update 4}
 climate.lm5 = update(climate.lm4, . ~ .-Sea)
@@ -147,16 +125,16 @@ drop1(climate.lm5, test="F")
 
 Finally we drop `Rain`, which  has p-value= 0.10.
 
-##
+#### Drop Rain
 
 ```{r update 5 }
 climate.lm6 = update(climate.lm5, . ~ .-Rain)
 summary(climate.lm6)
 ```
 
-We see that annual hours of Sunshine are greater in places with high Longitude (i.e. eastern side of NZ), high mean January temperature and, perhaps surprisingly that hours are apparently lower in the North Island  (but note `NorthIsland` and `Longitude` are correlated so this "apparently" may not be correct. )
+We see that annual hours of Sunshine are greater in places with high Longitude (i.e. eastern side of NZ), high mean January temperature and, perhaps surprisingly that hours are apparently lower in the North Island (but note `NorthIsland` and `Longitude` are correlated so this "apparently" may not be correct.)
 
-## Forward selection 
+## Forward selection
 
 We try using forward selection instead. Do we finish with the same model? 
 
@@ -165,14 +143,14 @@ climate.null= lm(Sun ~ 1, data = climate)
 add1(climate.null,  scope = ~. -Lat+Long+MnJanTemp+MnJlyTemp +Height+Rain+Sea+NorthIsland, test="F")
 ```
 
-##
+#### Forward Step 1: Add MnJanTemp
 
 ```{r}
 climate.s1 = update(climate.null, .~.+MnJanTemp)
 add1(climate.s1,  scope = ~Lat+Long+MnJanTemp+MnJlyTemp +Height+Rain+Sea+NorthIsland, test="F")
 ```
 
-##
+#### Forward Step 2: Add Rain
 
 ```{r}
 climate.s2 = update(climate.s1, .~.+Rain)
@@ -181,7 +159,7 @@ add1(climate.s2, scope = ~Lat+Long+MnJanTemp+MnJlyTemp +Height+Rain+Sea+NorthIsl
 
 There are no additional variables to add.
 
-##
+#### Forward Selection Final Model
 
 ```{r}
 summary(climate.s2)
@@ -189,51 +167,25 @@ summary(climate.s2)
 
 The model chosen by forward selection is entirely different to the model by backwards elimination.
 
-##
+#### Forwards vs Backwards Comparison
 
-Sometimes the models are the same, but in this example they are not the same. 
-
-The reason for the difference is that sometimes two variables are both significant when **together**  in a regression, but are not significant enough to enter one-at-a-time in forwards selection.  That is why backwards elimination is usually the better approach. 
+Sometimes the models are the same, but in this example they are not the same. The reason for the difference is that sometimes two variables are both significant when **together** in a regression, but are not significant enough to enter one-at-a-time in forwards selection. That is why backwards elimination is usually the better approach. 
 
 ## Model Selection using AIC
 
-An alternative approach to selecting a good model is to define a measure of the quality of a model, then choose the model of the highest quality.
+An alternative approach to selecting a good model is to define a measure of the quality of a model, then choose the model of the highest quality. The so called information criteria can be used as measures of model quality. We will now examine information criteria in general, the Akaike information criterion (AIC) in particular, and consider their use in model selection.
 
-The so called information criteria can be used as measures of model quality.
+### Information Criteria
 
-We will now examine information criteria in general, the Akaike information criterion (AIC) in particular, and consider their use in model selection.
+A good regression model (i.e. with a good choice of predictors) will: 1. fit the data well; 2. be simple (have as few predictors as possible). Hence quality of a model can be measured by a quantity of the form $$\mbox{Measure of badness of fit} + k \times \mbox{Number of predictors} + \mbox{constant}$$ where *k* can be adjusted to control the relative importance of the two aspects of a model's quality just given. Note that any additive constant is of no real importance, since in comparing the quality of different models (our real aim) the constant term cancels out.
 
-## Information Criteria
+### Akaike Information Criterion
 
-A good regression model (i.e. with a good choice of predictors) will:
-    
-1.  fit the data well;
-2.  be simple (have as few predictors as possible).
+Several information criteria in statistics are of the form of our simple equation for a "measure of badness of fit" given above. One such measure is the Akaike Information Criterion (AIC). For a linear model with unknown error variance this is defined by $$AIC = n \log (RSS/n) + 2p + \mbox{constant}.$$ We can choose between models by selecting the one with **smaller** AIC. N.B. This is not the only criterion in common use, but is perhaps the most common.
 
-Hence quality of a model can be measured by a quantity of the form
-    $$\mbox{Measure of badness of fit} + k \times \mbox{Number of predictors} + \mbox{constant}$$ 
-    
-where *k* can be adjusted to control the relative
-importance of the two aspects of a model's quality just given.
+### Back to the Climate data
 
-Note that any additive constant is of no real importance, since in     comparing the quality of different models (our real aim) the     constant term cancels out.
-
-## Akaike Information Criterion
-
-Several information criteria in statistics are of the    form of our simple equation for a "measure of badness of fit" given above.
-
-One such measure is the Akaike Information Criterion (AIC). For     a linear model with unknown error variance this is defined by
-    $$AIC = n \log (RSS/n) + 2p + \mbox{constant}.$$
-
-We can choose between models by selecting the
-    one with **smaller** AIC.
-
-N.B. This is not the only criterion in common use, but is perhaps the most common.
-
-## Back to the Climate data
-
-We have found two different models, `climate.lm6` and `climate.s2`.  These not only have  different numbers of variables, but are not even nested!  However we can compare them using the adjusted $R^2$, or the function `AIC()`.
-Both criteria suggest that the model `lm6` is to be preferred. 
+We have found two different models, `climate.lm6` and `climate.s2`. These not only have different numbers of variables, but are not even nested! However we can compare them using the adjusted $R^2$, or the function `AIC()`. Both criteria suggest that the model `lm6` is to be preferred. 
 
 ```{r comparing}
 summary(climate.lm6)$adj.r.square
@@ -242,7 +194,7 @@ AIC(climate.lm6)
 AIC(climate.s2)
 ```
 
-##
+#### Comparing Models with extractAIC()
 
 An alternative to `AIC()` is the `extractAIC()` command. The output from `extractAIC()` command is number of regression parameters (*p+1*) and the model's AIC.
 
@@ -251,18 +203,9 @@ extractAIC(climate.lm6)
 extractAIC(climate.s2)
 ```
 
-## AIC in Stepwise Variable Selection
+### AIC in Stepwise Variable Selection
 
-We have seen that sequential variable selection can be conducted     using a sequence of *F* tests.
-
-An alternative is to compare models using AIC.
-
-Specifically, at each step of the algorithm we change to the model
-    with smallest AIC (from adding or dropping a single variable), and
-    stop only when we cannot reduce AIC by single term additions or
-    deletions.
-
-This procedure is implemented using the `step()` command in R.   
+We have seen that sequential variable selection can be conducted using a sequence of *F* tests. An alternative is to compare models using AIC. Specifically, at each step of the algorithm we change to the model with smallest AIC (from adding or dropping a single variable), and stop only when we cannot reduce AIC by single term additions or deletions. This procedure is implemented using the `step()` command in R.
 
 ```{r step}
 climate.null <- lm(Sun ~ 1, data=climate)
@@ -270,13 +213,13 @@ climate.full <- lm(Sun ~ Lat + Long + MnJanTemp + MnJlyTemp + Rain + Height + Se
 scope <- list(lower = formula(climate.null), upper=formula(climate.full))
 ```
 
-##
+#### Stepwise Search with step()
 
 ```{r step1}
 climate.step <- step(climate.null, scope = scope, direction = "both")
 ```
 
-##
+#### Stepwise Model Summary
 
 ```{r stepcont}
 summary(climate.step)
@@ -284,19 +227,386 @@ summary(climate.step)
 
 Note AIC is more liberal than the F test, and has allowed a non-significant variable in.
 
-## Backwards elimination via step() and AIC
+### Backwards elimination via step() and AIC
 
-The syntax below shows how to do a backwards elimination. 
-This also results in including a non-significant variable.  However this has higher adjusted R-square. 
+The syntax below shows how to do a backwards elimination. This also results in including a non-significant variable. However this has higher adjusted R-square.
 
 ```{r step2}
 climate.step2 <- step(climate.full, scope = scope, direction="backward")
 ```
 
-##
+#### Backwards AIC Model Summary
 
 ```{r}
 summary(climate.step2)
 ```
 
 **Question:  Which of these models is preferred?**
+
+## Running Example Bridge: Stepwise Search on Seoul Bike Data
+
+The Seoul bike data give us a more modern example of the same problem. Suppose we want to predict hourly demand from weather and calendar information, but we do not want to hand-build every candidate model.
+
+```{r seoul stepwise read, message=FALSE}
+seoul_hourly = read_csv("../Data/seoul_bike_hourly.csv")
+```
+
+```{r seoul stepwise setup}
+seoul_subset = seoul_hourly |>
+  select(
+    rented_bike_count,
+    hour,
+    season,
+    holiday,
+    functioning_day,
+    temperature,
+    humidity,
+    wind_speed,
+    visibility,
+    dew_point_temperature,
+    solar_radiation,
+    rainfall,
+    snowfall
+  )
+
+seoul_null = lm(rented_bike_count ~ 1, data = seoul_subset)
+seoul_full = lm(
+  rented_bike_count ~ hour + season + holiday + functioning_day +
+    temperature + humidity + wind_speed + visibility +
+    dew_point_temperature + solar_radiation + rainfall + snowfall,
+  data = seoul_subset
+)
+seoul_scope = list(lower = formula(seoul_null), upper = formula(seoul_full))
+```
+
+```{r seoul add1 preview}
+add1(seoul_null, scope = formula(seoul_full), test = "F")
+```
+
+```{r seoul step preview}
+seoul_step = step(seoul_null, scope = seoul_scope, direction = "both", trace = 0)
+formula(seoul_step)
+```
+
+This is exactly the kind of setting where automated search looks tempting:
+
+- there are many plausible predictors,
+- some are related to each other,
+- and the design can quickly become too large to compare by hand.
+
+The next question is whether we should search by adding and dropping whole terms, or whether we should keep a richer model and shrink the coefficients.
+
+## Penalised Regression: What Actually Happens to the Coefficients?
+
+Stepwise regression makes discrete decisions. A term is either in the model or out of the model. Penalised regression uses a different strategy. We start with a larger model, but discourage the model from using large coefficients. For ordinary least squares, we minimise \[RSS = \sum_{i=1}^{n} (y_i - \hat y_i)^2.\] For penalised regression, we minimise \[RSS + \text{penalty}.\] The penalty is controlled by a tuning parameter \(\lambda\). When \(\lambda = 0\), there is no penalty and we get ordinary least squares. When \(\lambda\) is large, the coefficients are pulled more strongly toward zero. The intercept is usually not penalised. The penalty is applied to the slope coefficients.
+
+## A Clean Case: Orthogonal Predictors
+
+The clearest way to see ridge and lasso is to consider a simple case where the predictors are orthogonal. Orthogonal predictors means that the predictors are uncorrelated with each other in the model matrix. In matrix terms, the columns of \(X\) are perpendicular. Suppose also that the predictors have been centred and scaled so that \[\sum_{i=1}^{n} x_{ij}^{2} = n.\] This is not always true in real data, but it gives a useful clean result.
+
+## Ridge Regression in the Orthogonal Case
+
+Ridge regression minimises \[\sum_{i=1}^{n} \left( y_i - \beta_0 - \sum_{j=1}^{p}\beta_j x_{ij} \right)^2 + \lambda \sum_{j=1}^{p}\beta_j^2.\] The penalty uses squared coefficients. This is called an \(L_2\) penalty. In the orthogonal case, the ridge estimate for each slope coefficient is \[\hat\beta^{\text{ridge}}_j = \frac{n}{n+\lambda} \hat\beta^{\text{OLS}}_j.\] This is the main ridge intuition. Each ordinary least squares coefficient is multiplied by a number between 0 and 1. If \(\lambda = 0\), then \(\frac{n}{n+\lambda} = 1\), so ridge gives the ordinary least squares coefficient. If \(\lambda\) is large, then \(\frac{n}{n+\lambda}\) is closer to 0, so the coefficient is shrunk toward zero. Ridge regression therefore shrinks coefficients, but it usually does not make them exactly zero.
+
+## Lasso Regression in the Orthogonal Case
+
+Lasso regression minimises \[\sum_{i=1}^{n} \left( y_i - \beta_0 - \sum_{j=1}^{p}\beta_j x_{ij} \right)^2 + \lambda \sum_{j=1}^{p}|\beta_j|.\] The penalty uses absolute coefficient values. This is called an \(L_1\) penalty. In the orthogonal case, the lasso estimate is a soft-thresholded version of the ordinary least squares estimate: \[\hat\beta^{\text{lasso}}_j = \text{sign}(\hat\beta^{\text{OLS}}_j) \left( |\hat\beta^{\text{OLS}}_j| - \frac{\lambda}{2n} \right)_+,\] where \((a)_+ = \max(a, 0)\). This formula says: 1. take the ordinary least squares coefficient; 2. reduce its magnitude; 3. if it becomes small enough, set it exactly to zero. That is why lasso can do variable selection. Ridge multiplies coefficients by a shrinkage factor. Lasso subtracts from the absolute size of the coefficient and truncates at zero.
+
+## Why the Geometry Matters
+
+For ridge regression, the constraint has the form \(\beta_1^2 + \beta_2^2 \leq c\). In two dimensions, this is a circle. For lasso regression, the constraint has the form \(|\beta_1| + |\beta_2| \leq c\). In two dimensions, this is a diamond, or a square rotated by 45 degrees. The lasso diamond has corners on the axes. Those corners occur where one coefficient is exactly zero. Because the lasso constraint has corners, the best solution often lands on an axis. When that happens, one coefficient is exactly zero. The ridge constraint is smooth, so the solution is usually shrunk toward zero but not exactly onto an axis. This is the geometric reason that ridge shrinks, while lasso can shrink and select.
+
+```{r ridge lasso geometry, fig.width=8, fig.height=4, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+theta = seq(0, 2 * pi, length.out = 500)
+
+ridge_boundary = tibble(
+  beta_1 = cos(theta),
+  beta_2 = sin(theta),
+  method = "Ridge: circular L2 constraint"
+)
+
+lasso_boundary = tibble(
+  beta_1 = c(seq(0, 1, length.out = 100),
+             seq(1, 0, length.out = 100),
+             seq(0, -1, length.out = 100),
+             seq(-1, 0, length.out = 100)),
+  beta_2 = c(seq(1, 0, length.out = 100),
+             seq(0, -1, length.out = 100),
+             seq(-1, 0, length.out = 100),
+             seq(0, 1, length.out = 100)),
+  method = "Lasso: diamond L1 constraint"
+)
+
+constraint_plot = bind_rows(ridge_boundary, lasso_boundary)
+
+ggplot(constraint_plot, aes(x = beta_1, y = beta_2)) +
+  geom_path(linewidth = 1) +
+  facet_wrap(~ method) +
+  coord_equal() +
+  labs(
+    x = expression(beta[1]),
+    y = expression(beta[2]),
+    title = "Ridge and lasso constraints"
+  ) +
+  theme_minimal()
+```
+
+## Why Standardisation Matters
+
+Before ridge or lasso, predictors should usually be standardised. The reason is that the penalty is applied to the coefficient values. Suppose one predictor is measured in metres and another is measured in millimetres. The numerical sizes of their coefficients will be different just because of the measurement scale. Without standardisation, the penalty would not treat the predictors fairly. The `glmnet` package standardises predictors by default using `standardize = TRUE`. This is usually what we want for ridge and lasso.
+
+## Using `glmnet`
+
+The `glmnet` package fits penalised regression models. It expects the predictors as a numeric matrix and the response as a vector. From this point on, we are treating the problem mainly as prediction, not formal hypothesis testing.
+
+```{r seoul penalised setup, message=FALSE, warning=FALSE}
+library(glmnet)
+library(tidyverse)
+
+X = model.matrix(
+  rented_bike_count ~ hour + season + holiday + functioning_day +
+    temperature + humidity + wind_speed + visibility +
+    dew_point_temperature + solar_radiation + rainfall + snowfall,
+  data = seoul_subset
+)[, -1]
+
+y = seoul_subset$rented_bike_count
+```
+
+The `model.matrix()` function converts the regression formula into the numeric matrix needed by `glmnet`. It also converts factors into dummy variables. The argument `alpha` controls the penalty. `alpha = 0` gives ridge regression. `alpha = 1` gives lasso regression. Values between 0 and 1 give elastic net regression.
+
+## Ridge Regression in `glmnet`
+
+```{r seoul ridge cv, message=FALSE, warning=FALSE}
+set.seed(42)
+
+seoul_ridge = cv.glmnet(
+  x = X,
+  y = y,
+  alpha = 0,
+  standardize = TRUE
+)
+
+plot(seoul_ridge, main = "Ridge regression")
+```
+
+The cross-validation chooses the amount of shrinkage. The value `seoul_ridge$lambda.min` gives the \(\lambda\) with the smallest cross-validated prediction error. The value `seoul_ridge$lambda.1se` gives a more strongly penalised model whose error is still within one standard error of the minimum. We can extract the ridge coefficients.
+
+```{r seoul ridge coefs, include=FALSE}
+ridge_coef_min = coef(seoul_ridge, s = "lambda.min")
+ridge_coef_1se = coef(seoul_ridge, s = "lambda.1se")
+
+ridge_coef_table = tibble(
+  coefficient = rownames(ridge_coef_min),
+  ridge_lambda_min = as.numeric(ridge_coef_min),
+  ridge_lambda_1se = as.numeric(ridge_coef_1se)
+)
+```
+
+```{r seoul ridge coefs display, echo=FALSE}
+ridge_coef_table
+```
+
+Ridge usually keeps all predictors in the model, but reduces the size of the coefficients.
+
+## Lasso Regression in `glmnet`
+
+```{r seoul lasso cv, message=FALSE, warning=FALSE}
+set.seed(42)
+
+seoul_lasso = cv.glmnet(
+  x = X,
+  y = y,
+  alpha = 1,
+  standardize = TRUE
+)
+
+plot(seoul_lasso, main = "Lasso regression")
+```
+
+The lasso can set some coefficients exactly to zero.
+
+```{r seoul lasso coefs, include=FALSE}
+lasso_coef_min = coef(seoul_lasso, s = "lambda.min")
+lasso_coef_1se = coef(seoul_lasso, s = "lambda.1se")
+
+lasso_coef_table = tibble(
+  coefficient = rownames(lasso_coef_min),
+  lasso_lambda_min = as.numeric(lasso_coef_min),
+  lasso_lambda_1se = as.numeric(lasso_coef_1se),
+  selected_min = lasso_lambda_min != 0,
+  selected_1se = lasso_lambda_1se != 0
+)
+```
+
+```{r seoul lasso coefs display, echo=FALSE}
+lasso_coef_table
+```
+
+Count the number of selected predictors, excluding the intercept.
+
+```{r seoul lasso counts, include=FALSE}
+nonzero_min = sum(lasso_coef_min[-1] != 0)
+nonzero_1se = sum(lasso_coef_1se[-1] != 0)
+```
+
+```{r seoul lasso counts display, echo=FALSE}
+cat("Number of non-zero coefficients at lambda.min:", nonzero_min, "\n")
+cat("Number of non-zero coefficients at lambda.1se:", nonzero_1se, "\n")
+```
+
+List the selected predictors for each choice.
+
+```{r seoul lasso selected, include=FALSE}
+selected_min = rownames(lasso_coef_min)[as.vector(lasso_coef_min != 0)]
+selected_min = selected_min[selected_min != "(Intercept)"]
+
+selected_1se = rownames(lasso_coef_1se)[as.vector(lasso_coef_1se != 0)]
+selected_1se = selected_1se[selected_1se != "(Intercept)"]
+```
+
+```{r seoul lasso selected display, echo=FALSE}
+cat("Selected at lambda.min:\n")
+selected_min
+cat("\nSelected at lambda.1se:\n")
+selected_1se
+```
+
+The `lambda.min` model is chosen to minimise cross-validated prediction error. The `lambda.1se` model is chosen to be more regularised while still having similar prediction error. If `lambda.min` keeps nearly every variable, that is not a failure of lasso. It means that, for this dataset and this set of predictors, cross-validation found that the less sparse model predicted better.
+
+## Coefficient Path Plot
+
+A coefficient path plot shows how the lasso coefficients change as \(\lambda\) varies.
+
+```{r seoul lasso path, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
+plot(seoul_lasso$glmnet.fit, xvar = "lambda", label = TRUE)
+abline(v = log(seoul_lasso$lambda.min), lty = 2, col = "red")
+abline(v = log(seoul_lasso$lambda.1se), lty = 3, col = "blue")
+legend("topright",
+       legend = c("lambda.min", "lambda.1se"),
+       lty = c(2, 3), col = c("red", "blue"))
+```
+
+Each line in the plot shows one coefficient. The vertical lines show the two common choices of \(\lambda\). At large \(\lambda\) (left side of the plot), many coefficients are zero. As \(\lambda\) decreases, more coefficients become non-zero.
+
+```{r seoul lasso counts table, include=FALSE}
+lasso_counts = tibble(
+  lambda_choice = c("lambda.min", "lambda.1se"),
+  lambda = c(seoul_lasso$lambda.min, seoul_lasso$lambda.1se),
+  nonzero_predictors = c(
+    sum(coef(seoul_lasso, s = "lambda.min")[-1] != 0),
+    sum(coef(seoul_lasso, s = "lambda.1se")[-1] != 0)
+  )
+)
+```
+
+```{r seoul lasso counts table display, echo=FALSE}
+lasso_counts
+```
+
+## Comparing Stepwise and Lasso
+
+Stepwise regression and lasso are both automated procedures, but they answer slightly different questions. Stepwise regression asks: which terms should be added or removed to improve the model selection criterion? Lasso asks: how much should the coefficients be shrunk, and which coefficients become zero under that amount of shrinkage? For the Seoul bike data, the lasso at `lambda.min` may keep many or all predictors. That makes it a poor example if our only goal is to show variable selection. But it is a good example for a more realistic point: lasso does not guarantee a tiny model. It produces sparse models only when the cross-validated penalty is strong enough to push some coefficients to zero. In some datasets, many predictors really do contain predictive information. In that case, ridge, lasso, and stepwise selection may give different-looking models because they are controlling complexity in different ways. Let us compare the stepwise formula with the lasso-selected predictors.
+
+```{r seoul stepwise vs lasso, include=FALSE}
+step_terms = attr(terms(seoul_step), "term.labels")
+
+lasso_coef_1se = coef(seoul_lasso, s = "lambda.1se")
+
+lasso_selected_coefficients = rownames(lasso_coef_1se)[
+  as.vector(lasso_coef_1se != 0)
+]
+
+lasso_selected_coefficients = lasso_selected_coefficients[
+  lasso_selected_coefficients != "(Intercept)"
+]
+
+# Map dummy-coded lasso columns back to model terms for comparison
+# season -> season, functioning_day -> functioning_day, etc.
+lasso_selected_terms = unique(
+  gsub("^(season|holiday|functioning_day).*$", "\\1",
+       lasso_selected_coefficients)
+)
+
+in_both = intersect(step_terms, lasso_selected_terms)
+only_stepwise = setdiff(step_terms, lasso_selected_terms)
+only_lasso = setdiff(lasso_selected_terms, step_terms)
+```
+
+```{r seoul stepwise vs lasso display, echo=FALSE}
+cat("Stepwise model terms:\n")
+print(step_terms)
+cat("\nLasso selected coefficients at lambda.1se:\n")
+print(lasso_selected_coefficients)
+cat("\n--- Comparison (mapping lasso dummies back to model terms) ---\n")
+cat("\nIn both stepwise and lasso:\n")
+print(in_both)
+cat("\nOnly in stepwise (not selected by lasso):\n")
+print(only_stepwise)
+cat("\nOnly in lasso (not in stepwise formula):\n")
+print(only_lasso)
+```
+
+Be careful when comparing stepwise and lasso here. Stepwise works with model terms. For example, `season` is one model term. `glmnet` works with columns of the model matrix. A factor such as `season` becomes several dummy-variable columns. So the lasso count is a count of selected columns, not necessarily a count of selected scientific variables.
+
+## MSE Comparison Across Methods
+
+We can compare the fitted performance of each method by computing the mean squared error on the training data.
+
+```{r seoul mse comparison, include=FALSE}
+# Stepwise model predictions
+seoul_step_pred = predict(seoul_step, seoul_subset)
+
+# Ridge predictions
+ridge_pred_min = predict(seoul_ridge, newx = X, s = "lambda.min")
+ridge_pred_1se = predict(seoul_ridge, newx = X, s = "lambda.1se")
+
+# Lasso predictions
+lasso_pred_min = predict(seoul_lasso, newx = X, s = "lambda.min")
+lasso_pred_1se = predict(seoul_lasso, newx = X, s = "lambda.1se")
+
+# Compute MSE and RMSE
+mse_comparison = tibble(
+  Method = c("Stepwise (AIC)",
+             "Ridge (lambda.min)",
+             "Ridge (lambda.1se)",
+             "Lasso (lambda.min)",
+             "Lasso (lambda.1se)"),
+  MSE = c(
+    mean((seoul_subset$rented_bike_count - seoul_step_pred)^2),
+    mean((seoul_subset$rented_bike_count - ridge_pred_min)^2),
+    mean((seoul_subset$rented_bike_count - ridge_pred_1se)^2),
+    mean((seoul_subset$rented_bike_count - lasso_pred_min)^2),
+    mean((seoul_subset$rented_bike_count - lasso_pred_1se)^2)
+  ),
+  RMSE = sqrt(MSE),
+  `Non-zero predictors` = c(
+    length(coef(seoul_step)) - 1,
+    sum(coef(seoul_ridge, s = "lambda.min")[-1] != 0),
+    sum(coef(seoul_ridge, s = "lambda.1se")[-1] != 0),
+    sum(coef(seoul_lasso, s = "lambda.min")[-1] != 0),
+    sum(coef(seoul_lasso, s = "lambda.1se")[-1] != 0)
+  )
+)
+```
+
+```{r seoul mse comparison display, echo=FALSE}
+mse_comparison = mse_comparison |>
+  mutate(
+    RMSE = sqrt(MSE),
+    delta_MSE = MSE - min(MSE),
+    delta_RMSE = RMSE - min(RMSE)
+  )
+
+mse_comparison
+```
+
+The first thing to notice is that the training MSE values are very similar. The RMSE column puts the errors in the original units: bikes per hour. All five models have an RMSE around 432 bikes per hour. The differences between them are only a few bikes per hour. The lowest training RMSE is for lasso at `lambda.min` (432.3 bikes/hour), but it is almost identical to the stepwise AIC model (432.4 bikes/hour). The difference of 0.1 bikes per hour is practically meaningless. The ridge models have slightly higher RMSE (433.6 and 437.3 bikes/hour). This is expected, because ridge deliberately shrinks coefficients. It is not trying to minimise the training RSS as aggressively as ordinary least squares. Ridge accepts a small loss in training fit in exchange for potentially more stable predictions on new data. The lasso at `lambda.min` keeps all 14 model-matrix predictors. In this example, lasso at `lambda.min` is therefore not giving a sparse model. It is mainly acting as a shrinkage method. The lasso at `lambda.1se` is more interesting for variable selection. It keeps 11 predictors and has an RMSE of 436.1 bikes/hour, only about 4 bikes/hour higher than the best model. This illustrates the usual trade-off: a simpler model may have slightly worse fitted performance, but may be easier to interpret and may generalise better. The number of non-zero predictors should be interpreted carefully. Ridge regression usually does not set coefficients exactly to zero, so the ridge models keep all predictors. Also, `glmnet` works with columns of the model matrix, whereas stepwise regression works with model terms. A categorical variable can therefore count as one term in stepwise regression but several dummy-variable columns in `glmnet`. The main conclusion is not that one method clearly wins. Instead, the table shows that several different modelling strategies can give very similar fitted accuracy, while producing different levels of shrinkage and different apparent model complexity. In practice, we would prefer to compare these methods using a held-out test set or cross-validated prediction error, rather than training MSE. Training MSE is useful for illustration, but it is not a fair estimate of future predictive performance. The Seoul bike example shows that penalised regression does not automatically give a dramatically better or much smaller model. Its value is that it gives a principled way to trade off fit, shrinkage, stability, and sparsity.
+
+## Key Takeaway
+
+Penalised regression gives us another way to control model complexity. Instead of searching through many candidate models, we fit a richer model and penalise large coefficients. Ridge regression uses an \(L_2\) penalty and shrinks coefficients toward zero. Lasso regression uses an \(L_1\) penalty and can shrink coefficients exactly to zero. In `glmnet`, ridge is fitted with `alpha = 0`, lasso with `alpha = 1`, and the amount of shrinkage is controlled by \(\lambda\), usually chosen by cross-validation.
+
+

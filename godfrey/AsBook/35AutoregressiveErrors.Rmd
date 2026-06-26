@@ -1,0 +1,162 @@
+# Regression with Autoregressive Errors{#AutoregressiveErrors}
+
+[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture35.html)
+
+<!--- Data is on
+https://r-resources.massey.ac.nz/data/161251/
+--->
+
+```{r setup, purl=FALSE, include=FALSE}
+library(knitr)
+opts_chunk$set(dev=c("png", "pdf"))
+opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+options(knitr.kable.NA = '')
+library(tidyverse)
+library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
+```
+
+
+<!--- Do not edit anything above this line. --->
+```{r autoregressive-errors-setup, include=FALSE}
+library(nlme)
+library(broom.mixed)
+```
+
+## Regression with Autoregressive Errors
+
+The previous lecture showed that the residuals from our Seoul Bike daily regression are not fully independent. This lecture keeps the same mean structure, but revises the error model.
+
+By the end of this lecture, students should be able to:
+
+1. Write down a regression model with AR(1) errors.
+2. Explain why autocorrelated errors affect standard errors and tests.
+3. Fit a regression model with `gls()` and `corAR1()`.
+4. Check whether the transformed residuals look closer to white noise.
+
+`r xfun::embed_file("../Data/seoul_bike_daily.csv")`
+
+```{r read seoul daily, message=FALSE}
+seoul_daily = read_csv("../Data/seoul_bike_daily.csv")
+seoul_daily
+```
+
+```{r build seoul daily model}
+seoul_daily = seoul_daily |>
+  mutate(
+    S1 = sin(2 * pi * day_index / 365),
+    C1 = cos(2 * pi * day_index / 365),
+    S2 = sin(4 * pi * day_index / 365),
+    C2 = cos(4 * pi * day_index / 365)
+  )
+
+seoul_lm = lm(
+  rented_bike_count ~ day_index + S1 + C1 + S2 + C2 +
+    mean_temperature + total_rainfall + total_solar_radiation,
+  data = seoul_daily
+)
+```
+
+### Why Change the Model?
+
+If residuals are autocorrelated, ordinary least squares typically reports standard errors that are too small. That means confidence intervals can be too narrow and p-values can be too optimistic.
+
+A more appropriate model keeps the regression mean structure but changes the assumptions about the error process.
+
+### The AR(1) Error Model
+
+In a first-order autoregressive error model,
+
+$$\varepsilon_t = \phi \varepsilon_{t-1} + \eta_t,$$
+
+where $\eta_t$ is white noise.
+
+- If $\phi > 0$, nearby errors tend to move in the same direction.
+- If $\phi < 0$, nearby errors tend to alternate.
+- If $\phi = 0$, we are back to independent errors.
+
+More generally, the lag-$k$ correlation is $\phi^k$.
+
+### Residual Dependence in the Seoul Bike Model
+
+```{r seoul-lm-resid-acf, fig.height=4.5}
+acf(resid(seoul_lm))
+```
+
+The residual ACF suggests that an AR(1) model for the errors is a reasonable first step.
+
+### Regression Model with AR(1) Errors
+
+For the Seoul Bike daily model we can write
+
+$$\begin{aligned}
+Y_t &= \beta_0 + \beta_1 \text{day_index} + \beta_2 S_1(t) + \beta_3 C_1(t) + \cdots + \varepsilon_t \\
+\varepsilon_t &= \phi \varepsilon_{t-1} + \eta_t
+\end{aligned}$$
+
+where the mean structure already accounts for trend, seasonality, and selected weather covariates, while $\eta_t$ is white noise.
+
+### Generalized Least Squares
+
+The idea behind generalized least squares is to estimate the regression coefficients while accounting for the covariance structure implied by the error process.
+
+For an AR(1) model this means:
+
+1. Estimate the autocorrelation parameter $\phi$.
+2. Use that dependence structure while fitting the regression coefficients.
+
+In practice we let software handle that estimation.
+
+### Fitting the Model in R
+
+```{r seoul-gls}
+seoul_gls <- gls(
+  rented_bike_count ~ day_index + S1 + C1 + S2 + C2 +
+    mean_temperature + total_rainfall + total_solar_radiation,
+  correlation = corAR1(form = ~ day_index),
+  data = seoul_daily
+)
+anova(seoul_gls)
+```
+
+The argument `correlation = corAR1()` tells `gls()` to use an AR(1) error structure.
+
+```{r summary-seoul-gls}
+summary(seoul_gls)
+```
+
+### Comparing the GLS and OLS Fits
+
+The estimated AR(1) parameter gives the size of the dependence in the errors.
+
+```{r compare-time-se}
+list(gls = seoul_gls |> tidy(),
+     lm = seoul_lm |> tidy()) |>
+  bind_rows(.id = "model") |>
+  filter(term == "day_index") |>
+  select(model, term, estimate, std.error)
+```
+
+The key point is usually not the coefficient estimate itself, but the standard error attached to it. Once autocorrelation is acknowledged, the uncertainty is often larger.
+
+### Checking the Normalized Residuals
+
+To see whether the AR(1) model has helped, we inspect the normalized residuals.
+
+```{r normalized-residuals-note, eval=FALSE}
+residuals(seoul_gls, type = "normalized")
+```
+
+```{r get-resids}
+acf(residuals(seoul_gls, type = "normalized"))
+```
+
+If the model has done a reasonable job, these residuals should show substantially less autocorrelation than the original `lm()` residuals.
+
+## A Brief Look Ahead
+
+AR(1) error models are a useful first step for regression with dependent residuals. More flexible approaches exist, including dynamic regression and ARIMA-type error structures, but for this course the main goal is to see how a familiar regression model can be improved once independence fails.

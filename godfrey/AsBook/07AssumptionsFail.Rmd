@@ -14,6 +14,10 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
@@ -192,6 +196,5 @@ There is some maths behind why square root and log are common transformations, e
 For our purposes, we just look for a  transformation  that fixes the residuals on the transformed scale. Then for prediction we back-transform the result.  You can read more about transformation methods in an Appendix to this book of notes. 
 
 The course 161.331 considers something called Generalized Linear Models,  which are a class of regression models used when the response variable $Y$ does not have normal errors. Many of the techniques you will learn in 161.251 generalize easily into that wider variety of contexts.
-
 
 

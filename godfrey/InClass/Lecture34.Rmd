@@ -1,23 +1,23 @@
 ---
-title: "Lecture 34: Modeling with Autoregressive Errors"
+title: "Lecture 34: Diagnosing Autocorrelated Errors"
 subtitle: 161.251 Regression Modelling
 author: "Presented by Nick Knowlton <N.Knowlton@massey.ac.nz>"  
-date: "Week 11 of Semester 2, `r lubridate::year(lubridate::now())`"
+date: "Week 12 of Semester 2, `r lubridate::year(lubridate::now())`"
 output:
   html_document:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   html_notebook:
     code_download: true
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   ioslides_presentation:
     widescreen: true
     smaller: true
   word_document: default
   slidy_presentation: 
-    theme: yeti
+    theme: sandstone
     highlight_style: pygments
   pdf_document: default
 ---
@@ -37,256 +37,134 @@ opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
+library(tsibble)
+library(fable)
+library(feasts)
+library(lubridate)
 ```
 
 
 <!--- Do not edit anything above this line. --->
-```{r ExtraPkgs}
-library(patchwork)
+```{r diagnosing-autocorrelation-setup, include=FALSE}
+library(DescTools)
+library(lmtest)
 ```
 
+## Diagnosing Autocorrelated Errors
 
-## Independent vs non-independent errors
+Once a regression model has captured the main mean structure, the next question is whether the residuals behave independently. In this lecture we continue with the Seoul Bike daily model from the previous lecture and focus on diagnosis rather than correction.
 
-Assumption A2 of   linear regression 
-$$ y_i = \beta_0 + \beta_1  x_{i1} + \beta_2 x_{2i}  + ... \beta_p  x_{pi} + \varepsilon_i$$
+By the end of this lecture, students should be able to:
 
-is that the errors $\varepsilon_i$ are independent. That is, there is no carry-over of information from one data row $i$  to another, apart from what is expressed through differences in the covariates (or factors, if relevant).
+1. Explain what autocorrelation means in regression residuals.
+2. Describe the consequences of autocorrelation for standard errors and tests.
+3. Use residual plots, runs tests, Durbin-Watson, ACF plots, and Ljung-Box tests.
+4. Recognise when autocorrelated errors suggest a need for a more appropriate model.
 
-In the final topics of this course we will consider how to detect whether this assumption is broken, and how to model 
-data with correlated errors 
-$cor(\varepsilon_{i-1},\varepsilon_i) \ne 0$.
+`r xfun::embed_file("../Data/seoul_bike_daily.csv")`
 
-For the moment we suppose the independence assumption A2 remains correct, and consider some simple ways of handling data that have a regular periodic component, such as patterns that depend on seasons of the year, or time of the day. 
-
-## Indicator Variables for Seasonality
-
-Often time series show some form of seasonal variation.  One way to handle this in a regression equation is to use indicator variables which pick out the most obvious seasonal influences (e.g. summer/ winter, or the Christmas effect on retail figures. )    
-
-We consider data on Ski equipment sales versus PDI (personal disposable income).  In the following data, both Ski Sales and PDI increased as time went by, but there appears to be a seasonal aspect to sales (which makes sense). 
-
-`r xfun::embed_file("../../data/SkiSales.csv")`
-
-```{r Ski Sales, eval=-1, echo=-2}
-#SkiSales = read.csv("SkiSales.csv",header=TRUE)
-SkiSales = read.csv("../../data/SkiSales.csv",header=TRUE)
-SkiSales |> head() |> kable()
+```{r read seoul daily, message=FALSE}
+seoul_daily = read_csv("../Data/seoul_bike_daily.csv")
+seoul_daily
 ```
 
-## Ski Sales and Residuals
+```{r build seoul mean model}
+seoul_daily = seoul_daily |>
+  mutate(
+    S1 = sin(2 * pi * day_index / 365),
+    C1 = cos(2 * pi * day_index / 365),
+    S2 = sin(4 * pi * day_index / 365),
+    C2 = cos(4 * pi * day_index / 365)
+  )
 
-```{r PlotSkiSales}
-a <- SkiSales |>
-  mutate(Quarter = as.factor(Quarter)) |>
-  ggplot(aes(y = Sales, x = PDI)) +
-  geom_point(aes(pch = Quarter, col = Quarter))
-
-SkiSales.lm1 <- lm(Sales ~ PDI, data = SkiSales)
-Residuals <- resid(SkiSales.lm1)
-
-b <- SkiSales |>
-  mutate(Quarter = as.factor(Quarter)) |>
-  ggplot(aes(x = PDI, y = Residuals)) +
-  geom_point(aes(pch = Quarter, col = Quarter)) +
-  geom_hline(yintercept = 0, color = "blue", linewidth = 0.7, linetype = "dashed")
-
-# Side by side
-(a | b) +
-  plot_layout(guides = "collect") &
-  theme(legend.position = "bottom")
+seoul_mean = lm(
+  rented_bike_count ~ day_index + S1 + C1 + S2 + C2 +
+    mean_temperature + total_rainfall + total_solar_radiation,
+  data = seoul_daily
+)
 ```
 
-The residual plot shows that residuals tended to be positive in the first and fourth quarter of the year
-(plotted using 🔴,➕) and negative in second and third quarter (plotted using 🟦 , \blacktriange), I
-t therefore seems reasonable to create an indicator variable for winter (first and   fourth quarter). 
- 
-## Winter Indicator
- 
-```{r winterIndicator}
-SkiSales |> mutate(Winter =as.numeric( (Quarter ==1)+ (Quarter ==4))) -> SkiSales
-SkiSales.lm2 = lm(Sales ~ PDI + Winter, data=SkiSales)
-summary(SkiSales.lm2)
-plot(SkiSales.lm2$residuals ~ PDI,  pch=Quarter, col= Quarter, data=SkiSales)
+### What Is Autocorrelation?
+
+In an ordinary regression model we usually assume that the errors are uncorrelated. If nearby residuals tend to move together, we say the errors are autocorrelated.
+
+This can happen because:
+
+- an important time-related predictor has been omitted,
+- the response genuinely has carry-over behaviour,
+- or both.
+
+Positive autocorrelation usually produces the familiar long, slow wandering pattern in a residual plot.
+
+### Residual Plot Over Time
+
+```{r seoul residual plot}
+plot(residuals(seoul_mean) ~ seoul_daily$day_index, type = "b")
+abline(h = 0, lty = 2)
 ```
 
-The regression shows ski sales are significantly higher in winter, as expected, and the residuals do not show any particular pattern with Quarter.   
+If long runs of positive or negative residuals appear, that is already evidence against independence.
 
-However, for completeness, we will just check whether there is any tendency for ski sales to be higher or lower in the first half of winter (Christmas??) or summer. 
+### Why It Matters
 
-## Quarter Indicators
+- Least squares estimates are still unbiased under broad conditions, but they are no longer efficient.
+- Standard errors can be badly wrong.
+- Confidence intervals and hypothesis tests can become misleading.
 
-```{r Q4Q2Indicator}
-SkiSales |> mutate(Q4=as.numeric(  Quarter ==4 ),
- Q2=as.numeric(  Quarter ==2 )) -> SkiSales
-SkiSales.lm3 = lm(Sales ~ PDI + Winter+ Q4 + Q2, data=SkiSales)
-summary(SkiSales.lm3)
-anova(SkiSales.lm2, SkiSales.lm3)
+So the real problem is not just a messy residual plot. It is that the inferential output from an ordinary `lm()` fit may no longer be trustworthy.
+
+### Analysis of Runs
+
+One simple way to formalise that impression is to look at the signs of the residuals and count how many runs occur.
+
+```{r runs-test}
+RunsTest(residuals(seoul_mean))
 ```
 
-We can conclude that a simple winter indicator is sufficient to express the effect of season on sales. 
+A small p-value suggests the signs are not appearing in random order.
 
-## Effect of month
+### Durbin-Watson Test
 
-We consider some data on a householder’s monthly electricity bill from May 1994 to May 1998. During this period the householder sometimes let paying guests rent part of the house, and we may expect the electricity bill was  higher at those times.  The householder's problem was to estimate the extra cost, so it could be legitimately claimed as a business expense for tax purposes.  
+The Durbin-Watson test is a classical test for first-order autocorrelation in regression residuals.
 
-One might expect the electricity bill to be higher in winter months, and in later years because of price rises, and also for periods when there were paying guests renting part of the house. It was also supposed that there might be an effect for the number of days included in the bill, and for whether the electricity bill was an estimate or the meter had actually been read. 
-
-The focus *for us* is how to adjust the analysis for the effect of season (month)  on the bill.  To examine this, we consider the residuals of Bill after adjusting for the non-weather-related variables.
-
-`r xfun::embed_file("../../data/Electricity.csv")`
-
-```{r Electricity vs weather, eval=-1, echo=-2}
-#Electricity= read.csv("Electricity.csv",header=TRUE)
-Electricity = read.csv("../../data/Electricity.csv",header=TRUE) 
-Electricity |> head() |> kable()
+```{r durbin-watson}
+dwtest(seoul_mean, alternative = "greater")
 ```
 
-## Electricity Plot
+Here the one-sided alternative reflects our suspicion of positive autocorrelation.
 
-```{r Electricity lm1}
-Electricity.lm1 =lm(Bill~Days + Estimate+ Guestwks + Time , data=Electricity)
-resids =Electricity.lm1$residuals
-# ggplot residuals vs Time (points + line + y=0 reference)
-Electricity |>
-  dplyr::mutate(Residuals = resid(Electricity.lm1)) |>
-  ggplot2::ggplot(ggplot2::aes(x = Time, y = Residuals)) +
-  ggplot2::geom_point() +
-  ggplot2::geom_line() +
-  ggplot2::geom_hline(yintercept = 0, color = "blue", linewidth = 0.7, linetype = "dashed") +
-  ggplot2::labs(x = "Time", y = "Residuals from Bill ~ Days + Estimate + Guestwks + Time")
+### ACF: Visualising Dependence Across Lags
+
+The autocorrelation function helps us see how strongly residuals at time $t$ are related to residuals at time $t-k$.
+
+```{r acf-plot, fig.width=8, fig.height=4}
+acf(residuals(seoul_mean), main = "ACF of Seoul Bike Residuals")
 ```
 
+For positively autocorrelated data, the ACF often decays slowly rather than dropping quickly toward zero.
 
-Although the effect of season is not clear, there are portions of the graph with several positive residuals in sequence, and several negative residuals. Time starts here at month=5 (May).
+### Ljung-Box Test
 
-## Indicator variables
+The Ljung-Box test examines several autocorrelations together rather than focusing on a single lag.
 
-One way of modelling seasonality would be to estimate an effect for each Month.  The dataset here is really too short for such an approach, but we can try it for purposes of illustration.
-
-```{r factorMonth}
-Electricity.lm2= lm(resids ~ factor(Month), data=Electricity)
-summary(Electricity.lm2)
+```{r ljung-box}
+Box.test(residuals(seoul_mean), lag = 14, type = "Ljung-Box")
 ```
 
-We see from the F test that the mean(resids) varies significantly with Month.   
-F-statistic: 4.633 on 11 and 37 DF,  p-value: 0.0002 
+A small p-value indicates that the residual series still contains dependence structure that our fitted model has not explained.
 
-The t-tests indicate that, compared to the baseline month January,  the resids are unusually high in July through to October.  This makes sense because more electricity would be used for lighting and heating during winter months. 
+### Diagnostic Summary
 
-Usually, however, we would like a more parsimonious model. So we consider one next. 
+When several of the following point in the same direction,
 
-## Sinusoidal models
+- residual plots show long runs,
+- the runs test is significant,
+- the Durbin-Watson test is significant,
+- the ACF decays slowly,
+- and the Ljung-Box test rejects,
 
-It would seem reasonable to model electricity use by temperature, and temperature by a simple Sine curve, with peak in winter and lowest electricity use in summer.
-Perhaps an initial guess is to set the '0' for the sine curve to  April since the power bill in that month includes the autumn equinox when temperatures should be ‘average’.
+we should stop treating the errors as independent.
 
-We can compute variables
+## Bridge to the Next Lecture
 
-SineTime=sin(  (Time-4)$\times 2\times$
- 3.1415927 /12) ,    and
-
-CosTime=cos(  (Time-4)$\times 2\times$
-3.1415927 /12).
-
-The rationale for also calculating a Cosine curve is that sometimes we don’t  know for sure where the ‘0’  should be.  If we include a Cosine curve in the model, its effect is to allow the ‘0’ to shift earlier or later.  
-
-How it works:  suppose we want to fit a curve of the form   $A\sin( x+\phi)$  where $A$ is an amplitude and 
-$\phi$ is an unknown shift parameter.  Then  trigonometry tells us that
-$$A.\sin(x+\phi)  
-    =A\sin(x)\cos(\phi) + A\cos(x)\sin(\phi) \\
-    = A_1 \sin(x) + A_2\cos(x)   $$
-    
-So a  regression of  $Y$ on the two columns with numbers 
-$\sin(x)$ and $\cos(x)$  will automatically calculate the slope parameters $A_1$ and $A_2$   and their relative size will automatically determine the optional choice of starting point $\phi$.  Easy as!
-
-If we find out later the extra cos() term is  not needed, then we can stick with our guess of April. 
-
-##
-
-```{r sinusoidal first guess}
-Electricity |> mutate(SinTime = sin((Time-4)*2*3.1415927 /12),
-CosTime = cos((Time-4)*2*3.1415927 /12)) -> Electricity
-Electricity.lm3 = lm(resids ~ SinTime  + CosTime, data=Electricity)
-summary(Electricity.lm3)
-```
-
-The regression shows that the coefficient of CosTime is definitely non-zero.  If it had been zero then this would mean  $\sin(\phi)=0$  and hence $\phi=0$  or in other words that there was no need for any further adjustment from my guess of April as the “average” month.       
-
-##
-
-Since the CosTime is highly significant it looks as if our guess was wrong.  Let’s plot the fitted values on the same graph as my working ‘response’ variable.The plot below shows that the fitted values equal zero close to the first data point, at Time =5. 
-
-```{r plotSinusoidal}
-plot(resids~ Time, data=Electricity)
-lines(resids~ Time, lty=1,col=4, data=Electricity)
-lines(Electricity.lm3$fitted.values ~ Time, lty=2,col=2,lwd=2, data=Electricity)
-abline(h=0, lty=2)
-```
-
- 
-So we will try with 5 as the adjustment. 
-
-```{r second sinusoidal}
-Electricity |> mutate(SinTime = sin((Time-5)*2*3.1415927 /12),
-CosTime = cos((Time-5)*2*3.1415927 /12)) -> Electricity
-Electricity.lm4 = lm(resids ~ SinTime  + CosTime, data=Electricity)
-summary(Electricity.lm4)
-```
-
-Success! The coefficient of CosTime is now not significantly different from zero.
-
-## Adding more sin and cos terms
-
-Now considering again the plot, I am not convinced  that the
-relationship between resids and month is  a simple
-sine curve. In particular resids rise more steeply in winter.
- 
-The next step is to add a component with 
-double the period of the sin curve, i.e.
-
-Sin2Time=sin(  (Time-5)$\times 4\times$
- 3.1415927 /12) ,    and
-
-Cos2Time=cos( (Time-5)$\times 4\times$ 3.1415927 /12).
-
-Adding terms in this way gives a more flexible set of shapes.
-
-```{r Augmented sin curve}
-Electricity |> mutate(Sin2Time = sin((Time-5)*4*3.1415927 /12),
-Cos2Time = cos((Time-5)*4*3.1415927 /12)) -> Electricity
-Electricity.lm5 = lm(resids ~ SinTime  + CosTime+ Sin2Time + Cos2Time, data=Electricity)
-summary(Electricity.lm5)
-anova(Electricity.lm4,Electricity.lm5)
-```
-
-```{r plot augmented sinusoidal}
-plot(resids~ Time, data=Electricity)
-lines(resids~ Time, lty=1,col=4, data=Electricity)
-lines(Electricity.lm5$fitted.values ~ Time, lty=2,col=2,lwd=2, data=Electricity)
-abline(h=0, lty=2)
-```
- 
-The regression output indicates that the extra sinusoidal terms have improved the fit significantly. 
-
-The graph suggests:  first, that  the peak in power costs in winter is steeper than previously shown, with estimated maximum in August;  estimated minimum power use is in December;  and there was a fairly flat period of  electricity use for the four months between February and May inclusive.  
-
-(The graph actually shows a tiny peak in March but it is not clear whether this is real or an “artifact”    of the model  i.e. something forced by the fact we are fitting the data using simple wavy curves and so one is going to get wiggles whether real or not.) 
-
-The only way to check would be to add in even more terms such as sines and cosines with 3 times the frequency.  However we do not have a lot of data so we will stop here. 
-
-## Putting it together
-
-Finally one should put all the variables together into the same model: 
- 
- 
-```{r everything}
- Electricity.lm6 =lm(Bill~Days + Estimate+ Guestwks + Time+SinTime  + CosTime+ Sin2Time + Cos2Time, data=Electricity)
- summary(Electricity.lm6)
-plot(Bill~ Time, data=Electricity)
-lines(Bill~ Time, lty=1,col=4, data=Electricity)
-lines(Electricity.lm6$fitted.values ~ Time, lty=2,col=2,lwd=2, data=Electricity)
-```
-
-The model is not perfect, but is now picking up many of the features of the data. 
- 
-
+Diagnosis tells us that ordinary least squares is not enough. The next lecture keeps the same Seoul Bike mean structure and adds an autoregressive error process, beginning with the AR(1) case and fitting with generalized least squares.
