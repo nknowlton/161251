@@ -34,6 +34,7 @@ jobs:
             tidyverse
             broom
             knitr
+            formatR
             rmarkdown
             bookdown
             tsibble
