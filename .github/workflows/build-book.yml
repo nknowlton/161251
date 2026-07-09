@@ -46,6 +46,9 @@ jobs:
             glmnet
             patchwork
             kableExtra
+            gridExtra
+            GGally
+            broom.mixed
 
       - name: Generate InClass and AsBook files
         working-directory: godfrey
