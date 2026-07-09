@@ -44,11 +44,10 @@ $$Y = 50 + 5\times TempA  + 5\times TempB  + \varepsilon  ~~~~ (*) $$
 
 Though you would not have noticed it, the TempA and TempB data were highly correlated.   
 
-`r xfun::embed_file("../../data/Simulation1.csv")` 
+`r xfun::embed_file("../../data/simulation1.csv")` 
 
 ```{r read Simulation1, eval=-1, echo=-2}
-Sim = read.csv("Simulation1.csv",header=TRUE)
-Sim = read.csv("../../data/Simulation1.csv",header=TRUE)
+Sim = read.csv("../../data/simulation1.csv",header=TRUE)
 Sim;    attach(Sim)
 Y = 50 + 5*tempA +5*tempB+ Epsilon
 
@@ -130,11 +129,10 @@ consists of household electricity bills, along with explanatory variables:
 
 Each of these explanatory variables would be expected to be related to the Bill, and yet they are also related to each other, so we may not be able to have them all in the same model.   
 
-`r xfun::embed_file("../../data/Electric.csv")` 
+`r xfun::embed_file("../../data/electric.csv")` 
 
 ```{r read electric, eval=-1, echo=-2}
-electric = read.csv("Electric.csv", header=TRUE)
-electric = read.csv("../../data/Electric.csv", header=TRUE)
+electric = read.csv("../../data/electric.csv", header=TRUE)
 electric;   attach(electric)
 cor(electric)
 ```

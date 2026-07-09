@@ -1,16 +1,14 @@
 # Simple Linear Regression{#Simple}
 
-[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture3.html)
+<a href="downloads/Lecture3.Rmd" download>Download the in-class Rmd</a>
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -43,9 +41,8 @@ The following R code
 - reads the pulse data into R (from a text file); and then 
 - prints out the first few rows of the data for simple viewing.
 
-```{r getPulseData, echo=-1, eval=-2}
+```{r getPulseData, echo=-1}
 PulseData <- read.csv(file="../../data/pulse.csv", header=T)
-PulseData <- read.csv(file="https://r-resources.massey.ac.nz/data/161251/pulse.csv", header=TRUE)
 head(PulseData)
 ```
 

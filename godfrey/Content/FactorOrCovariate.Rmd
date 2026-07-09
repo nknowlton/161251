@@ -165,8 +165,7 @@ We consider the relationship between the asking rent and the number of bedrooms 
 Is it reasonable to assume the relationship between rents and the number of bedrooms is linear? 
 
 ```{r bedrooms, echo = -1, eval = -2}
-NSrent=read.csv(file= "../../data/NSrent2021.csv",header=TRUE)
-NSrent = read.csv(file = "NSrent2021.csv", header = TRUE)
+NSrent=read.csv(file= "../../data/nsrent2021.csv",header=TRUE)
 boxplot(rent ~ as.factor(bedrooms), data = NSrent)
 ```
 

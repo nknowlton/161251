@@ -1,16 +1,14 @@
 # Appendix: Transformations in regression models{#Transformations}
 
-[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture38.html)
+<a href="downloads/Lecture38.Rmd" download>Download the in-class Rmd</a>
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)

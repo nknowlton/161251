@@ -24,9 +24,8 @@ The basic syntax is `lm(formula, data)`         where:
 ## Analysis of the Pulse Data: 
 
 
-```{r getPulseData, echo=-1, eval=-2}
+```{r getPulseData, echo=-1}
 PulseData <- read.csv(file="../../data/pulse.csv", header=T)
-PulseData <- read.csv(file="https://r-resources.massey.ac.nz/data/161251/pulse.csv", header=TRUE)
 summary(PulseData) 
 ```
 

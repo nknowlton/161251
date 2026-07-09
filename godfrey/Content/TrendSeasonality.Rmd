@@ -1,122 +1,193 @@
-```{r trend-seasonality-setup, include=FALSE}
-library(lubridate)
-```
-
 ## Regression Models for Trend and Seasonality
 
-When observations are recorded over time, the mean structure may change systematically. In this lecture we continue the Seoul Bike example, but now move to a daily aggregate so that the time pattern is easier to see.
+In the previous lecture, a simple seasonal indicator was enough for the ski-sales data. In other situations, the pattern across the year is smoother and more complicated. We want a model that is more flexible than a single winter indicator, but more parsimonious than fitting a separate effect for every month.
 
 By the end of this lecture, students should be able to:
 
-1. Use trend terms to model long-term movement.
-2. Use indicator variables to represent seasonal effects.
-3. Build sinusoidal and Fourier terms for periodic behaviour.
-4. Interpret the final model as a regression description of the mean over time.
+1. Use factor indicators to represent seasonality.
+2. Build sine and cosine predictors for periodic behaviour.
+3. Explain why sine-plus-cosine allows an unknown phase shift.
+4. Recognise Fourier terms as a systematic version of the same idea.
 
-`r xfun::embed_file("../Data/seoul_bike_daily.csv")`
+## Electricity Bills: Month Effects and Seasonal Shape
 
-```{r read seoul daily, message=FALSE}
-seoul_daily = read_csv("../Data/seoul_bike_daily.csv")
-seoul_daily
+We consider monthly electricity bills for a household from May 1994 to May 1998. During some months there were paying guests staying in part of the house, so the householder wanted to estimate the extra business-related electricity cost.
+
+After allowing for the number of days in the bill, whether the bill was estimated, the guest weeks, and a time trend, we then examine what seasonal structure remains.
+
+`r xfun::embed_file("../../data/Electricity.csv")`
+
+```{r read-electricity}
+Electricity <- read.csv("../../data/Electricity.csv", header = TRUE)
+Electricity |> head() |> kable()
 ```
 
-### A Regression View of Time Structure
+### Residual Seasonality After Basic Adjustment
 
-We focus on the mean function:
+```{r electricity-initial-model}
+Electricity_lm1 <- lm(Bill ~ Days + Estimate + Guestwks + Time, data = Electricity)
+resids <- resid(Electricity_lm1)
 
-- `day_index` captures long-term change,
-- `season` captures a coarse repeating pattern,
-- sine and cosine terms provide a compact seasonal representation,
-- weather variables can still matter after we account for time.
+plot(resids ~ Time, data = Electricity, ylab = "Residuals")
+lines(resids ~ Time, data = Electricity, col = 4)
+abline(h = 0, lty = 2)
+```
 
-We begin by assuming residual independence so that we can concentrate on building the mean structure.
+The plot suggests that some months tend to lie above zero and others below zero, so there is still seasonal structure after adjusting for the non-weather-related variables.
 
-### Trend Alone
+### A Separate Effect for Each Month
 
-```{r trend-only, warning=FALSE, message=FALSE}
-ggplot(seoul_daily, aes(x = day_index, y = rented_bike_count)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(
-    x = "Day index",
-    y = "Daily rented bike count",
-    title = "Daily bike demand changes over time"
+```{r electricity-month-factor}
+Electricity_lm2 <- lm(resids ~ factor(Month), data = Electricity)
+summary(Electricity_lm2)
+```
+
+This shows that the average residual differs by month. That is useful diagnostically, but using eleven indicator variables for a short series is not very parsimonious.
+
+## Sinusoidal Terms
+
+A smoother alternative is to represent seasonality by sine and cosine waves. Suppose we try
+$$\sin\left(\frac{2\pi (t - c)}{12}\right)$$
+for monthly data, where the shift constant $c$ says where the cycle starts.
+
+An initial guess is to place the zero point near April, because that is close to autumn and might correspond to an "average" month for electricity use.
+
+So we create
+$$\mathrm{SinTime} = \sin\left(\frac{2\pi (Time - 4)}{12}\right), \qquad
+\mathrm{CosTime} = \cos\left(\frac{2\pi (Time - 4)}{12}\right).$$
+
+The cosine term matters because we may not know the best phase shift in advance. If the true seasonal pattern is
+$$A\sin(x + \phi),$$
+then trigonometry gives
+$$A\sin(x + \phi) = A\sin(x)\cos(\phi) + A\cos(x)\sin(\phi)
+= A_1 \sin(x) + A_2 \cos(x).$$
+
+So a regression on both sine and cosine can estimate the amplitude and the phase shift automatically.
+
+### First Guess: Shift by Four Months
+
+```{r electricity-first-sinusoid}
+Electricity <- Electricity |>
+  mutate(
+    SinTime = sin((Time - 4) * 2 * pi / 12),
+    CosTime = cos((Time - 4) * 2 * pi / 12)
   )
+
+Electricity_lm3 <- lm(resids ~ SinTime + CosTime, data = Electricity)
+summary(Electricity_lm3)
 ```
 
-```{r trend-model}
-seoul_trend = lm(rented_bike_count ~ day_index, data = seoul_daily)
-summary(seoul_trend)
+```{r electricity-first-sinusoid-plot}
+plot(resids ~ Time, data = Electricity, ylab = "Residuals")
+lines(resids ~ Time, data = Electricity, col = 4)
+lines(Electricity_lm3$fitted.values ~ Time, data = Electricity, col = 2, lwd = 2, lty = 2)
+abline(h = 0, lty = 2)
 ```
 
-A simple trend captures some of the structure, but clearly not all of it.
+The coefficient of `CosTime` is clearly not zero, which tells us our guessed phase shift is not quite right.
 
-### Season Indicators
+### Second Guess: Shift by Five Months
 
-```{r season-model}
-seoul_season = lm(rented_bike_count ~ day_index + season, data = seoul_daily)
-summary(seoul_season)
+The fitted curve crosses zero closer to `Time = 5`, so we try that shift instead.
+
+```{r electricity-second-sinusoid}
+Electricity <- Electricity |>
+  mutate(
+    SinTime = sin((Time - 5) * 2 * pi / 12),
+    CosTime = cos((Time - 5) * 2 * pi / 12)
+  )
+
+Electricity_lm4 <- lm(resids ~ SinTime + CosTime, data = Electricity)
+summary(Electricity_lm4)
 ```
 
-This is the simplest regression-first way to say that the mean level differs by season.
+Now the cosine term is no longer doing much work, which suggests the revised phase shift is much more sensible.
 
-### Fourier Terms for Seasonality
+### A Sharper Seasonal Shape: Add Second Harmonics
 
-For a yearly cycle we can build sine and cosine terms:
+The fitted curve still looks a little too smooth. In particular, the rise toward winter is steeper than a simple sine wave suggests, so we add terms with twice the frequency:
+$$\sin\left(\frac{4\pi (Time - 5)}{12}\right), \qquad
+\cos\left(\frac{4\pi (Time - 5)}{12}\right).$$
 
-$$S_1(t) = \sin\left(\frac{2\pi t}{365}\right), \qquad C_1(t) = \cos\left(\frac{2\pi t}{365}\right).$$
+```{r electricity-second-harmonic}
+Electricity <- Electricity |>
+  mutate(
+    Sin2Time = sin((Time - 5) * 4 * pi / 12),
+    Cos2Time = cos((Time - 5) * 4 * pi / 12)
+  )
 
-```{r seoul fourier setup}
-seoul_daily = seoul_daily |>
+Electricity_lm5 <- lm(resids ~ SinTime + CosTime + Sin2Time + Cos2Time, data = Electricity)
+summary(Electricity_lm5)
+anova(Electricity_lm4, Electricity_lm5)
+```
+
+```{r electricity-second-harmonic-plot}
+plot(resids ~ Time, data = Electricity, ylab = "Residuals")
+lines(resids ~ Time, data = Electricity, col = 4)
+lines(Electricity_lm5$fitted.values ~ Time, data = Electricity, col = 2, lwd = 2, lty = 2)
+abline(h = 0, lty = 2)
+```
+
+The extra sine and cosine pair gives a noticeably more flexible shape. It captures a steeper winter peak and a flatter period through part of the year without requiring a separate coefficient for each month.
+
+### Putting the Model Together
+
+```{r electricity-full-model}
+Electricity_lm6 <- lm(
+  Bill ~ Days + Estimate + Guestwks + Time + SinTime + CosTime + Sin2Time + Cos2Time,
+  data = Electricity
+)
+summary(Electricity_lm6)
+
+plot(Bill ~ Time, data = Electricity)
+lines(Bill ~ Time, data = Electricity, col = 4)
+lines(Electricity_lm6$fitted.values ~ Time, data = Electricity, col = 2, lwd = 2, lty = 2)
+```
+
+This final model is still a regression model. The main difference is that the seasonal predictors are now smooth waves rather than month indicators.
+
+## Fourier Terms in a Modern Example
+
+The Seoul bike data use the same idea, but on a daily time scale. The sine and cosine terms are usually written more systematically as **Fourier terms**.
+
+`r xfun::embed_file("../../data/seoul_bike_daily.csv")`
+
+```{r read-seoul-daily-trend-seasonality, message=FALSE}
+seoul_daily <- read_csv("../../data/seoul_bike_daily.csv", show_col_types = FALSE) |>
   mutate(
     S1 = sin(2 * pi * day_index / 365),
     C1 = cos(2 * pi * day_index / 365),
     S2 = sin(4 * pi * day_index / 365),
     C2 = cos(4 * pi * day_index / 365)
   )
+
+seoul_daily |> head() |> kable()
 ```
 
-```{r fourier-model}
-seoul_fourier = lm(
-  rented_bike_count ~ day_index + S1 + C1 + S2 + C2,
+```{r seoul-fourier-model}
+seoul_fourier <- lm(
+  rented_bike_count ~ day_index + S1 + C1 + S2 + C2 +
+    mean_temperature + total_rainfall + total_solar_radiation,
   data = seoul_daily
 )
 summary(seoul_fourier)
 ```
 
-These Fourier terms provide a more systematic alternative to using many separate seasonal indicators.
-
-### Adding Weather Back Into the Mean
-
-Even after accounting for time, weather still matters.
-
-```{r seoul mean model}
-seoul_mean = lm(
-  rented_bike_count ~ day_index + S1 + C1 + S2 + C2 +
-    mean_temperature + total_rainfall + total_solar_radiation,
-  data = seoul_daily
-)
-summary(seoul_mean)
-```
-
-```{r mean model plot, warning=FALSE, message=FALSE}
+```{r seoul-fourier-plot}
 seoul_daily |>
-  mutate(fitted = fitted(seoul_mean)) |>
+  mutate(fitted = fitted(seoul_fourier)) |>
   ggplot(aes(x = day_index, y = rented_bike_count)) +
   geom_line(alpha = 0.6) +
   geom_line(aes(y = fitted), colour = "red", linewidth = 1) +
   labs(
     x = "Day index",
     y = "Daily rented bike count",
-    title = "A regression model for trend, seasonality, and weather"
+    title = "Fourier terms give a smooth seasonal fit for bike demand"
   )
 ```
 
-## A Brief Diagnostic Look
+The electricity example introduced the ideas in a small, interpretable setting. The Seoul bike model shows the same method on a larger dataset, where the sine and cosine pairs become a compact way to represent annual seasonality.
 
-```{r residual look}
-plot(residuals(seoul_mean) ~ seoul_daily$day_index)
-abline(h = 0, lty = 2)
-```
+## Looking Ahead
 
-The fitted mean structure is much richer than a simple line, but it may still leave systematic dependence in the residuals. That is the question for the next lecture.
+So far we have assumed that once the mean structure is well chosen, the residuals behave independently. The next lecture asks whether that is actually true.

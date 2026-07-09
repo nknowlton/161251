@@ -55,11 +55,10 @@ We will assume the values of tempA and tempB and $\varepsilon$ given in the tabl
 	
 What we want to know is, what are the implications of using an incorrect model, 	i.e. incorrect assumptions about the $\beta$s.
 
-`r xfun::embed_file("../../data/Simulation1.csv")` 
+`r xfun::embed_file("../../data/simulation1.csv")` 
 
 ```{r read Simulation1, eval=-1, echo=-2}
-Sim = read.csv("Simulation1.csv",header=TRUE)
-Sim = read.csv("../../data/Simulation1.csv",header=TRUE)
+Sim = read.csv("../../data/simulation1.csv",header=TRUE)
 Sim;    attach(Sim)
 ```
 	
@@ -200,11 +199,10 @@ pred_r_squared <- function(linear.model) {
 
 ## Example:  Model Selection for Climate Data
 
-`r xfun::embed_file("../../data/Climate.csv")` 
+`r xfun::embed_file("../../data/climate.csv")` 
 
 ```{r read climate,eval=-1, echo=-2}
-climate = read.csv("Climate.csv",header=TRUE)
-climate = read.csv("../../data/Climate.csv",header=TRUE)
+climate = read.csv("../../data/climate.csv",header=TRUE)
 attach(climate)
 lm1 = lm( MnJlyTemp ~ Lat)
 summary(lm1)

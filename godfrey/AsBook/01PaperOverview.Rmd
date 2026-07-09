@@ -1,16 +1,14 @@
 # Paper Overview{#PaperOverview}
 
-[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture1.html)
+<a href="downloads/Lecture1.Rmd" download>Download the in-class Rmd</a>
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -52,7 +50,7 @@ Students who successfully complete this course should be able to:
 - Compare regression models and select a subset of explanatory variables that explain variation in a response.
 - Use suitable statistical software to explore data and apply regression models.
 
-N.B. For this course the "suitable statistical software" is R. Even if you have used R before, you may wish to review some introductory material to refresh yourself. If you have not used R before, then there is some extra work to do, but we won't use this software in the first few lectures so there is still time to allow you a decent chance to catch up. Look for links on Stream, including how to [get R and RStudio set up for this semester.](https://R-Resources.massey.ac.nz/help/usingrin161.221.html)
+N.B. For this course the "suitable statistical software" is R. Even if you have used R before, you may wish to review some introductory material to refresh yourself. If you have not used R before, then there is some extra work to do, but we won't use this software in the first few lectures so there is still time to allow you a decent chance to catch up. Look for the current R and RStudio setup instructions on Stream.
 
 
 ## Some of the new Stuff You'll Learn

@@ -91,12 +91,11 @@ N.B. More complex models are also possible. For example:
     error process.
 
 ## Application to the Tourism Data
-`r xfun::embed_file("../../data/Motel.csv")`
+`r xfun::embed_file("../../data/motel.csv")`
 
 
-```{r getTourismData, echo=-1, eval=-2}
-Tourism <- read.csv(file="../../data/Motel.csv", header=TRUE)
-Tourism <- read.csv(file="Motel.csv", header=TRUE)
+```{r getTourismData, echo=-1}
+Tourism <- read.csv(file="../../data/motel.csv", header=TRUE)
 Tourism$Yr = Tourism$Year -1979 + Tourism$Month/12
 Tourism$Month <- factor(Tourism$Month)
 ```
@@ -161,11 +160,11 @@ library(nlme)
 
 ## Generalized Least Squares and the Tourism Data
 
-`r xfun::embed_file("../../data/Motel.csv")`
+`r xfun::embed_file("../../data/motel.csv")`
 
-```{r Tourism.gls, echo=-1, eval=-2}
+```{r Tourism.gls, echo=-1}
 Tourism <- read.csv(file="../../data/motel.csv", header=TRUE)
-Tourism <- read.csv(file="Motel.csv", header=TRUE)
+Tourism <- read.csv(file="../../data/motel.csv", header=TRUE)
 Tourism$Yr = Tourism$Year -1979 + Tourism$Month/12
 Tourism$Month <- factor(Tourism$Month)
 Tourism.gls <- gls(RoomNights~Yr + Month, correlation=corAR1(), data=Tourism) 

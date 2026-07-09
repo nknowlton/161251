@@ -14,7 +14,7 @@ description: "The content used in lecture presentations compiled into one volume
 These notes were used for lectures for the course 161.251 Regression Modelling taught at Massey University by a host of different staff; the relative constant in recent years is Jonathan Godfrey who is responsible for these notes.
 
 
-We use R in almost every lecture; you should be able to run the code on your own. You should follow the instructions on how to get your own installation of R and RStudio on the [help using R and RStudio in 161.251](https://R-Resources.massey.ac.nz/help/UsingRIn161.251.html) page. 
+We use R in almost every lecture; you should be able to run the code on your own. You should follow the current Stream instructions to get your own installation of R and RStudio set up for the course. 
 
 The material that follows makes use of `tidyverse` packages. Graphs are made using a mixture of base R graphics and ggplot functions, with the choice being made on the basis of convenience. There is no sense using a lot of effort if the graph is simple and will only be seen by the analyst. More effort is warranted if the graph is likely to be enriched or used for a presentation.
 

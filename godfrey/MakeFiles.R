@@ -2,6 +2,9 @@ library(dplyr)
 
 # get file details for each lecture (in order)
 read.csv("TopicList.csv", header=TRUE) %>% arrange(LectureNo) -> LectureList 
+SetupFile <- "Content/Setup.Rmd"
+MetadataFile <- "TopicList.csv"
+ScriptFile <- "MakeFiles.R"
 
 Updates=0
 
@@ -19,7 +22,19 @@ print(AsBookChapter)
 ContentFile = paste0("Content/", LectureList$Label[i], ".Rmd")
 print(ContentFile)
 
-if(file.mtime(InClassFile) < file.mtime(ContentFile)| !file.exists(InClassFile )) {
+NeedsUpdate <-
+  !file.exists(InClassFile) ||
+  !file.exists(AsBookChapter) ||
+  file.mtime(InClassFile) < file.mtime(ContentFile) ||
+  file.mtime(InClassFile) < file.mtime(SetupFile) ||
+  file.mtime(InClassFile) < file.mtime(MetadataFile) ||
+  file.mtime(InClassFile) < file.mtime(ScriptFile) ||
+  file.mtime(AsBookChapter) < file.mtime(ContentFile) ||
+  file.mtime(AsBookChapter) < file.mtime(SetupFile) ||
+  file.mtime(AsBookChapter) < file.mtime(MetadataFile) ||
+  file.mtime(AsBookChapter) < file.mtime(ScriptFile)
+
+if(NeedsUpdate) {
 
 Updates=Updates+1
 
@@ -85,13 +100,19 @@ output:
 }
 
 
-file.append(InClassFile, "Content/Setup.Rmd")
+file.append(InClassFile, SetupFile)
 
 file.append(InClassFile, ContentFile)
 
 # make chapter files for bookdown
-cat(paste0('# ', LectureList$LectureTitle[i], '{#', LectureList$Label[i], '}\n\n[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture', i, '.html)\n\n'), file=  AsBookChapter)
-file.append(AsBookChapter, "Content/Setup.Rmd")
+cat(
+  paste0(
+    '# ', LectureList$LectureTitle[i], '{#', LectureList$Label[i], '}\n\n',
+    '<a href="downloads/Lecture', i, '.Rmd" download>Download the in-class Rmd</a>\n\n'
+  ),
+  file = AsBookChapter
+)
+file.append(AsBookChapter, SetupFile)
 file.append(AsBookChapter, ContentFile)
 
 
@@ -112,7 +133,7 @@ output:
 ---
 ', file = "InClass/Index.Rmd")
 
-file.append("InClass/Index.Rmd", "Content/Setup.Rmd")
+file.append("InClass/Index.Rmd", SetupFile)
 
 for(i in 1:12){
 WeekSet = LectureList[LectureList$Week == i, ]

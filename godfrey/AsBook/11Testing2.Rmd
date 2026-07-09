@@ -1,16 +1,14 @@
 # Testing in Multiple Regression Models (2){#Testing2}
 
-[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture11.html)
+<a href="downloads/Lecture11.Rmd" download>Download the in-class Rmd</a>
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -75,9 +73,8 @@ parameters.
 
 `r xfun::embed_file("../../data/climate.csv")` 
 
-```{r getClimate, echo=-1, eval=-2}
-Climate <- read.csv(file="../../data/Climate.csv", header=TRUE, row.names=1) 
-Climate <- read.csv(file="https://r-resources.massey.ac.nz/data/161251/Climate.csv", header=TRUE, row.names=1) 
+```{r getClimate, echo=-1}
+Climate <- read.csv(file="../../data/climate.csv", header=TRUE, row.names=1) 
 ```
 
 Consider testing whether `MnJlyTemp` is related to `Sun`, and then again  having accounted for the other variables `Lat` and `Height`.
@@ -243,9 +240,9 @@ Lunn, McConway and Ostrowski.
 
 `r xfun::embed_file("../../data/hospital.csv")` 
 
-```{r getHospitalData, echo=-1, eval=-2}
+```{r getHospitalData, echo=-1}
 Hospital <- read.csv(file="../../data/hospital.csv", header=TRUE)
-Hospital  <- read.csv(file="https://r-resources.massey.ac.nz/161221/data/hospital.csv", header=TRUE)
+Hospital  <- read.csv(file="../../data/hospital.csv", header=TRUE)
 Hospital.lm <- lm(ManHours ~ ., data=Hospital)
 summary(Hospital.lm)
 ```

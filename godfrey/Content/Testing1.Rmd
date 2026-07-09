@@ -137,13 +137,13 @@ The *F* is the ratio of the Mean Squared errors.
 ### Analysis of Variance table for Climate data
 
 
-N.B. `r xfun::embed_file("../../data/Climate.csv")` to be able to run the examples below.
+N.B. `r xfun::embed_file("../../data/climate.csv")` to be able to run the examples below.
 
 
 For the climate data we have 
 
 ```{r climate}
-Climate = read.csv(file= '../../data/Climate.csv', header=TRUE, row.names = 1)
+Climate = read.csv(file= '../../data/climate.csv', header=TRUE, row.names = 1)
 Climate.lm0= lm(MnJlyTemp ~ 1, data= Climate)
 Climate.lm1 = lm( MnJlyTemp~ ., data=Climate)
 anova(Climate.lm0, Climate.lm1)

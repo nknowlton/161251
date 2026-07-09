@@ -59,9 +59,8 @@ Selecting between these models by an *F* test involves testing
 
 `r xfun::embed_file("../../data/paramo.csv")` 
 
-```{r firstModels, echo=-1, eval=-2}
+```{r firstModels, echo=-1}
 Paramo <- read.csv(file="../../data/paramo.csv", header=TRUE, row.names=1) 
-Paramo <- read.csv(file="https://r-resources.massey.ac.nz/161221/data/paramo.csv", header=TRUE, row.names=1) 
 Paramo.lm0 <- lm(N~AR + DEc, data=Paramo)
 Paramo.lm1 <- lm(N ~ AR + EL + DEc + DNI, data=Paramo)
 AIC(Paramo.lm0)

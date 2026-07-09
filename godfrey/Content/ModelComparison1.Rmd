@@ -130,12 +130,12 @@ $$P= P(X \ge f_{obs})$$
 Our *M2* and *M1* were given above. 
 
 
-N.B. `r xfun::embed_file("../../data/Climate.csv")` to replicate the following examples.
+N.B. `r xfun::embed_file("../../data/climate.csv")` to replicate the following examples.
 
 
 
 ```{r firstModels, echo=-1}
-Climate <- read.csv(file="../../data/Climate.csv", header=TRUE, row.names=1) 
+Climate <- read.csv(file="../../data/climate.csv", header=TRUE, row.names=1) 
 Climate.lm1 <- lm(MnJlyTemp~ Lat + Height+ Sea+ NorthIsland, data=Climate)
 anova(Climate.lm1)
 Climate.lm2 <- lm(MnJlyTemp ~ Lat + Height+ Sea+ NorthIsland+ Rain+ Sun + Long+ MnJanTemp, data=Climate)

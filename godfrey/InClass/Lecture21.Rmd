@@ -25,15 +25,13 @@ output:
 
 
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -212,8 +210,7 @@ We consider the relationship between the asking rent and the number of bedrooms 
 Is it reasonable to assume the relationship between rents and the number of bedrooms is linear? 
 
 ```{r bedrooms, echo = -1, eval = -2}
-NSrent=read.csv(file= "../../data/NSrent2021.csv",header=TRUE)
-NSrent = read.csv(file = "NSrent2021.csv", header = TRUE)
+NSrent=read.csv(file= "../../data/nsrent2021.csv",header=TRUE)
 boxplot(rent ~ as.factor(bedrooms), data = NSrent)
 ```
 

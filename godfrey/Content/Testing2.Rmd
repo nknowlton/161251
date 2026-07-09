@@ -51,9 +51,8 @@ parameters.
 
 `r xfun::embed_file("../../data/climate.csv")` 
 
-```{r getClimate, echo=-1, eval=-2}
-Climate <- read.csv(file="../../data/Climate.csv", header=TRUE, row.names=1) 
-Climate <- read.csv(file="https://r-resources.massey.ac.nz/data/161251/Climate.csv", header=TRUE, row.names=1) 
+```{r getClimate, echo=-1}
+Climate <- read.csv(file="../../data/climate.csv", header=TRUE, row.names=1) 
 ```
 
 Consider testing whether `MnJlyTemp` is related to `Sun`, and then again  having accounted for the other variables `Lat` and `Height`.
@@ -219,9 +218,9 @@ Lunn, McConway and Ostrowski.
 
 `r xfun::embed_file("../../data/hospital.csv")` 
 
-```{r getHospitalData, echo=-1, eval=-2}
+```{r getHospitalData, echo=-1}
 Hospital <- read.csv(file="../../data/hospital.csv", header=TRUE)
-Hospital  <- read.csv(file="https://r-resources.massey.ac.nz/161221/data/hospital.csv", header=TRUE)
+Hospital  <- read.csv(file="../../data/hospital.csv", header=TRUE)
 Hospital.lm <- lm(ManHours ~ ., data=Hospital)
 summary(Hospital.lm)
 ```

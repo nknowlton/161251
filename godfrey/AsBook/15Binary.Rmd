@@ -1,16 +1,14 @@
 # Models with binary predictors{#Binary}
 
-[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture15.html)
+<a href="downloads/Lecture15.Rmd" download>Download the in-class Rmd</a>
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -31,11 +29,10 @@ Let's go back to the Climate data example, which had two binary predictors `Nort
 
 We can briefly examine the effects of this predictor via a boxplot. `NorthIsland` seems to have an effect on temperature, but is the effect statistically significant? 
 
-N.B. `r xfun::embed_file("../../data/Climate.csv")` to replicate the following examples.
+N.B. `r xfun::embed_file("../../data/climate.csv")` to replicate the following examples.
 
 ```{r Climate boxplots, eval = -2, echo = -1}
-Climate <- read.csv(file= "../../data/Climate.csv", header = TRUE, row.names = 1)
-Climate <- read.csv(file= "Climate.csv", header = TRUE, row.names = 1)
+Climate <- read.csv(file= "../../data/climate.csv", header = TRUE, row.names = 1)
 boxplot(MnJlyTemp ~ NorthIsland, data = Climate)
 ```
 

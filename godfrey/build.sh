@@ -23,5 +23,7 @@ if [ "$1" = "serve" ]; then
     Rscript -e 'bookdown::serve_book(dir = getwd(), output_dir = "Final", preview = TRUE)'
 else
     Rscript -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::gitbook")'
+    mkdir -p Final/downloads
+    cp ../InClass/Lecture*.Rmd Final/downloads/
     echo "=== Done! Output in AsBook/Final/ ==="
 fi

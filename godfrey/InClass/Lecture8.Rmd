@@ -25,15 +25,13 @@ output:
 
 
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -155,9 +153,8 @@ Data source: A Handbook of Small Data Sets by Hand, Daly, Lunn, McConway and Ost
 `r xfun::embed_file("../../data/boiling.csv")`
 
 
-```{r getBoilData, echo=-1, eval=-2}
+```{r getBoilData, echo=-1}
 Boil <- read.csv(file="../../data/boiling.csv", header=TRUE) 
-Boil <- read.csv(file="https://r-resources.massey.ac.nz/data/161251/boiling.csv", header=TRUE) 
 Boil.lm <- lm(BPt~Pressure, data=Boil)
 summary(Boil.lm)
 x0 <- data.frame(Pressure=c(27,32))

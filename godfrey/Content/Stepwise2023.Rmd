@@ -60,11 +60,10 @@ We will use a backwards elimination approach.  Initially we will do this by hand
 
 #### Backwards Elimination
 
-`r xfun::embed_file("../../data/Climate.csv")` 
+`r xfun::embed_file("../../data/climate.csv")` 
 
 ```{r read Climate data 30, eval=-1, echo=-2}
-climate = read.csv("Climate.csv",header=TRUE,row.names=1)
-climate = read.csv("../../data/Climate.csv",header=TRUE,row.names=1)
+climate = read.csv("../../data/climate.csv",header=TRUE,row.names=1)
 climate.lm1= lm(Sun ~ . , data=climate)
 summary(climate.lm1)
 ```

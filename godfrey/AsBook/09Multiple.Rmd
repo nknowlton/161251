@@ -1,16 +1,14 @@
 # Introduction to Multiple Linear Regression{#Multiple}
 
-[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture9.html)
+<a href="downloads/Lecture9.Rmd" download>Download the in-class Rmd</a>
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -127,10 +125,10 @@ Note  it does not matter  that *x~7~* = `Sea`  and *x~8~* = `NorthIsland`  are j
 
 Eg. the slope $\beta_7$  will still represent a one-unit change,  i.e. the difference  between  a  non-Coastal (Sea=0) and Coastal (Sea=1) location.
 
-`r xfun::embed_file("../../data/Climate.csv")` to be able to run the examples below.
+`r xfun::embed_file("../../data/climate.csv")` to be able to run the examples below.
 
 ```{r read Climate}
-Climate= read.csv(file="../../data/Climate.csv", header=TRUE, row.names = 1)
+Climate= read.csv(file="../../data/climate.csv", header=TRUE, row.names = 1)
 head(Climate)
 par(mfrow=c(1,2)) 
 plot(Lat~Long,pch=2-Sea, data=Climate)

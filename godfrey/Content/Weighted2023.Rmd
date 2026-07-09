@@ -150,11 +150,10 @@ This still fits with the idea that Weight represents the  amount of information 
 
 The following data is on the number of supervisors $Y$ (e.g. team leaders) and the number of workers $X$ at a number of industrial establishments.   The data are from the book by Chatterjee and Price "Regression Analysis by Example"
 
-`r xfun::embed_file("../../data/Supervisors.csv")`
+`r xfun::embed_file("../../data/supervisors.csv")`
 
 ```{r read Supervisors, eval=-1, echo=-2}
-Supervisors = read.csv("Supervisors.csv")
-Supervisors = read.csv("../../data/Supervisors.csv")
+Supervisors = read.csv("../../data/supervisors.csv")
 Supervisors
 plot(Y ~ X,  data=Supervisors)
 Sup.lm = lm(Y~X, data=Supervisors)

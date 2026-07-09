@@ -1,83 +1,231 @@
+```{r time-indexed-regression-extra, include=FALSE}
+library(patchwork)
+```
+
 ## Time-Indexed Regression: From Flexible Models to Trend
 
-The previous lectures used the Seoul Bike data to show how model choice becomes harder when we have many plausible predictors, overlapping weather variables, and nonlinear relationships. From here we turn to a new kind of structure: observations recorded over time.
+The previous lectures focused on choosing predictors and flexible mean functions. We now turn to a different complication: observations collected through time.
+
+In ordinary regression we usually write
+$$y_i = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} + \varepsilon_i,$$
+and assume that the errors $\varepsilon_i$ are independent. For the moment we keep that assumption and focus on how regular time patterns can be represented in the **mean** of the model.
 
 By the end of this lecture, students should be able to:
 
-1. Explain why time-indexed data can need explicit time predictors.
-2. Move from hourly observations to a daily aggregate for clearer time plots.
-3. Build simple trend and seasonal predictors in an ordinary regression model.
-4. Explain why time structure in the mean is separate from autocorrelation in the residuals.
+1. Explain why time-indexed data often need explicit time predictors.
+2. Use indicator variables to represent simple seasonal effects.
+3. Distinguish mean structure in time from residual dependence over time.
+4. Recognise the same modelling idea in both a classical and a modern dataset.
 
-`r xfun::embed_file("../Data/seoul_bike_daily.csv")`
+## Ski Sales: A First Seasonal Example
 
-```{r read seoul daily, message=FALSE}
-seoul_daily = read_csv("../Data/seoul_bike_daily.csv")
-seoul_daily
+Often time series show a regular seasonal pattern. One simple way to handle this in a regression model is to create indicator variables for the most obvious seasonal effect.
+
+We begin with quarterly ski equipment sales and personal disposable income (PDI). Sales increase over time as income increases, but there also appears to be a seasonal pattern.
+
+`r xfun::embed_file("../../data/SkiSales.csv")`
+
+```{r read-ski-sales}
+SkiSales <- read.csv("../../data/SkiSales.csv", header = TRUE)
+SkiSales |> head() |> kable()
 ```
 
-### Why Aggregate to Daily Data?
+### Fitting Sales on Income Alone
 
-The hourly Seoul Bike data are useful for variable selection, collinearity, and nonlinear weather effects. For trend and seasonality, daily totals give a cleaner first view.
+```{r ski-sales-and-residuals}
+ski_plot <- SkiSales |>
+  mutate(Quarter = factor(Quarter)) |>
+  ggplot(aes(x = PDI, y = Sales)) +
+  geom_point(aes(shape = Quarter, colour = Quarter), size = 2.5) +
+  labs(title = "Ski sales rise with disposable income")
 
-```{r daily-bike-plot, warning=FALSE, message=FALSE}
-ggplot(seoul_daily, aes(x = day_index, y = rented_bike_count)) +
-  geom_line() +
+SkiSales_lm1 <- lm(Sales ~ PDI, data = SkiSales)
+
+ski_resid_plot <- SkiSales |>
+  mutate(
+    Quarter = factor(Quarter),
+    Residuals = resid(SkiSales_lm1)
+  ) |>
+  ggplot(aes(x = PDI, y = Residuals)) +
+  geom_point(aes(shape = Quarter, colour = Quarter), size = 2.5) +
+  geom_hline(yintercept = 0, linetype = 2, colour = "blue") +
+  labs(title = "Residuals still show a seasonal pattern")
+
+(ski_plot | ski_resid_plot) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+```
+
+The residuals tend to be positive in quarters 1 and 4, and negative in quarters 2 and 3. That suggests winter sales are systematically higher than summer sales, even after allowing for income.
+
+### A Winter Indicator
+
+```{r ski-winter-indicator}
+SkiSales <- SkiSales |>
+  mutate(Winter = as.numeric(Quarter == 1 | Quarter == 4))
+
+SkiSales_lm2 <- lm(Sales ~ PDI + Winter, data = SkiSales)
+summary(SkiSales_lm2)
+
+plot(
+  SkiSales_lm2$residuals ~ PDI,
+  data = SkiSales,
+  pch = SkiSales$Quarter,
+  col = SkiSales$Quarter,
+  xlab = "PDI",
+  ylab = "Residuals"
+)
+abline(h = 0, lty = 2)
+```
+
+The winter indicator is strongly associated with sales, and the residuals look much less structured by quarter.
+
+### Is Winter Enough?
+
+We can still ask whether there is any extra difference between the first and second half of winter, or between the two summer quarters.
+
+```{r ski-quarter-check}
+SkiSales <- SkiSales |>
+  mutate(
+    Q4 = as.numeric(Quarter == 4),
+    Q2 = as.numeric(Quarter == 2)
+  )
+
+SkiSales_lm3 <- lm(Sales ~ PDI + Winter + Q4 + Q2, data = SkiSales)
+summary(SkiSales_lm3)
+anova(SkiSales_lm2, SkiSales_lm3)
+```
+
+For these data, the simple winter indicator captures the main seasonal effect well enough. This is our first example of time-indexed regression: the mean changes with both income and time-of-year.
+
+## A Modern Comparison: Daily Seoul Bike Demand
+
+The same idea appears in a richer modern dataset. Here the response is daily bike demand, and time enters the model through a progression of increasingly flexible terms.
+
+`r xfun::embed_file("../../data/seoul_bike_daily.csv")`
+
+```{r read-seoul-daily-time-indexed, message=FALSE}
+seoul_daily <- read_csv("../../data/seoul_bike_daily.csv", show_col_types = FALSE)
+seoul_daily |> head() |> kable()
+```
+
+### Plot 1: Raw Data with Non-Functioning Days Highlighted
+
+Before modelling, check whether every observation represents the process you think it does. Days when the bike system was not functioning all day are not ordinary demand observations --- they are system-availability failures.
+
+```{r seoul-plot1-raw-highlight}
+seoul_daily |>
+  mutate(non_functioning = functioning_day_all != "yes") |>
+  ggplot(aes(x = date, y = rented_bike_count)) +
+  geom_line(colour = "grey50") +
+  geom_point(
+    data = seoul_daily |> filter(functioning_day_all != "yes"),
+    colour = "red", size = 2
+  ) +
   labs(
-    x = "Day index",
+    x = "Date",
     y = "Daily rented bike count",
-    title = "Daily bike demand has strong time structure"
+    title = "Non-functioning days (red) are not ordinary demand"
   )
 ```
 
-### Time as a Predictor
+The teaching message: **data cleaning is part of model specification**. If the system was not functioning all day, the response is not measuring normal daily demand. This motivates filtering.
 
-A first regression model can include a simple linear trend.
+### Plot 2: Clean Time Series After Filtering
 
-```{r daily-trend-model}
-seoul_trend = lm(rented_bike_count ~ day_index, data = seoul_daily)
-summary(seoul_trend)
+```{r seoul-plot2-clean-series}
+seoul_daily_clean <- seoul_daily |>
+  filter(functioning_day_all == "yes")
+
+ggplot(seoul_daily_clean, aes(x = date, y = rented_bike_count)) +
+  geom_line() +
+  labs(
+    x = "Date",
+    y = "Daily rented bike count",
+    title = "Daily bike demand on functioning days only"
+  )
 ```
 
-This is still an ordinary linear regression. The difference is that one of the predictors records where the observation sits in time.
+Once structural outage days are removed, the time series still has clear structure. Three features should be visible: a broad upward or changing time pattern, a strong annual seasonal cycle, and short-term noise around that pattern. Observations are ordered, and that order matters --- the data are not just independent rows in a spreadsheet.
 
-### Seasonal Predictors
+### Plot 3: Trend-Only Model
 
-The dataset also includes a coarse `season` variable.
+A linear trend captures the broad direction but ignores the seasonal pattern entirely.
 
-```{r daily-season-model}
-seoul_season = lm(rented_bike_count ~ day_index + season, data = seoul_daily)
-summary(seoul_season)
+```{r seoul-plot3-trend-only}
+seoul_trend <- lm(rented_bike_count ~ day_index, data = seoul_daily_clean)
+
+seoul_daily_clean |>
+  ggplot(aes(x = date, y = rented_bike_count)) +
+  geom_line(colour = "grey50") +
+  geom_line(aes(y = fitted(seoul_trend)), colour = "blue", linewidth = 1) +
+  labs(
+    x = "Date",
+    y = "Daily rented bike count",
+    title = "Trend-only model misses the seasonal pattern"
+  )
 ```
 
-This is the same regression idea as using any other factor: the mean response can differ between groups.
+The fitted line rises slowly, but the data oscillate around it in a regular annual cycle. The trend-only model systematically underpredicts in some seasons and overpredicts in others --- exactly the same pattern we saw in the ski sales residuals.
 
-### Fourier Preview
+### Plot 4: Adding a Fourier Seasonal Term
 
-Seasonal patterns can also be represented by sine and cosine terms.
+A pair of sine and cosine terms at the annual frequency captures a smooth seasonal cycle without needing a separate indicator for each month.
 
-```{r daily-fourier-preview}
-seoul_daily = seoul_daily |>
+```{r seoul-plot4-fourier-prep}
+seoul_daily_clean <- seoul_daily_clean |>
   mutate(
     S1 = sin(2 * pi * day_index / 365),
     C1 = cos(2 * pi * day_index / 365)
   )
 
-seoul_fourier = lm(
-  rented_bike_count ~ day_index + S1 + C1 + mean_temperature + total_rainfall,
-  data = seoul_daily
+seoul_fourier <- lm(
+  rented_bike_count ~ day_index + S1 + C1,
+  data = seoul_daily_clean
 )
 summary(seoul_fourier)
 ```
 
-## Mean Structure First, Residual Dependence Later
+```{r seoul-plot4-fourier-plot}
+seoul_daily_clean |>
+  ggplot(aes(x = date, y = rented_bike_count)) +
+  geom_line(colour = "grey50") +
+  geom_line(aes(y = fitted(seoul_fourier)), colour = "red", linewidth = 1) +
+  labs(
+    x = "Date",
+    y = "Daily rented bike count",
+    title = "Trend + Fourier seasonal model captures the annual cycle"
+  )
+```
 
-Adding time predictors is about modelling the mean response:
+The Fourier pair adds only two parameters but visibly tracks the annual rise and fall. The model now follows the data through summer peaks and winter troughs.
 
-$$E(Y_t) = \beta_0 + \beta_1 t + \beta_2 S_1(t) + \beta_3 C_1(t) + \cdots.$$
+### Plot 5: Comparing Trend Only and Trend + Fourier
 
-That is different from modelling residual dependence. A model can capture trend and seasonality in the mean and still have residuals that are correlated over time.
+Overlaying both fitted lines on the same axes makes the improvement clear.
 
-## Bridge to the Next Lecture
+```{r seoul-plot5-comparison}
+seoul_daily_clean |>
+  ggplot(aes(x = date, y = rented_bike_count)) +
+  geom_line(colour = "grey50") +
+  geom_line(aes(y = fitted(seoul_trend), colour = "Trend only"), linewidth = 1) +
+  geom_line(aes(y = fitted(seoul_fourier), colour = "Trend + Fourier"), linewidth = 1) +
+  scale_colour_manual(
+    values = c("Trend only" = "blue", "Trend + Fourier" = "red")
+  ) +
+  labs(
+    x = "Date",
+    y = "Daily rented bike count",
+    colour = "Model",
+    title = "Adding a Fourier seasonal term dramatically improves the fit"
+  )
+```
 
-The next lecture develops these time predictors more fully: trend, season indicators, Fourier terms, and weather covariates in one regression model for daily Seoul Bike demand.
+The logic is the same as in the ski example. We are still using ordinary regression, but one predictor records where the observation sits in time and a pair of trigonometric terms describes the smooth annual cycle.
+
+## Mean Structure First, Error Dependence Later
+
+In both examples we used time predictors to describe the mean response:
+$$E(Y_t) = \beta_0 + \beta_1 t + \beta_2 z_t + \cdots.$$
+
+That is different from saying the **errors** are autocorrelated. A model can capture clear time structure in the mean and still leave dependent residuals behind. The next lecture develops richer seasonal terms, and later lectures return to the question of autocorrelation in the errors.

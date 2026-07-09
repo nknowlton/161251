@@ -25,15 +25,13 @@ output:
 
 
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -251,7 +249,7 @@ ggplot(climate) +
   coord_equal()
 ```
 
-#### 📊 Climate: Latitude/Longitude and North vs South
+#### Climate: Latitude/Longitude and North vs South
 
 Ok, so we can see that the temperature is being driven by latitude (further north is warmer) - the longitude effect is possibly just due to orientation. It's clear there's an elevation (height) effect as well, though that is possibly confounded with whether the town is close to the sea (it can't really be both!)
 
@@ -333,7 +331,7 @@ At this point all the indications are bad:  The P-value for `Long` is >0.5, the 
 
 So we should not include `Long` in the model.
 
-### 📊 Climate Data Case Study — Key Takeaways
+### Climate Data Case Study — Key Takeaways
 
 **Goal:** Predict NZ July temperature from location and climate covariates
 
@@ -350,15 +348,15 @@ So we should not include `Long` in the model.
 | 5     | + Rain                        | 0.889                | 0.92   | 0.10               |
 | 6     | + Long                        | 0.886                | 0.93   | 0.54               |
 
-### 📊 Climate Data Case Study — Key Takeaways Continued
+### Climate Data Case Study — Key Takeaways Continued
 
-🔍 **What to watch for**
+**What to watch for**
 
 - Coefficient shifts after adding variables indicate possible bias correction
 - Look for agreement among criteria, not just \(p\) values
 - Longitude rejected: \(p>0.5\), \(R^2_{\text{Adj}}\downarrow\), \(S\uparrow\)
 
-🚨 **Warning signs**
+**Warning signs**
 
 - Large coefficient changes when adding or removing variables → potential bias
 - Sole reliance on \(p<0.05\) can miss important predictors
@@ -369,7 +367,7 @@ So we should not include `Long` in the model.
 
 Retain `Lat`, `Height`, `Sea`, `NorthIsland`. Retain `Rain` when prediction accuracy is the goal, as it is here.
 
-### 🤔 Done? Model Diagnostics
+### Done? Model Diagnostics
 
 Not so fast! We now have a model, but is it any good? Does it meet our LINE assumptions? 
 

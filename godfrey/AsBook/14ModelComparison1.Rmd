@@ -1,16 +1,14 @@
 # Comparison of Multiple Linear Regression Models{#ModelComparison1}
 
-[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture14.html)
+<a href="downloads/Lecture14.Rmd" download>Download the in-class Rmd</a>
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -154,12 +152,12 @@ $$P= P(X \ge f_{obs})$$
 Our *M2* and *M1* were given above. 
 
 
-N.B. `r xfun::embed_file("../../data/Climate.csv")` to replicate the following examples.
+N.B. `r xfun::embed_file("../../data/climate.csv")` to replicate the following examples.
 
 
 
 ```{r firstModels, echo=-1}
-Climate <- read.csv(file="../../data/Climate.csv", header=TRUE, row.names=1) 
+Climate <- read.csv(file="../../data/climate.csv", header=TRUE, row.names=1) 
 Climate.lm1 <- lm(MnJlyTemp~ Lat + Height+ Sea+ NorthIsland, data=Climate)
 anova(Climate.lm1)
 Climate.lm2 <- lm(MnJlyTemp ~ Lat + Height+ Sea+ NorthIsland+ Rain+ Sun + Long+ MnJanTemp, data=Climate)

@@ -25,15 +25,13 @@ output:
 
 
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -165,7 +163,7 @@ This is the problem of **Multicollinearity**.
 
 How do we assess whether it is a real problem in our data?
 
-## Correlations Among The Predictors
+## Correlations among the predictors
 
 We could look at the correlations between the explanatory variables. Since correlation is a measure of linear relationship, then if two variables are highly correlated then it doesn't make sense to keep them both in the model.
 
@@ -206,7 +204,7 @@ summary(electric.lm0)
 
 The regression as a whole is highly significant, yet none of the regression coefficents are significant. This suggests multicollinearity.
 
-### Contradictory Regression Coefficients
+### Contradictory regression coefficients
 
 Let's look at the variable we know are highly correlated (i.e. `Area` and `Income`) separately as predictors:
 
@@ -243,11 +241,11 @@ summary(elec.lm5)
 
 Should we estimate that each extra person adds 42 to the electric bill, or 83 to  the bill?  Of course the interpretation of these regression models differs slightly (in the first model it is the effect of each additional person among families of the same income, while in the second it is the effect of person among families of with homes of the same area). But it still makes one uneasy to see such a big difference.  
 
-## Regressing The Predictors Among Themselves
+## Regressing the predictors among themselves
 
 More generally (more than just looking at individual correlations) we could look at whether any of the variables are strongly predicted by a combination of the other regressors. i.e. Whether the $R^2$ for regressing variable $X_i$ on the other regressors $X_1, X_2,..., X_{i-1}, X_{i+1},...,X_{p}$ is large. We call this $R^2_i$. If it is large then we probably don't need $X_i$ (or some other variables) in the model. This is more general than just looking at simple correlations between variables, since the regression model picks up on combinations of variables. A "rule of thumb" is that multicollinearity is a big problem if $R_i^2 > 0.9$, i.e. the $i$th variable is more than 90% explained by the other predictors. We can get $R_i^2$ by doing the regressions ourselves, but it is easier to consider the concept of variance inflation instead.
 
-## Variance Inflation Factors, VIFs
+## Variance inflation factors, VIFs
 
 A major impact of multicollinearity is found in the variances (and hence standard errors) of the regression coefficients. If $X_i$ is alone in the model $Y =\beta_0 +\beta_1 X_i +\varepsilon$, then $\hat{\mbox{var}}(\hat\beta_1) = \frac{s^2}{(n-1)\mbox{var}(X_i)}$. If $X_i$ is in a model with other predictors then $\hat{\mbox{var}}(\hat\beta_i) =  s^2   \left(X^T X\right)^{-1}_{ii}$ where the last term is the corresponding diagonal entry of the $(X^T X )^{-1}$ matrix, the *variance-covariance* matrix.
 
@@ -269,7 +267,7 @@ Clearly we need to do something to reduce the multicollinearity.
 
 What we do is application-specific! We might choose to remove a variable, or we might choose to do something else (e.g. find a better measure or somehow combine the variables into some average?)
 
-## Example: SAP Data
+## Example: SAP data
 
 The following example illustrates multicollinearity in a context where it is not immediately visible.  Chatterjee and Price  discuss a dataset relating  Sales `S` to  `A` (advertising expenditure),  `A1` (last year's advertising),  `P` (promotion expenditure), `P1` (last year’s promotions expenditure) and `SE` (sales expenses).  The analyst eventually found out that an approximate budgetary constraint 
 
@@ -336,11 +334,11 @@ As far as 161.251 is concerned, we have few options.
 
 3. We can use penalised regression methods. This links back to the previous lecture.
 
-## Link Back to Penalised Regression
+## Link back to penalised regression
 
 In the previous lecture, we introduced ridge and lasso regression. Both methods add a penalty to the regression fit. Ridge uses an \(L_2\) penalty: \(\lambda \sum_{j=1}^{p}\beta_j^2\). Lasso uses an \(L_1\) penalty: \(\lambda \sum_{j=1}^{p}|\beta_j|\). Both can be useful when predictors overlap, but they behave differently. Ridge keeps the predictors in the model and shrinks their coefficients toward zero. This can help when several predictors carry related information and we do not want the fitted coefficients to become too unstable. Lasso can shrink some coefficients exactly to zero. This can help when we want a smaller selected set of predictors, but it may choose one variable from a group of correlated variables and discard another similar variable. So, when the problem is mainly coefficient instability from overlapping predictors, ridge is often the more natural first example. When the goal is variable selection, lasso is often more natural. Neither method makes correlated observational predictors independent. They are modelling tools, not substitutes for better study design.
 
-## Running Example Revisited: Seoul Bike Predictors
+## Running example revisited: Seoul bike predictors
 
 In the previous lecture, we used the Seoul bike data to compare stepwise regression, ridge regression, and lasso regression. The conclusion was not that one method clearly won. The training MSE values were very similar. The main difference was how the methods controlled model complexity. Here we return to the same example for a different reason. Instead of asking which method predicts best, we ask: why might the ordinary regression coefficients be unstable? The answer is that some of the predictors overlap in the information they carry. For example, weather variables such as temperature, humidity, dew point, and solar radiation are not independent pieces of information.
 
@@ -422,7 +420,7 @@ seoul_weather.lm = lm(
 summary(seoul_weather.lm)
 ```
 
-This model may still be useful for prediction, but the individual weather coefficients should be interpreted cautiously. The reason is not that weather is irrelevant. The reason is that the weather predictors overlap.
+This model may still be useful for prediction, but the individual weather coefficients should be interpreted cautiously. Weather is still relevant, but the predictors overlap so strongly that their separate coefficients are hard to interpret.
 
 We can check this more formally using variance inflation factors.
 
@@ -432,13 +430,13 @@ vif(seoul_weather.lm)
 
 Large VIF values tell us that some predictors are strongly explained by the other predictors.
 
-The same Seoul bike model from the previous lecture is not just a model-selection example. It is also a **multicollinearity example**. In the previous lecture, ridge and lasso were introduced as penalised regression methods. Here, we can now see another reason they are useful. Ridge regression is helpful when we want to keep overlapping predictors in the model but reduce coefficient instability. Lasso regression is helpful when we want to shrink coefficients and possibly remove some predictors. These are different responses to the same problem. Ridge says: keep the overlapping predictors, but shrink the coefficients. Lasso says: shrink the coefficients, and let some become zero if the penalty is strong enough. This is why ridge is often discussed in connection with multicollinearity. It is not mainly a variable-selection method. It is a *coefficient-stabilisation method*.
+The same Seoul bike model from the previous lecture is not just a model-selection example. It is also a **multicollinearity example**. In the previous lecture, ridge and lasso were introduced as penalised regression methods. Here, we can now see another reason they are useful. Ridge regression is helpful when we want to keep overlapping predictors in the model but reduce coefficient instability. Lasso regression is helpful when we want to shrink coefficients and possibly remove some predictors. These methods respond to the same problem in different ways. Ridge keeps the overlapping predictors and shrinks their coefficients, whereas lasso may shrink some coefficients all the way to zero. This is why ridge is often discussed in connection with multicollinearity. It is not mainly a variable-selection method. It is a *coefficient-stabilisation method*.
 
 The important interpretation is: the Seoul bike predictors can give similar prediction accuracy under several methods, but the ordinary regression coefficients may still be unstable because the predictors overlap. Prediction and coefficient interpretation are not the same problem.
 
-### Recall from the Lecture 28
+### Recall from Lecture 28
 
-In the previous lecture we fitted ridge and lasso to the Seoul bike data using `glmnet`. We used `alpha = 0` for ridge regression, and `alpha = 1` for lasso regression. We also compared `lambda.min` and `lambda.1se`. We do not need to refit those models here, but we will see why these methods are useful when predictors overlap. Let's focus on the ridge regression results and compare them to the ordinary regression coefficients.
+In the previous lecture we fitted ridge and lasso to the Seoul bike data using `glmnet`. We used `alpha = 0` for ridge regression, and `alpha = 1` for lasso regression. We also compared `lambda.min` and `lambda.1se`. We do not need to refit those models here. Instead, we focus on why these methods are useful when predictors overlap. Let's focus on the ridge regression results and compare them to the ordinary regression coefficients.
 
 ```{r seoul ols ridge compare, include=FALSE}
 library(glmnet)

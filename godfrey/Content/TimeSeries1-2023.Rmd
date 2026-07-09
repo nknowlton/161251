@@ -24,12 +24,11 @@ Data source: Australian Bureau of Statistics.
 ![A motel room.](../graphics/motel.jpg) []()
 
 
-`r xfun::embed_file("../../data/Motel.csv")`
+`r xfun::embed_file("../../data/motel.csv")`
 
 
-```{r getTourismData, echo=-1, eval=-2}
-Tourism <- read.csv(file="../../data/Motel.csv", header=TRUE)
-Tourism <- read.csv(file="Motel.csv", header=TRUE)
+```{r getTourismData, echo=-1}
+Tourism <- read.csv(file="../../data/motel.csv", header=TRUE)
 str(Tourism)
 Tourism$Yr = Tourism$Year -1979 + Tourism$Month/12
 head(Tourism)

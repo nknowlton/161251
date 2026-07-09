@@ -25,15 +25,13 @@ output:
 
 
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -148,7 +146,7 @@ Reading the Data into R
 ```{r getHillsData, eval=-3}
 data(hills, package="MASS") 
 Hills <- hills
-Hills <- read.csv(file="https://r-resources.massey.ac.nz/data/161251/hills.csv", header=TRUE, row.names=1)
+Hills <- read.csv(file="../../data/hills.csv", header=TRUE, row.names=1)
 ```
 
 The `row.names=1` argument tells R that the first column of data in the comma separated values file `r xfun::embed_file("../../data/hills.csv", text="hills.csv")` contains information which should provide the row names for the data (in this case, names of race locations).

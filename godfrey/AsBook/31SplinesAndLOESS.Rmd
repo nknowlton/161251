@@ -1,16 +1,14 @@
 # Splines and LOESS: Flexible Regression Curves{#SplinesAndLOESS}
 
-[In class version](https://R-Resources.massey.ac.nz/161251/Lectures/Lecture31.html)
+<a href="downloads/Lecture31.Rmd" download>Download the in-class Rmd</a>
 
-<!--- Data is on
-https://r-resources.massey.ac.nz/data/161251/
---->
+<!--- Data files for these notes live in /data at the repository root. --->
 
-```{r setup, purl=FALSE, include=FALSE}
+```{r setup, purl=FALSE, include=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 opts_chunk$set(dev=c("png", "pdf"))
 opts_chunk$set(fig.height=6, fig.width=7, fig.path="Figures/", fig.alt="unlabelled")
-opts_chunk$set(comment="", fig.align="center", tidy=TRUE)
+opts_chunk$set(comment="", fig.align="center", tidy=TRUE, cache=TRUE)
 options(knitr.kable.NA = '')
 library(tidyverse)
 library(broom)
@@ -83,18 +81,24 @@ seoul_hourly |>
     formula = y ~ x,
     span = 0.15,
     se = FALSE,
-    linewidth = 1
+    linewidth = 1,
+    aes(colour = "Span = 0.15", alpha = "Span = 0.15")
   ) +
   geom_smooth(
     method = "loess",
     formula = y ~ x,
     span = 0.45,
     se = FALSE,
-    linewidth = 1
+    linewidth = 1,
+    aes(colour = "Span = 0.45", alpha = "Span = 0.45")
   ) +
+  scale_colour_manual(values = c("Span = 0.15" = "green4", "Span = 0.45" = "blue")) +
+  scale_alpha_manual(values = c("Span = 0.15" = 0.8, "Span = 0.45" = 0.8)) +
   labs(
     x = "Temperature (C)",
     y = "Hourly rented bike count",
+    colour = "LOESS span",
+    alpha = "LOESS span",
     title = "LOESS span controls the smoothness of the fitted curve"
   )
 ```
@@ -136,12 +140,12 @@ temp_grid = tibble(
 
 predictions = temp_grid |>
   mutate(
-    linear = predict(lm_linear, newdata = temp_grid),
-    bs = predict(lm_bs, newdata = temp_grid),
-    natural_spline = predict(lm_ns, newdata = temp_grid)
+    Linear = predict(lm_linear, newdata = temp_grid),
+    `B-spline` = predict(lm_bs, newdata = temp_grid),
+    `Natural spline` = predict(lm_ns, newdata = temp_grid)
   ) |>
   pivot_longer(
-    cols = c(linear, bs, natural_spline),
+    cols = c(Linear, `B-spline`, `Natural spline`),
     names_to = "model",
     values_to = "fitted_bikes"
   )
@@ -151,13 +155,25 @@ seoul_temp |>
   geom_point(alpha = 0.05) +
   geom_line(
     data = predictions,
-    aes(x = temperature, y = fitted_bikes, linetype = model),
+    aes(x = temperature, y = fitted_bikes,
+        colour = model, linetype = model, alpha = model),
     linewidth = 1
+  ) +
+  scale_colour_manual(
+    values = c("Linear" = "red", "B-spline" = "blue", "Natural spline" = "forestgreen")
+  ) +
+  scale_linetype_manual(
+    values = c("Linear" = "solid", "B-spline" = "dotted", "Natural spline" = "dotdash")
+  ) +
+  scale_alpha_manual(
+    values = c("Linear" = 0.5, "B-spline" = 1, "Natural spline" = 1)
   ) +
   labs(
     x = "Temperature (C)",
     y = "Hourly rented bike count",
+    colour = "Model",
     linetype = "Model",
+    alpha = "Model",
     title = "Splines allow flexible but still regression-based fits"
   )
 ```
@@ -166,7 +182,7 @@ seoul_temp |>
 
 ```{r spline-boundary, warning=FALSE, message=FALSE}
 predictions |>
-  filter(model %in% c("bs", "natural_spline")) |>
+  filter(model %in% c("B-spline", "Natural spline")) |>
   ggplot(aes(x = temperature, y = fitted_bikes, colour = model)) +
   geom_line(linewidth = 1) +
   labs(

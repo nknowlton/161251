@@ -1,4 +1,4 @@
-```{r extraPkgs}
+```{r extraPkgs, message=FALSE, warning=FALSE}
 library(car)          # Type I vs Type III ANOVA
 library(emmeans)      # Marginal means and trends
 library(kableExtra)   # Table styling
