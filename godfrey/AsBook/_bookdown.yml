@@ -1,6 +1,6 @@
 book_filename: "Regression Modelling Lectures"
 chapter_name: "Lecture  "
-repo: ""
+repo: https://github.com/nknowlton/161251
 output_dir: Final
 clean: [packages.bib, bookdown.bbl]
 new_session: yes

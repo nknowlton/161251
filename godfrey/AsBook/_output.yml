@@ -4,6 +4,19 @@ bookdown::gitbook:
   config:
     toc:
       collapse: subsection
+    toolbar:
+      position: static
+    edit: https://github.com/nknowlton/161251/edit/main/godfrey/AsBook/%s
+    download: null
+    sharing:
+      github: yes
+      facebook: no
+      twitter: no
+      linkedin: no
+      weibo: no
+      instapaper: no
+      pocket: no
+      all: no
 bookdown::pdf_book:
   includes:
     in_header: preamble.tex

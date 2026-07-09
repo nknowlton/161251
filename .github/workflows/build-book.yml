@@ -1,0 +1,71 @@
+name: Build & Deploy Book
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            tidyverse
+            broom
+            knitr
+            rmarkdown
+            bookdown
+            tsibble
+            fable
+            feasts
+            lubridate
+            DescTools
+            car
+            emmeans
+            nlme
+            lmtest
+            glmnet
+            patchwork
+            kableExtra
+
+      - name: Generate InClass and AsBook files
+        working-directory: godfrey
+        run: Rscript MakeFiles.R
+
+      - name: Build bookdown
+        working-directory: godfrey/AsBook
+        run: Rscript -e 'bookdown::render_book("index.Rmd", output_format = "bookdown::gitbook")'
+
+      - name: Add CNAME
+        run: echo "knowlton.co.nz" > godfrey/AsBook/Final/CNAME
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: godfrey/AsBook/Final
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
