@@ -12,6 +12,7 @@ MakeFiles.R            ← Build script: generates InClass, AsBook, and Index fr
 InClass/LectureNN.Rmd  ← Generated presentation slides (YAML + Setup + body)
 AsBook/NNLabel.Rmd     ← Generated bookdown chapters (heading + link + Setup + body)
 InClass/Index.Rmd      ← Generated week-by-week index page
+site/                  ← Static landing pages for the deployed course site
 ```
 
 ## Key Files
@@ -28,6 +29,7 @@ InClass/Index.Rmd      ← Generated week-by-week index page
 | `godfrey/AsBook/_bookdown.yml` | Bookdown configuration | YES |
 | `godfrey/AsBook/_output.yml` | Bookdown output formats | YES |
 | `godfrey/AsBook/index.Rmd` | Bookdown preface/bibliography setup | YES |
+| `site/*.html` | Course, lab, and widget landing pages | YES |
 
 ## Workflow
 
@@ -76,6 +78,24 @@ LectureNo,Week,LectureTitle,Label,Presenter,Tidyverse
 - Chapter naming: `chapter_name: "Lecture  "`
 - Chapters are numbered 01-39, sorted alphabetically by filename
 
+## Live Site Deployment
+
+GitHub Pages deploys this repository as a standalone course site at
+`https://knowlton.co.nz/161251/`. A push to `main` builds and deploys these
+routes automatically:
+
+| Route | Published content |
+|------|-------------------|
+| `/161251/` | Course landing page from `site/index.html` |
+| `/161251/notes/` | Bookdown output and downloadable in-class Rmd files |
+| `/161251/labs/` | Lab landing page and all lab Rmd files |
+| `/161251/widget/` | Widget placeholder from `site/widget/index.html` |
+
+The GitHub Actions workflow assembles `_site/` for Pages. Do not add a `CNAME`
+file and do not use the Astro repository for this course. Lab solution files are
+published but deliberately omitted from the lab index; this is not access
+control.
+
 ## Teaching split
 
 - **Jonathan Godfrey**: Weeks 1-8 (Lectures 1-24) + appendices (35-39)
@@ -83,7 +103,10 @@ LectureNo,Week,LectureTitle,Label,Presenter,Tidyverse
 
 ## Data files
 
-Course data files live in `/data/` at the repo root. Bookdown chapters reference them via `../../data/<filename>.csv`. If a data file is missing, download from `https://r-resources.massey.ac.nz/data/161251/<filename>`.
+Course data files live in `/data/` at the repo root. Bookdown chapters reference
+them via `../../data/<filename>.csv`. If a required data file is missing, add it
+to `/data/` and commit it with the course material; builds must not depend on an
+external data host.
 
 ## Archived materials
 
@@ -92,6 +115,6 @@ Course data files live in `/data/` at the repo root. Bookdown chapters reference
 ## Common issues
 
 - **Duplicate chunk label 'setup'**: Ensure `_bookdown.yml` has `new_session: yes`
-- **Missing data files**: Download from `https://r-resources.massey.ac.nz/data/161251/`
+- **Missing data files**: Add the required file to `/data/` and commit it.
 - **Missing R packages**: Install with `install.packages(c("DescTools", "car", "emmeans", "nlme", "lmtest", "glmnet", "patchwork", "kableExtra"))`
 - **Bookdown won't compile**: Run from `godfrey/AsBook/` directory, not repo root

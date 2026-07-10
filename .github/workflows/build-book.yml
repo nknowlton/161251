@@ -17,10 +17,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      pages_enabled: ${{ steps.pages.outputs.enabled }}
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/configure-pages@v6
 
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -66,38 +66,44 @@ jobs:
           mkdir -p godfrey/AsBook/Final/downloads
           cp godfrey/InClass/Lecture*.Rmd godfrey/AsBook/Final/downloads/
 
-      - name: Add CNAME
-        run: echo "knowlton.co.nz" > godfrey/AsBook/Final/CNAME
-
-      - name: Check Pages availability
-        id: pages
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      - name: Assemble Pages artifact
         run: |
-          status="$(curl -sS -o /tmp/pages-response.json -w '%{http_code}' \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pages")"
+          rm -rf _site
+          mkdir -p _site/notes _site/labs _site/widget
+          cp -r godfrey/AsBook/Final/. _site/notes/
+          rm -f _site/notes/CNAME
+          cp labs/*.Rmd _site/labs/
+          cp site/index.html _site/index.html
+          cp site/labs/index.html _site/labs/index.html
+          cp site/widget/index.html _site/widget/index.html
 
-          if [ "$status" = "200" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          elif [ "$status" = "404" ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          else
-            cat /tmp/pages-response.json
-            exit 1
-          fi
+      - name: Verify Pages artifact
+        run: |
+          required=(
+            _site/index.html
+            _site/notes/index.html
+            _site/labs/index.html
+            _site/widget/index.html
+            _site/labs/lab10A.Rmd
+            _site/labs/lab10B.Rmd
+            _site/labs/lab11A.Rmd
+            _site/labs/lab11B.Rmd
+            _site/labs/lab12A.Rmd
+            _site/labs/lab12B.Rmd
+          )
 
-      - uses: actions/configure-pages@v6
-        if: steps.pages.outputs.enabled == 'true'
+          for file in "${required[@]}"; do
+            test -f "$file"
+          done
+
+          test "$(find _site/notes/downloads -maxdepth 1 -name 'Lecture*.Rmd' | wc -l)" -gt 0
+          ! rg -q -- '-sols\\.Rmd' _site/labs/index.html
 
       - uses: actions/upload-pages-artifact@v5
-        if: steps.pages.outputs.enabled == 'true'
         with:
-          path: godfrey/AsBook/Final
+          path: _site
 
   deploy:
-    if: needs.build.outputs.pages_enabled == 'true'
     needs: build
     runs-on: ubuntu-latest
     environment:
