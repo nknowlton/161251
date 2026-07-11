@@ -1,0 +1,45 @@
+<!-- Course header for Bookdown gitbook pages.
+     Injected via _output.yml in_header. Uses root-relative links for production. -->
+<style>
+.course-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #325d88;
+  color: #fff;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 999;
+}
+.course-header a {
+  color: #fff;
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+}
+.course-header a:hover {
+  background-color: rgba(255,255,255,0.15);
+  color: #fff;
+  text-decoration: none;
+}
+.course-header .course-header-brand {
+  font-weight: 700;
+  margin-right: auto;
+}
+.course-header .course-header-links {
+  display: flex;
+  gap: 0.5rem;
+}
+/* Push the gitbook body below the header */
+.book .book-body .body-inner { top: 0; }
+</style>
+<div class="course-header" id="course-header">
+  <span class="course-header-brand">161.251 Regression Modelling</span>
+  <span class="course-header-links">
+    <a href="/161251/">Course home</a>
+    <a href="/161251/notes/">Lecture notes</a>
+    <a href="/">Main website</a>
+  </span>
+</div>

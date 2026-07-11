@@ -2,7 +2,15 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Ignore all HTML except tracked landing pages and shared headers
 *.html
+!site/
+!site/**/*.html
+!shared/*.html
+
+# Build output — never commit generated artefacts
+build/
 Figures/
 godfrey/AsBook/Final/
 godfrey/AsBook/*.rds
@@ -11,6 +19,19 @@ godfrey/AsBook/*.Rhistory
 godfrey/AsBook/_bookdown_files/
 godfrey/AsBook/*.md
 godfrey/AsBook/*_cache/
+
+# Bookdown intermediate files
+book/*.md
+book/*.rds
+book/_main_files/
+book/cache/
+book/packages.bib
+book/Rplots.pdf
+
+# R session files
+**/.Rhistory
+**/.RData
+**/.Ruserdata
 
 # Track the static Pages landing pages despite the general HTML rule above.
 !site/

@@ -1,0 +1,92 @@
+/* 161.251 Regression Modelling — standalone lecture styling.
+   Applied to every lecture rendered via rmarkdown::html_document().
+   The Bookdown gitbook uses its own style.css; this file is for standalone lectures only. */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+:root {
+  --sandstone-primary: #325d88;
+  --sandstone-success: #93c54b;
+  --sandstone-info: #29abe0;
+  --sandstone-warning: #f47c3c;
+  --sandstone-danger: #d9534f;
+  --sandstone-dark: #3e3f3a;
+  --sandstone-light: #f8f5f0;
+  --sandstone-border: #dfd7ca;
+  --sandstone-text: #3e3f3a;
+  --sandstone-link: #93c54b;
+  --sandstone-link-hover: #769e3c;
+}
+
+body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--sandstone-text);
+  background-color: #fff;
+}
+
+a { color: var(--sandstone-link); text-decoration: none; }
+a:hover { color: var(--sandstone-link-hover); text-decoration: underline; }
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--sandstone-text);
+  font-weight: 500;
+}
+
+pre {
+  word-break: normal;
+  word-wrap: normal;
+  background-color: var(--sandstone-light);
+  border: 1px solid var(--sandstone-border);
+  border-radius: 4px;
+}
+pre code { white-space: inherit; color: var(--sandstone-text); }
+code {
+  color: #e83e8c;
+  background-color: var(--sandstone-light);
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 90%;
+}
+
+table { border-color: var(--sandstone-border); }
+thead { border-bottom: 2px solid var(--sandstone-border); }
+th { color: var(--sandstone-text); border-color: var(--sandstone-border); }
+td { border-color: var(--sandstone-border); }
+table tbody tr:nth-of-type(odd) { background-color: var(--sandstone-light); }
+
+p.caption { color: #777; margin-top: 10px; }
+
+/* Course header navigation bar */
+.course-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--sandstone-primary);
+  color: #fff;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.course-header a {
+  color: #fff;
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+}
+.course-header a:hover {
+  background-color: rgba(255,255,255,0.15);
+  color: #fff;
+  text-decoration: none;
+}
+.course-header .course-header-brand {
+  font-weight: 700;
+  margin-right: auto;
+}
+.course-header .course-header-links {
+  display: flex;
+  gap: 0.5rem;
+}
