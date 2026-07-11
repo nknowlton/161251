@@ -87,7 +87,7 @@ jobs:
           test "$(find _site/161251/notes/downloads -maxdepth 1 -name '*.Rmd' | wc -l)" -gt 0
           ! rg -q -- '-sols\.Rmd' _site/161251/labs/index.html
 
-      - uses: upload-pages-artifact@v5
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
