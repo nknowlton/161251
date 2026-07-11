@@ -1,0 +1,35 @@
+---
+title: "The Basics of Regression Modelling"
+subtitle: "161.251 Regression Modelling"
+date: |
+  `r format(Sys.Date(), '%Y')`
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: false
+    code_download: true
+    css: ../shared/lecture.css
+    includes:
+      in_header: ../shared/course-header.html
+---
+
+```{r setup, include=FALSE}
+source("../shared/setup.R")
+
+lecture_slug <- "regression-basics"
+
+knitr::opts_chunk$set(
+  fig.path = file.path(
+    "../build/lectures",
+    paste0(lecture_slug, "_files/figure-html/")
+  ),
+  cache.path = file.path(
+    "../build/cache/lectures",
+    paste0(lecture_slug, "/")
+  )
+)
+```
+
+```{r child-regression-basics, child="../lecture-content/02-regression-basics.Rmd"}
+```

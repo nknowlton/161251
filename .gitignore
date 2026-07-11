@@ -36,3 +36,4 @@ book/Rplots.pdf
 # Track the static Pages landing pages despite the general HTML rule above.
 !site/
 !site/**/*.html
+*.knit.md

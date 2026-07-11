@@ -1,0 +1,33 @@
+---
+title: "Appendix: Introduction to R and RStudio"
+subtitle: "161.251 Regression Modelling"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: false
+    code_download: true
+    css: ../shared/lecture.css
+    includes:
+      in_header: ../shared/course-header.html
+---
+
+```{r setup, include=FALSE}
+source("../shared/setup.R")
+
+lecture_slug <- "intro-r-rstudio"
+
+knitr::opts_chunk$set(
+  fig.path = file.path(
+    "../build/lectures",
+    paste0(lecture_slug, "_files/figure-html/")
+  ),
+  cache.path = file.path(
+    "../build/cache/lectures",
+    paste0(lecture_slug, "/")
+  )
+)
+```
+
+```{r child-intro-r-rstudio, child="../lecture-content/36-intro-r-rstudio.Rmd"}
+```

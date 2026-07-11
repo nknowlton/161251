@@ -1,0 +1,35 @@
+---
+title: "Splines and LOESS: Flexible Regression Curves"
+subtitle: "161.251 Regression Modelling"
+date: |
+  `r format(Sys.Date(), '%Y')`
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: false
+    code_download: true
+    css: ../shared/lecture.css
+    includes:
+      in_header: ../shared/course-header.html
+---
+
+```{r setup, include=FALSE}
+source("../shared/setup.R")
+
+lecture_slug <- "splines-loess"
+
+knitr::opts_chunk$set(
+  fig.path = file.path(
+    "../build/lectures",
+    paste0(lecture_slug, "_files/figure-html/")
+  ),
+  cache.path = file.path(
+    "../build/cache/lectures",
+    paste0(lecture_slug, "/")
+  )
+)
+```
+
+```{r child-splines-loess, child="../lecture-content/31-splines-loess.Rmd"}
+```
