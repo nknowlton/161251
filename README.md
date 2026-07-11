@@ -9,93 +9,151 @@ This repository contains all lecture materials for **161.251 Regression Modellin
 
 ## How the materials are organised
 
-There are three layers to the course materials:
+There is **one canonical copy of each lecture**. The teaching content (code,
+figures, equations, explanation) lives in `lecture-content/` as a body-only
+`.Rmd` file — no YAML, no setup chunk. Two tiny wrapper files reference it:
 
-### 1. Content (the source of truth)
+1. **`lectures/`** — a standalone `.Rmd` with YAML header that you can open in
+   RStudio and click **Knit** to preview a single lecture.
+2. **`book/`** — a Bookdown chapter wrapper that includes the same body file
+   via a child document.
 
-All lecture content lives in `godfrey/Content/`. Each file contains just the teaching material — no formatting, no headers, no metadata. This is where you edit lectures.
+The teaching content is never duplicated. Only the ~15-line wrapper
+configuration is repeated per lecture.
 
-A companion file `godfrey/TopicList.csv` holds the metadata for each lecture: its number, which week it's taught in, the title, who presents it, and a short label used for filenames.
+### Directory structure
 
-### 2. Build script
-
-`godfrey/MakeFiles.R` reads the content files and the topic list, then automatically generates:
-
-- **In-class slides** (`godfrey/InClass/Lecture1.Rmd` through `Lecture39.Rmd`) — formatted as presentation slides with titles, author names, and dates
-- **Bookdown chapters** (`godfrey/AsBook/01PaperOverview.Rmd` through `39Nonlinear.Rmd`) — formatted for the compiled reference book
-- **Index page** (`godfrey/InClass/Index.Rmd`) — a week-by-week listing of all lectures with links
-
-### 3. Compiled output
-
-Running bookdown on the AsBook chapters produces a navigable HTML book (and optionally PDF) that students can browse online.
+```
+161251/
+├── course/
+│   └── lectures.csv              ← Lecture metadata (number, week, title, slug, presenter)
+│
+├── lecture-content/             ← Canonical lecture bodies (EDIT THESE)
+│   ├── 01-paper-overview.Rmd
+│   ├── 02-regression-basics.Rmd
+│   └── ...
+│
+├── lectures/                    ← Standalone lecture wrappers (Knit in RStudio)
+│   ├── 01-paper-overview.Rmd
+│   └── ...
+│
+├── book/                        ← Bookdown configuration and chapter wrappers
+│   ├── index.Rmd                ← Book preface and bibliography setup
+│   ├── _bookdown.yml             ← Explicit chapter order (committed, not generated)
+│   ├── _output.yml               ← Gitbook/PDF/EPUB output formats
+│   ├── style.css                 ← Bookdown styling
+│   ├── sandstone.css             ← Bootswatch sandstone theme
+│   ├── book.bib                  ← Bibliography
+│   ├── 01-paper-overview.Rmd     ← Chapter wrapper (child include)
+│   └── ...
+│
+├── shared/
+│   ├── setup.R                   ← Common packages and knitr options
+│   ├── lecture.css               ← Standalone lecture styling
+│   ├── course-header.html        ← Navigation header for standalone lectures
+│   └── book-header.html          ← Navigation header for Bookdown pages
+│
+├── data/                         ← Course datasets (CSV files)
+├── labs/                         ← Computer lab exercises
+├── resources/                    ← Images and downloadable teaching resources
+│
+├── scripts/
+│   ├── render-lecture.R           ← Render a single lecture
+│   ├── render-book.R              ← Render the full Bookdown site
+│   ├── generate-book-wrappers.R   ← Regenerate book/ wrappers (when restructuring)
+│   ├── validate-course.R          ← Validate repository structure
+│   └── assemble-site.R            ← Assemble deployment directory
+│
+└── build/                        ← Generated output (gitignored)
+    ├── lectures/
+    ├── book/
+    ├── cache/
+    └── site/
+```
 
 ## How to edit a lecture
 
-1. Open the relevant file in `godfrey/Content/` (e.g. `GeneralLinearModel.Rmd`)
-2. Make your changes — this is just the teaching content
-3. Run the build script:
+1. Open the relevant file in `lecture-content/` (e.g. `03-simple-linear-regression.Rmd`)
+2. Make your changes — this is the teaching content
+3. Preview by opening `lectures/03-simple-linear-regression.Rmd` in RStudio and clicking **Knit**
 
-   ```r
-   setwd("godfrey")
-   Rscript MakeFiles.R
-   ```
+You do not need to run any script to preview a single lecture.
 
-4. Rebuild the book (if needed):
+## How to build the full Bookdown site
 
-   ```r
-   setwd("AsBook")
-   bookdown::render_book("index.Rmd", output_format = "bookdown::gitbook")
-   ```
+```bash
+Rscript scripts/render-book.R
+```
 
-**Never edit files in `InClass/` or `AsBook/` directly** — they are generated and will be overwritten.
+This changes into `book/` and calls `bookdown::render_book("index.Rmd")`.
+Output is written to `build/book/`.
+
+You can also build directly:
+
+```bash
+cd book
+Rscript -e 'bookdown::render_book("index.Rmd")'
+```
+
+## How to render a single lecture from the command line
+
+```bash
+Rscript scripts/render-lecture.R 3
+Rscript scripts/render-lecture.R 03-simple-linear-regression
+```
+
+Output is written to `build/lectures/<slug>/index.html`.
 
 ## How to add or restructure a lecture
 
-1. Edit `godfrey/TopicList.csv` — add or modify a row with the lecture number, week, title, label, and presenter
-2. If adding a new lecture, create `godfrey/Content/<Label>.Rmd` with the content
-3. Run `Rscript MakeFiles.R` to regenerate all files
+1. Edit `course/lectures.csv` — add or modify a row with the lecture number,
+   week, title, slug, and presenter
+2. If adding a new lecture, create `lecture-content/NN-slug.Rmd` with the
+   teaching content
+3. Run `Rscript scripts/generate-book-wrappers.R` to regenerate the book
+   chapter wrappers and `_bookdown.yml`
+4. Create a `lectures/NN-slug.Rmd` wrapper (copy an existing one and update
+   the slug and child path)
+5. Commit the new files
 
-### TopicList.csv columns
+### lectures.csv columns
 
 | Column | Description | Example |
 |--------|-------------|---------|
 | `LectureNo` | Lecture display number | `25` |
 | `Week` | Teaching week (1–12), or 0 for appendix | `9` |
 | `LectureTitle` | Full title | `The General Linear Model` |
-| `Label` | Short label for filenames | `GeneralLinearModel` |
-| `Presenter` | Name and email | `Nick Knowlton <N.Knowlton@massey.ac.nz>` |
-| `Tidyverse` | Whether tidyverse is used | `yes` |
+| `Slug` | Kebab-case slug for filenames | `general-linear-model` |
+| `Presenter` | Presenter name | `Nick Knowlton` |
+| `IncludeInBook` | Whether to include in Bookdown | `yes` |
 
-## Directory structure
+Filenames use `sprintf("%02d-%s", LectureNo, Slug)`.
 
+## How to validate the repository
+
+```bash
+Rscript scripts/validate-course.R
 ```
-161251/
-├── AGENTS.md                  ← Technical guide for AI agents
-├── README.md                  ← This file
-├── data/                      ← Course datasets (CSV files)
-├── godfrey/
-│   ├── Content/               ← Lecture body content (EDIT THESE)
-│   │   ├── Setup.Rmd          ← Shared knitr setup chunk
-│   │   ├── PaperOverview.Rmd
-│   │   ├── GeneralLinearModel.Rmd
-│   │   └── ...
-│   ├── TopicList.csv          ← Lecture metadata (EDIT TO RESTRUCTURE)
-│   ├── MakeFiles.R            ← Build script (RUN TO REGENERATE)
-│   ├── InClass/               ← Generated presentation slides
-│   │   ├── Index.Rmd
-│   │   ├── Lecture1.Rmd
-│   │   └── ...
-│   ├── AsBook/                ← Generated bookdown chapters
-│   │   ├── _bookdown.yml
-│   │   ├── _output.yml
-│   │   ├── index.Rmd
-│   │   ├── 01PaperOverview.Rmd
-│   │   └── ...
-│   └── Old/                   ← Archived materials from previous years
-├── labs/                      ← Computer lab exercises
-├── assessment/                ← Assignment materials
-└── Part 2 Lectures/           ← Sergio's Quarto slides (supplementary)
+
+This checks metadata consistency, file existence, child document paths, data
+file references, chunk label uniqueness, figure/cache isolation, and more.
+
+## How to assemble the deployment site
+
+```bash
+Rscript scripts/render-book.R
+Rscript scripts/assemble-site.R
 ```
+
+This assembles `build/site/` with the Bookdown output, data files, labs, and
+resources.
+
+## What about the old `godfrey/` directory?
+
+The `godfrey/` directory contains the previous build pipeline (`Content/`,
+`InClass/`, `AsBook/`, `MakeFiles.R`). These are preserved for reference but
+are no longer part of the build. The canonical content has been migrated to
+`lecture-content/`.
 
 ## Course outline
 
@@ -111,8 +169,8 @@ Running bookdown on the AsBook chapters produces a navigable HTML book (and opti
 | 8 | Two Factor, Orthogonal Factorial, Interactions | Jonathan Godfrey |
 | 9 | General Linear Model, Comparing GLMs, Variable Selection | Nick Knowlton |
 | 10 | Stepwise, Multicollinearity, Weighted Regression | Nick Knowlton |
-| 11 | Splines/LOESS/Regularized, Time Models, Autocorrelated Errors | Nick Knowlton |
-| 12 | Autoregressive Errors | Nick Knowlton |
+| 11 | Splines/LOESS, Time-Indexed Regression, Trend & Seasonality | Nick Knowlton |
+| 12 | Diagnosing Autocorrelation, Autoregressive Errors | Nick Knowlton |
 
 ## Questions?
 
