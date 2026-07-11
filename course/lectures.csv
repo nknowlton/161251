@@ -1,0 +1,41 @@
+LectureNo,Week,LectureTitle,Slug,Presenter,IncludeInBook
+1,1,Paper Overview,paper-overview,Jonathan Godfrey,yes
+2,1,The Basics of Regression Modelling,regression-basics,Jonathan Godfrey,yes
+3,1,Simple Linear Regression,simple-linear-regression,Jonathan Godfrey,yes
+4,1,Linear Regression Modelling with R,regression-with-r,Jonathan Godfrey,yes
+5,2,Checking the Assumptions,checking-assumptions,Jonathan Godfrey,yes
+6,2,Outliers and Influential Points,outliers-influential-points,Jonathan Godfrey,yes
+7,2,What to do When Assumptions Fail,assumptions-fail,Jonathan Godfrey,yes
+8,3,Prediction in Simple Linear Regression,prediction-simple-regression,Jonathan Godfrey,yes
+9,3,Introduction to Multiple Linear Regression,multiple-regression,Jonathan Godfrey,yes
+10,3,Testing in Multiple Regression Models (1),testing-multiple-regression-1,Jonathan Godfrey,yes
+11,4,Testing in Multiple Regression Models (2),testing-multiple-regression-2,Jonathan Godfrey,yes
+12,4,Basic Matrix Algebra,matrix-algebra,Jonathan Godfrey,yes
+13,4,Matrices and Linear Regression Models,matrices-linear-regression,Jonathan Godfrey,yes
+14,5,Comparison of Multiple Linear Regression Models,model-comparison-1,Jonathan Godfrey,yes
+15,5,Models with binary predictors,binary-predictors,Jonathan Godfrey,yes
+16,6,Polynomial Regression Models,polynomial-regression,Jonathan Godfrey,yes
+17,6,Models using orthogonal polynomials,orthogonal-polynomials,Jonathan Godfrey,yes
+18,6,Piecewise Regression Models,piecewise-regression,Jonathan Godfrey,yes
+19,7,Linear Models with One Factor,one-way-models-1,Jonathan Godfrey,yes
+20,7,Diagnostics and Multiple Comparisons for Oneway ANOVA,one-way-models-2,Jonathan Godfrey,yes
+21,7,Factor or Numerical Covariate?,factor-or-covariate,Jonathan Godfrey,yes
+22,8,Introduction to the Two Factor Model,two-factor-model,Jonathan Godfrey,yes
+23,8,Orthogonal Factorial Models,orthogonal-factorial-models,Jonathan Godfrey,yes
+24,8,Factors with Interactions,factor-interactions,Jonathan Godfrey,yes
+25,9,The General Linear Model,general-linear-model,Nick Knowlton,yes
+26,9,Comparison of General Linear Models,model-comparison-2,Nick Knowlton,yes
+27,9,Variable Selection,variable-selection,Nick Knowlton,yes
+28,10,Stepwise and Penalised Regression,stepwise-penalised-regression,Nick Knowlton,yes
+29,10,Multicollinearity and Ridge Regression,multicollinearity-ridge,Nick Knowlton,yes
+30,10,Weighted regression,weighted-regression,Nick Knowlton,yes
+31,11,Splines and LOESS: Flexible Regression Curves,splines-loess,Nick Knowlton,yes
+32,11,Time-Indexed Regression: From Flexible Models to Trend,time-indexed-regression,Nick Knowlton,yes
+33,11,Regression Models for Trend and Seasonality,trend-seasonality,Nick Knowlton,yes
+34,12,Diagnosing Autocorrelated Errors,diagnosing-autocorrelation,Nick Knowlton,yes
+35,12,Regression with Autoregressive Errors,autoregressive-errors,Nick Knowlton,yes
+36,0,Appendix: Introduction to R and RStudio,intro-r-rstudio,Jonathan Godfrey,yes
+37,1,Appendix: Regression through the origin,regression-through-origin,Jonathan Godfrey,yes
+38,2,Appendix: Transformations in regression models,transformations,Jonathan Godfrey,yes
+39,3,Appendix: Models with Many Factors,many-factors,Jonathan Godfrey,yes
+40,8,Appendix: Nonlinear least squares,nonlinear-least-squares,Jonathan Godfrey,yes
