@@ -1,0 +1,281 @@
+
+We have seen that *p*-values for coefficients in a polynomial
+    regression model will change depending upon what terms are included
+    in the model.
+
+This can be explained in terms of correlations between parameter
+    estimates, described by their covariance matrix.
+
+In this lecture we will discuss the construction of
+    **orthogonal polynomials**, whose regression coefficients
+    are uncorrelated.
+
+## Covariance Matrix for Parameter Estimates
+
+We can explore the dependencies between estimates of individual
+regression coefficients using two matrices.
+
+First, the covariance matrix for the **regression** parameter
+estimates which is given by $$\mbox{Var} \left( \hat{\boldsymbol{\beta}} \right) = 
+\left (
+\begin{array}{cccc}
+\mbox{Var} \left( \hat{\beta_0} \right) & \mbox{Cov} \left(\hat{\beta_0}, \hat{\beta_1}\right) & \ldots & \mbox{Cov} \left(\hat{\beta_0}, \hat{\beta_p} \right) \\
+\mbox{Cov} \left(\hat{\beta_1}, \hat{\beta_0} \right) & \mbox{Var} \left( \hat{\beta_1} \right) & \ldots & \mbox{Cov} \left(\hat{\beta_1}, \hat{\beta_p} \right) \\
+\vdots & \vdots & \ddots & \vdots \\
+\mbox{Cov} \left(\hat{\beta_p}, \hat{\beta_0} \right) & \mbox{Cov} \left(\hat{\beta_p}, \hat{\beta_1} \right) & \ldots & \mbox{Var} \left(\hat{\beta_p} \right) 
+\end{array}
+\right )
+= \sigma^2 (X^T X)^{-1}$$
+
+Where $X$ is the design matrix and $\sigma^2$ is the estimated standard error of the residuals.
+
+## Correlation Matrix for Parameter Estimates
+
+From this, we can compute the second useful matrix:
+$$\mbox{Corr}\left( \hat{\boldsymbol{\beta}}\right)  = 
+\left (
+\begin{array}{cccc}
+1 & \mbox{Corr} \left(\hat{\beta_0}, \hat{\beta_1} \right) & \ldots & \mbox{Corr} \left(\hat{\beta_0}, \hat{\beta_p} \right) \\
+\mbox{Corr} \left(\hat{\beta_1}, \hat{\beta_0} \right) & 1 & \ldots & \mbox{Corr} \left(\hat{\beta_1}, \hat{\beta_p} \right) \\
+\vdots & \vdots & \ddots & \vdots \\
+\mbox{Corr} \left(\hat{\beta_p}, \hat{\beta_0} \right) & \mbox{Corr} \left(\hat{\beta_p}, \hat{\beta_1} \right) & \ldots & 1
+\end{array}
+\right )$$
+
+following the definition of the correlation:
+$$cor(X, Y) = \frac{cov(X,Y)}{\sigma_X\sigma_Y}.$$
+
+## Crowds for the Brisbane Lions
+
+
+This Data has the number of members and average crowds sizes for the
+    Brisbane Lions AFL club from 1993 to 2003.
+
+
+    
+|  Variables | Description                    |
+| :- | :---------------------- |
+|  Year | Calendar year       |
+| Members | Number of Lions members |
+|  Crowd | Average home crowd size |
+    
+
+The aim of this Example is to regress `Crowd` on `Year`.
+
+
+
+![Brisbane Lions?](../resources/lions.jpg)
+
+
+We first import, check and then plot the data.  
+
+`r xfun::embed_file("../data/lions.csv")`
+
+
+
+```{r getLionsData, echo=-1, eval=-2}
+Lions <- read.csv(file="../data/lions.csv", header=TRUE)
+Lions <- read.csv(file="lions.csv", header=TRUE)
+str(Lions)
+plot(Crowd~Year, data=Lions)
+```
+
+and then we can fit the model for the relationship of interest...
+
+```{r Lions.lm1}
+Lions.lm1 <- lm(Crowd~Year, data=Lions) 
+summary(Lions.lm1)
+```
+
+As expected from the scatter plot, there is overwhelming evidence the
+Lion's home crowds are increasing through time.
+
+What does the intercept mean?
+
+
+The covariance matrix for the estimates of the regression intercept and
+slope, $\hat{\beta_0}$ and $\hat{\beta_1}$, can be extracted using R's `vcov()`
+command.
+
+We can convert this covariance matrix to its corresponding correlation matrix using the `cov2cor()` command.
+
+```{r vcovLions.lm1}
+vcov(Lions.lm1)
+cov2cor(vcov(Lions.lm1)
+)
+```
+
+Notice the dramatic negative correlation between $\hat{\beta_0}$ and
+$\hat{\beta_1}$.
+
+This makes sense: if we change the slope of the regression line even a little bit, this will have a big impact on the value of the intercept (especially since the values of the explanatory variables are so far from 0).
+
+
+## Collinearity
+
+This occurs because the rows of the design matrix (a
+    column of ones, and a column of the `Year`) are almost perfectly
+    **collinear**.
+
+**Collinearity** means that one of the columns is (approximately) equal
+    to a linear combination of the other columns.
+
+In practice this means that it is difficult to distinguish between
+    the effects of the variables in the model.
+
+Hence the regression coefficients tend to be highly variable when
+    collinearity occurs.
+
+## Introducing Orthogonal Polynomials
+
+Let $P_r(x_i)$ denote a polynomial of order $r$ in $x_i$,
+    where $i = 1, \ldots, n$; $$P_r(x_i) = a_0 + a_1x_i + a_2x_i^2 + \ldots + a_r x_i^r$$
+
+The polynomials $P_r$ and $P_s$ are **orthogonal** if
+
+$$\sum_{i=1}^n P_r(x_i) P_s(x_i) = 0~~~~~~(r \ne s)$$
+
+We can fit a polynomial of order *p* to the data using orthogonal
+    polynomials:
+
+$$E[Y_i] = \alpha_0 + \alpha_1 P_1(x_i) + \alpha_2 P_2(x_i) + \ldots + \alpha_p P_p(x_i)$$
+
+
+For example: $E[Y_i] = 2+3x_i+4x_i^2$ can be re-expressed as
+
+$$E[Y_i] = 1+3(\frac{1}{3}x_i+\frac{1}{3})+ 4(x_i^2+\frac{1}{2}x_i).$$
+
+This will be completely equivalent to fitting $E[Y_i] = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \ldots + \beta_p x_i^p$ with the $\beta$'s being a simple transformation of the $\alpha$'s.
+
+Fitting a polynomial regression using orthogonal polynomials means the
+resulting estimated regression coefficients are uncorrelated.
+
+## Constructing orthogonal polynomials for a simple regression
+
+We can create a design matrix as follows:
+
+$$X = \left [ \begin{array}{ll}
+    1 & x_1 - \bar x \\
+    1 & x_2 - \bar x \\
+    \vdots & \vdots \\
+    1 & x_n - \bar x
+    \end{array}
+    \right ]$$
+
+Note: Columns of $X$ are orthogonal because they can be expressed
+    as two orthogonal polynomials.
+
+Column 1 is $P_0 = 1$.
+
+Column 2 is $P_1(x_i) = x_i - \bar{x}$.
+
+We can show that $\sum_{i=1}^n {P_0(x_i) P_1(x_i)} = \sum_{i=1}^n {(x_i - \bar{x})} = 0$.
+
+When we have an orthogonal matrix *X*, wen have the following implications: 
+
+$\rightarrow X^T X$ is a diagonal matrix
+
+$\rightarrow \sigma^2 (X^TX)^{-1}$ is also a diagonal matrix
+
+$\rightarrow$ parameter estimates based on a model with this    design matrix will be uncorrelated.
+
+## Return to Brisbane Lions Example 
+
+We will define `Yr` to be a **centred** version of `Year`.
+
+```{r Lions.lm2}
+Lions$Yr <- Lions$Year - mean(Lions$Year)
+Lions.lm2 <- lm(Crowd~Yr, data=Lions)
+summary(Lions.lm2)
+```
+
+
+The models `Lions.lm1` and `Lions.lm2` have the same estimated slope parameters (as
+    expected).
+
+The intercept parameter has changed, where $\hat{\beta_0}$ now
+    represents the mean value of the response when the covariate is at
+    its sample mean value $\bar{x}$.
+
+```{r cov2cor.vcovLions.lm2}
+cov2cor(vcov(Lions.lm2))
+```
+
+The regression parameter estimates now have zero correlation (R's output
+is subject to slight numerical rounding errors).
+
+Even if we change a little bit the slope of the regression line, it will still intersect with the x axis at the same intercept value.
+
+
+## Revisiting the FEV Data Example
+
+Recall that in a previous Example we were fitting a polynomial
+    regression of `FEV` (a measure of lung function) on `Age`.
+
+The estimated regression coefficients for this model are highly
+    correlated.
+
+
+`r xfun::embed_file("../data/fev.csv")`
+
+```{r cov2cor.vcovFev.lm6, echo=-1, eval=-2}
+Fev <- read.csv(file="../data/fev.csv", header=TRUE)
+Fev <- read.csv(file="fev.csv", header=TRUE)
+Fev.lm6 <- lm(FEV~poly(Age,degree=6, raw=TRUE), data=Fev)
+cov2cor(vcov(Fev.lm6))
+```
+
+If we use the `poly()` function with the `Age` variable centred, we get...
+
+```{r Fev.lm.poly}
+Fev.lm.poly <- lm(FEV~poly(Age,degree=6),data=Fev)
+summary(Fev.lm.poly)
+round(cov2cor(vcov(Fev.lm.poly)),digits=6)
+```
+
+### Comments
+
+We have fitted a 6th order polynomial regression of `FEV` on`Age`  using
+    orthogonal polynomials.
+
+The R function constructed the necessary polynomials in a manner
+    that can be used as explanatory variables in a linear model.
+    
+Note that the `poly` function will construct by default orthogonal polynomials. To get 
+non-orthogonal polynomials we need to add `raw = TRUE` inside the `poly()` function.
+
+The fitted 6th order model using orthogonal polynomials produces
+    identical fits (and predictions) to the 6th order model constructed
+    in the original case study using the raw polynomial values or the `I()` function.
+
+
+
+
+We use the `round()` command to remove rounding error in the output.
+
+You should see that you get an identity matrix in return. This tells you
+that the estimate regression coefficients for the model are
+uncorrelated.
+
+As a result of the estimates not being correlated, we can interpret
+    *t*-test statistics and *p*-values in the summary table independently.
+
+That is, *p*-values will not change much when we remove terms from the
+    model.
+
+The summary table shows us straight away that we need a polynomial of  4th order to model `FEV` as a function of `Age`.
+
+## Obtaining the design matrix
+
+The `model.matrix()` command extracts the *X* matrix used in model fitting. It is quite large for the `FEV` data, so the following example compares the matrices used for the Lions example above.
+
+```{r getModelMats}
+model.matrix(Lions.lm1)
+model.matrix(Lions.lm2)
+```
+
+In this simple regression, it is relatively easy to see the manipulation that took effect. We will see another situation when the design matrix helps us understand the way our models are fitted in a lecture coming soon...
+
+
+The re-scaling of a variable is not limited to polynomial regression situations. Re-scaling of a variable  could prove worthwhile in any regression context when that variable has a relatively small range as compared to its distance from zero.
+
