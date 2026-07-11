@@ -1,0 +1,14 @@
+# Matrices and Linear Regression Models {matrices-linear-regression}
+
+```{r matrices-linear-regression-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/matrices-linear-regression-",
+  cache.path = "../build/cache/book/matrices-linear-regression/"
+)
+```
+
+```{r child-matrices-linear-regression, child="../lecture-content/13-matrices-linear-regression.Rmd"}
+```
+

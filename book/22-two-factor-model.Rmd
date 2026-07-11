@@ -1,0 +1,14 @@
+# Introduction to the Two Factor Model {two-factor-model}
+
+```{r two-factor-model-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/two-factor-model-",
+  cache.path = "../build/cache/book/two-factor-model/"
+)
+```
+
+```{r child-two-factor-model, child="../lecture-content/22-two-factor-model.Rmd"}
+```
+

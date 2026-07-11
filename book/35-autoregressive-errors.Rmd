@@ -1,0 +1,14 @@
+# Regression with Autoregressive Errors {autoregressive-errors}
+
+```{r autoregressive-errors-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/autoregressive-errors-",
+  cache.path = "../build/cache/book/autoregressive-errors/"
+)
+```
+
+```{r child-autoregressive-errors, child="../lecture-content/35-autoregressive-errors.Rmd"}
+```
+

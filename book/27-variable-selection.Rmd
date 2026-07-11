@@ -1,0 +1,14 @@
+# Variable Selection {variable-selection}
+
+```{r variable-selection-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/variable-selection-",
+  cache.path = "../build/cache/book/variable-selection/"
+)
+```
+
+```{r child-variable-selection, child="../lecture-content/27-variable-selection.Rmd"}
+```
+

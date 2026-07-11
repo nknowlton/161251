@@ -1,0 +1,14 @@
+# Models with binary predictors {binary-predictors}
+
+```{r binary-predictors-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/binary-predictors-",
+  cache.path = "../build/cache/book/binary-predictors/"
+)
+```
+
+```{r child-binary-predictors, child="../lecture-content/15-binary-predictors.Rmd"}
+```
+

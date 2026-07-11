@@ -1,0 +1,14 @@
+# Appendix: Nonlinear least squares {nonlinear-least-squares}
+
+```{r nonlinear-least-squares-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/nonlinear-least-squares-",
+  cache.path = "../build/cache/book/nonlinear-least-squares/"
+)
+```
+
+```{r child-nonlinear-least-squares, child="../lecture-content/40-nonlinear-least-squares.Rmd"}
+```
+

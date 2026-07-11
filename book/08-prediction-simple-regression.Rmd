@@ -1,0 +1,14 @@
+# Prediction in Simple Linear Regression {prediction-simple-regression}
+
+```{r prediction-simple-regression-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/prediction-simple-regression-",
+  cache.path = "../build/cache/book/prediction-simple-regression/"
+)
+```
+
+```{r child-prediction-simple-regression, child="../lecture-content/08-prediction-simple-regression.Rmd"}
+```
+

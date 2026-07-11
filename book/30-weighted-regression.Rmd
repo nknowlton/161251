@@ -1,0 +1,14 @@
+# Weighted regression {weighted-regression}
+
+```{r weighted-regression-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/weighted-regression-",
+  cache.path = "../build/cache/book/weighted-regression/"
+)
+```
+
+```{r child-weighted-regression, child="../lecture-content/30-weighted-regression.Rmd"}
+```
+

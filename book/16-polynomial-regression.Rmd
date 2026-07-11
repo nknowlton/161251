@@ -1,0 +1,14 @@
+# Polynomial Regression Models {polynomial-regression}
+
+```{r polynomial-regression-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/polynomial-regression-",
+  cache.path = "../build/cache/book/polynomial-regression/"
+)
+```
+
+```{r child-polynomial-regression, child="../lecture-content/16-polynomial-regression.Rmd"}
+```
+

@@ -1,0 +1,14 @@
+# Appendix: Transformations in regression models {transformations}
+
+```{r transformations-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/transformations-",
+  cache.path = "../build/cache/book/transformations/"
+)
+```
+
+```{r child-transformations, child="../lecture-content/38-transformations.Rmd"}
+```
+

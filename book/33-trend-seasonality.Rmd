@@ -1,0 +1,14 @@
+# Regression Models for Trend and Seasonality {trend-seasonality}
+
+```{r trend-seasonality-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/trend-seasonality-",
+  cache.path = "../build/cache/book/trend-seasonality/"
+)
+```
+
+```{r child-trend-seasonality, child="../lecture-content/33-trend-seasonality.Rmd"}
+```
+

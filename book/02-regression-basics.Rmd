@@ -1,0 +1,14 @@
+# The Basics of Regression Modelling {regression-basics}
+
+```{r regression-basics-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/regression-basics-",
+  cache.path = "../build/cache/book/regression-basics/"
+)
+```
+
+```{r child-regression-basics, child="../lecture-content/02-regression-basics.Rmd"}
+```
+

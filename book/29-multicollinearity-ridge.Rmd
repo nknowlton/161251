@@ -1,0 +1,14 @@
+# Multicollinearity and Ridge Regression {multicollinearity-ridge}
+
+```{r multicollinearity-ridge-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/multicollinearity-ridge-",
+  cache.path = "../build/cache/book/multicollinearity-ridge/"
+)
+```
+
+```{r child-multicollinearity-ridge, child="../lecture-content/29-multicollinearity-ridge.Rmd"}
+```
+

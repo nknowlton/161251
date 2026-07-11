@@ -1,0 +1,14 @@
+# Factor or Numerical Covariate? {factor-or-covariate}
+
+```{r factor-or-covariate-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/factor-or-covariate-",
+  cache.path = "../build/cache/book/factor-or-covariate/"
+)
+```
+
+```{r child-factor-or-covariate, child="../lecture-content/21-factor-or-covariate.Rmd"}
+```
+

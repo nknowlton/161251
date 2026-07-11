@@ -1,0 +1,28 @@
+bookdown::gitbook:
+  css: [sandstone.css, style.css]
+  split_by: chapter
+  includes:
+    in_header: ../shared/book-header.html
+  config:
+    toc:
+      collapse: subsection
+    toolbar:
+      position: static
+    edit: https://github.com/nknowlton/161251/edit/main/lecture-content/%s
+    download: null
+    sharing:
+      github: yes
+      facebook: no
+      twitter: no
+      linkedin: no
+      weibo: no
+      instapaper: no
+      pocket: no
+      all: no
+bookdown::pdf_book:
+  includes:
+    in_header: preamble.tex
+  latex_engine: xelatex
+  citation_package: natbib
+bookdown::epub_book:
+  stylesheet: style.css

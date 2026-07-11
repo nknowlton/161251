@@ -1,0 +1,14 @@
+# Diagnosing Autocorrelated Errors {diagnosing-autocorrelation}
+
+```{r diagnosing-autocorrelation-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/diagnosing-autocorrelation-",
+  cache.path = "../build/cache/book/diagnosing-autocorrelation/"
+)
+```
+
+```{r child-diagnosing-autocorrelation, child="../lecture-content/34-diagnosing-autocorrelation.Rmd"}
+```
+

@@ -1,0 +1,14 @@
+# The General Linear Model {general-linear-model}
+
+```{r general-linear-model-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/general-linear-model-",
+  cache.path = "../build/cache/book/general-linear-model/"
+)
+```
+
+```{r child-general-linear-model, child="../lecture-content/25-general-linear-model.Rmd"}
+```
+

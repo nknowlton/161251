@@ -1,0 +1,14 @@
+# Appendix: Regression through the origin {regression-through-origin}
+
+```{r regression-through-origin-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/regression-through-origin-",
+  cache.path = "../build/cache/book/regression-through-origin/"
+)
+```
+
+```{r child-regression-through-origin, child="../lecture-content/37-regression-through-origin.Rmd"}
+```
+

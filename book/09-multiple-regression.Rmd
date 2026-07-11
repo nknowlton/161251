@@ -1,0 +1,14 @@
+# Introduction to Multiple Linear Regression {multiple-regression}
+
+```{r multiple-regression-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/multiple-regression-",
+  cache.path = "../build/cache/book/multiple-regression/"
+)
+```
+
+```{r child-multiple-regression, child="../lecture-content/09-multiple-regression.Rmd"}
+```
+

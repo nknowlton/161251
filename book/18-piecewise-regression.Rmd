@@ -1,0 +1,14 @@
+# Piecewise Regression Models {piecewise-regression}
+
+```{r piecewise-regression-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/piecewise-regression-",
+  cache.path = "../build/cache/book/piecewise-regression/"
+)
+```
+
+```{r child-piecewise-regression, child="../lecture-content/18-piecewise-regression.Rmd"}
+```
+

@@ -1,0 +1,14 @@
+# Stepwise and Penalised Regression {stepwise-penalised-regression}
+
+```{r stepwise-penalised-regression-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/stepwise-penalised-regression-",
+  cache.path = "../build/cache/book/stepwise-penalised-regression/"
+)
+```
+
+```{r child-stepwise-penalised-regression, child="../lecture-content/28-stepwise-penalised-regression.Rmd"}
+```
+

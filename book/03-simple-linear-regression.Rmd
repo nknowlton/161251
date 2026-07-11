@@ -1,0 +1,14 @@
+# Simple Linear Regression {simple-linear-regression}
+
+```{r simple-linear-regression-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/simple-linear-regression-",
+  cache.path = "../build/cache/book/simple-linear-regression/"
+)
+```
+
+```{r child-simple-linear-regression, child="../lecture-content/03-simple-linear-regression.Rmd"}
+```
+

@@ -1,0 +1,14 @@
+# What to do When Assumptions Fail {assumptions-fail}
+
+```{r assumptions-fail-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/assumptions-fail-",
+  cache.path = "../build/cache/book/assumptions-fail/"
+)
+```
+
+```{r child-assumptions-fail, child="../lecture-content/07-assumptions-fail.Rmd"}
+```
+

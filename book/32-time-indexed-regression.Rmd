@@ -1,0 +1,14 @@
+# Time-Indexed Regression: From Flexible Models to Trend {time-indexed-regression}
+
+```{r time-indexed-regression-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/time-indexed-regression-",
+  cache.path = "../build/cache/book/time-indexed-regression/"
+)
+```
+
+```{r child-time-indexed-regression, child="../lecture-content/32-time-indexed-regression.Rmd"}
+```
+

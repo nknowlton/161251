@@ -1,0 +1,14 @@
+# Linear Regression Modelling with R {regression-with-r}
+
+```{r regression-with-r-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/regression-with-r-",
+  cache.path = "../build/cache/book/regression-with-r/"
+)
+```
+
+```{r child-regression-with-r, child="../lecture-content/04-regression-with-r.Rmd"}
+```
+

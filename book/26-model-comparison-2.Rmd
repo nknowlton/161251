@@ -1,0 +1,14 @@
+# Comparison of General Linear Models {model-comparison-2}
+
+```{r model-comparison-2-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/model-comparison-2-",
+  cache.path = "../build/cache/book/model-comparison-2/"
+)
+```
+
+```{r child-model-comparison-2, child="../lecture-content/26-model-comparison-2.Rmd"}
+```
+

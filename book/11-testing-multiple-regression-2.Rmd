@@ -1,0 +1,14 @@
+# Testing in Multiple Regression Models (2) {testing-multiple-regression-2}
+
+```{r testing-multiple-regression-2-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/testing-multiple-regression-2-",
+  cache.path = "../build/cache/book/testing-multiple-regression-2/"
+)
+```
+
+```{r child-testing-multiple-regression-2, child="../lecture-content/11-testing-multiple-regression-2.Rmd"}
+```
+

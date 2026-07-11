@@ -1,0 +1,14 @@
+# Checking the Assumptions {checking-assumptions}
+
+```{r checking-assumptions-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/checking-assumptions-",
+  cache.path = "../build/cache/book/checking-assumptions/"
+)
+```
+
+```{r child-checking-assumptions, child="../lecture-content/05-checking-assumptions.Rmd"}
+```
+

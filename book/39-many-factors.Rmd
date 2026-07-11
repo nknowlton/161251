@@ -1,0 +1,14 @@
+# Appendix: Models with Many Factors {many-factors}
+
+```{r many-factors-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/many-factors-",
+  cache.path = "../build/cache/book/many-factors/"
+)
+```
+
+```{r child-many-factors, child="../lecture-content/39-many-factors.Rmd"}
+```
+

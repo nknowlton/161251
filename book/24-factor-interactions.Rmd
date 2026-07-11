@@ -1,0 +1,14 @@
+# Factors with Interactions {factor-interactions}
+
+```{r factor-interactions-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/factor-interactions-",
+  cache.path = "../build/cache/book/factor-interactions/"
+)
+```
+
+```{r child-factor-interactions, child="../lecture-content/24-factor-interactions.Rmd"}
+```
+

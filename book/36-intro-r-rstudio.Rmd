@@ -1,0 +1,14 @@
+# Appendix: Introduction to R and RStudio {intro-r-rstudio}
+
+```{r intro-r-rstudio-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/intro-r-rstudio-",
+  cache.path = "../build/cache/book/intro-r-rstudio/"
+)
+```
+
+```{r child-intro-r-rstudio, child="../lecture-content/36-intro-r-rstudio.Rmd"}
+```
+

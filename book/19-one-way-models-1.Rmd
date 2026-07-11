@@ -1,0 +1,14 @@
+# Linear Models with One Factor {one-way-models-1}
+
+```{r one-way-models-1-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/one-way-models-1-",
+  cache.path = "../build/cache/book/one-way-models-1/"
+)
+```
+
+```{r child-one-way-models-1, child="../lecture-content/19-one-way-models-1.Rmd"}
+```
+

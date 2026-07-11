@@ -1,0 +1,14 @@
+# Basic Matrix Algebra {matrix-algebra}
+
+```{r matrix-algebra-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/matrix-algebra-",
+  cache.path = "../build/cache/book/matrix-algebra/"
+)
+```
+
+```{r child-matrix-algebra, child="../lecture-content/12-matrix-algebra.Rmd"}
+```
+

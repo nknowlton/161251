@@ -1,0 +1,14 @@
+# Splines and LOESS: Flexible Regression Curves {splines-loess}
+
+```{r splines-loess-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/splines-loess-",
+  cache.path = "../build/cache/book/splines-loess/"
+)
+```
+
+```{r child-splines-loess, child="../lecture-content/31-splines-loess.Rmd"}
+```
+

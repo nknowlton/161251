@@ -1,0 +1,14 @@
+# Paper Overview {paper-overview}
+
+```{r paper-overview-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/paper-overview-",
+  cache.path = "../build/cache/book/paper-overview/"
+)
+```
+
+```{r child-paper-overview, child="../lecture-content/01-paper-overview.Rmd"}
+```
+

@@ -1,0 +1,14 @@
+# Outliers and Influential Points {outliers-influential-points}
+
+```{r outliers-influential-points-chapter-setup, include=FALSE}
+source("../shared/setup.R")
+
+knitr::opts_chunk$set(
+  fig.path = "_main_files/figure-html/outliers-influential-points-",
+  cache.path = "../build/cache/book/outliers-influential-points/"
+)
+```
+
+```{r child-outliers-influential-points, child="../lecture-content/06-outliers-influential-points.Rmd"}
+```
+
