@@ -62,30 +62,29 @@ jobs:
       - name: Move site to _site for Pages
         run: |
           rm -rf _site
-          cp -r build/site _site
+          cp -r build/site/161251 _site
 
       - name: Verify Pages artifact
         run: |
           required=(
             _site/index.html
-            _site/161251/index.html
-            _site/161251/notes/index.html
-            _site/161251/labs/index.html
-            _site/161251/widget/index.html
-            _site/161251/labs/lab10A.Rmd
-            _site/161251/labs/lab10B.Rmd
-            _site/161251/labs/lab11A.Rmd
-            _site/161251/labs/lab11B.Rmd
-            _site/161251/labs/lab12A.Rmd
-            _site/161251/labs/lab12B.Rmd
+            _site/notes/index.html
+            _site/labs/index.html
+            _site/widget/index.html
+            _site/labs/lab10A.Rmd
+            _site/labs/lab10B.Rmd
+            _site/labs/lab11A.Rmd
+            _site/labs/lab11B.Rmd
+            _site/labs/lab12A.Rmd
+            _site/labs/lab12B.Rmd
           )
 
           for file in "${required[@]}"; do
             test -f "$file"
           done
 
-          test "$(find _site/161251/notes/downloads -maxdepth 1 -name '*.Rmd' | wc -l)" -gt 0
-          ! rg -q -- '-sols\.Rmd' _site/161251/labs/index.html
+          test "$(find _site/notes/downloads -maxdepth 1 -name '*.Rmd' | wc -l)" -gt 0
+          ! rg -q -- '-sols\.Rmd' _site/labs/index.html
 
       - uses: actions/upload-pages-artifact@v5
         with:
