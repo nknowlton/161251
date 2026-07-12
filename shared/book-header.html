@@ -34,6 +34,22 @@
   gap: 0.5rem;
   font-size: 1.05rem;
 }
+.book .book-header .chapter-code-download {
+  position: absolute;
+  right: 1rem;
+  top: 0.65rem;
+  color: #4183c4;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.book .book-header .chapter-code-download:hover,
+.book .book-header .chapter-code-download:focus {
+  color: #2c5d8a;
+  text-decoration: underline;
+}
+.book .book-header .chapter-code-download .fa {
+  margin-right: 0.3rem;
+}
 /* Push the gitbook body below the header */
 .book .book-body .body-inner { top: 0; }
 </style>
@@ -45,3 +61,24 @@
     <a href="/">Main website</a>
   </span>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var chapter = document.querySelector(".section.level1[id] > h1 .header-section-number");
+  var section = chapter && chapter.closest(".section.level1[id]");
+  var toolbar = document.querySelector(".book-header");
+
+  if (!chapter || !section || !toolbar) return;
+
+  var chapterNumber = chapter.textContent.trim().split(".")[0].padStart(2, "0");
+  var filename = chapterNumber + "-" + section.id + ".Rmd";
+  var link = document.createElement("a");
+
+  link.className = "chapter-code-download";
+  link.href = "downloads/" + filename;
+  link.download = filename;
+  link.title = "Download the in class version of this chapter's code";
+  link.setAttribute("aria-label", link.title);
+  link.innerHTML = '<i class="fa fa-download" aria-hidden="true"></i>Download code';
+  toolbar.appendChild(link);
+});
+</script>
