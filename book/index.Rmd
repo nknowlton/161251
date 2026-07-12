@@ -22,6 +22,40 @@ of convenience.
 
 Please ask for help if you don't understand the R code being demonstrated.
 
+## Table of Contents {-}
+
+```{r preface-toc, echo=FALSE, results='asis'}
+lectures <- read.csv("../course/lectures.csv", stringsAsFactors = FALSE)
+lectures <- lectures[lectures$IncludeInBook == "yes", ]
+lectures <- lectures[order(lectures$LectureNo), ]
+
+# Build filename: lowercase title with hyphens, then slug
+make_link <- function(title, slug) {
+  fname <- tolower(gsub("[^A-Za-z0-9]+", "-", title))
+  fname <- gsub("^-|-$", "", fname)
+  sprintf("%s-%s.html", fname, slug)
+}
+
+current_week <- -1
+for (i in seq_len(nrow(lectures))) {
+  wk <- lectures$Week[i]
+  if (wk != current_week) {
+    if (wk == 0) {
+      cat("\n### Appendices {-}\n\n")
+    } else {
+      cat(sprintf("\n### Week %d {-}\n\n", wk))
+    }
+    current_week <- wk
+  }
+  link <- make_link(lectures$LectureTitle[i], lectures$Slug[i])
+  presenter <- if (lectures$Presenter[i] == "Nick Knowlton") " (NK)" else ""
+  cat(sprintf(
+    "- [%d. %s%s](%s)\n",
+    lectures$LectureNo[i], lectures$LectureTitle[i], presenter, link
+  ))
+}
+```
+
 ```{r setup-book, include=FALSE}
 source("../shared/setup.R")
 

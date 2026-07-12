@@ -8,7 +8,7 @@ This course is all about using regression models. Regression is one of the most 
 
 - They are a vital tool in the application of statistics — and by the end of this course, you'll be able to build, interpret, and critique them yourself.
 
-![Palmer Penguins: a nice illustration of grouped data with a clear relationship between variables](../graphics/penguin_plot.png)
+![Palmer Penguins: a nice illustration of grouped data with a clear relationship between variables](../resources/penguin_plot.png)
 
 ## Prescription 
 
