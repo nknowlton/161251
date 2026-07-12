@@ -35,7 +35,7 @@ LectureNo,Week,LectureTitle,Slug,Presenter,IncludeInBook
 34,12,Diagnosing Autocorrelated Errors,diagnosing-autocorrelation,Nick Knowlton,yes
 35,12,Regression with Autoregressive Errors,autoregressive-errors,Nick Knowlton,yes
 36,0,Appendix: Introduction to R and RStudio,intro-r-rstudio,Jonathan Godfrey,yes
-37,1,Appendix: Regression through the origin,regression-through-origin,Jonathan Godfrey,yes
-38,2,Appendix: Transformations in regression models,transformations,Jonathan Godfrey,yes
-39,3,Appendix: Models with Many Factors,many-factors,Jonathan Godfrey,yes
-40,8,Appendix: Nonlinear least squares,nonlinear-least-squares,Jonathan Godfrey,yes
+37,0,Appendix: Regression through the origin,regression-through-origin,Jonathan Godfrey,yes
+38,0,Appendix: Transformations in regression models,transformations,Jonathan Godfrey,yes
+39,0,Appendix: Models with Many Factors,many-factors,Jonathan Godfrey,yes
+40,0,Appendix: Nonlinear least squares,nonlinear-least-squares,Jonathan Godfrey,yes
