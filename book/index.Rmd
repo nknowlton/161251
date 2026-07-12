@@ -29,11 +29,9 @@ lectures <- read.csv("../course/lectures.csv", stringsAsFactors = FALSE)
 lectures <- lectures[lectures$IncludeInBook == "yes", ]
 lectures <- lectures[order(lectures$LectureNo), ]
 
-# Build filename from title (matches bookdown's naming convention)
+# Build filename from slug (matches bookdown's chapter ID-based naming)
 make_link <- function(title, slug) {
-  fname <- tolower(gsub("[^A-Za-z0-9]+", "-", title))
-  fname <- gsub("^-|-$", "", fname)
-  sprintf("%s.html", fname)
+  sprintf("%s.html", slug)
 }
 
 current_week <- -1
