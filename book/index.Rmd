@@ -29,11 +29,11 @@ lectures <- read.csv("../course/lectures.csv", stringsAsFactors = FALSE)
 lectures <- lectures[lectures$IncludeInBook == "yes", ]
 lectures <- lectures[order(lectures$LectureNo), ]
 
-# Build filename: lowercase title with hyphens, then slug
+# Build filename from title (matches bookdown's naming convention)
 make_link <- function(title, slug) {
   fname <- tolower(gsub("[^A-Za-z0-9]+", "-", title))
   fname <- gsub("^-|-$", "", fname)
-  sprintf("%s-%s.html", fname, slug)
+  sprintf("%s.html", fname)
 }
 
 current_week <- -1
