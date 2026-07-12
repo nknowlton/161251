@@ -87,7 +87,7 @@ jobs:
           done
 
           test "$(find _site/notes/downloads -maxdepth 1 -name '*.Rmd' | wc -l)" -gt 0
-          ! rg -q -- '-sols\.Rmd' _site/labs/index.html
+          ! grep -Eq -- '-sols\.Rmd' _site/labs/index.html
 
       - uses: actions/upload-pages-artifact@v5
         with:
