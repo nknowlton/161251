@@ -106,14 +106,19 @@ for (page in c("labs", "widget")) {
   }
 }
 
-# 8. Downloadable lecture Rmd files
-cat("  Copying downloadable lecture Rmd files...\n")
+# 8. Downloadable self-contained student .Rmd files
+cat("  Copying downloadable student .Rmd files...\n")
 downloads_dir <- file.path(notes_dir, "downloads")
 if (!dir.exists(downloads_dir)) dir.create(downloads_dir, recursive = TRUE)
-lec_rmd <- list.files(file.path(repo_root, "lectures"), pattern = "\\.Rmd$",
-                      full.names = TRUE)
-for (f in lec_rmd) {
-  file.copy(f, file.path(downloads_dir, basename(f)), overwrite = TRUE)
+student_rmd_dir <- file.path(repo_root, "build", "student-lectures")
+if (dir.exists(student_rmd_dir)) {
+  student_rmd <- list.files(student_rmd_dir, pattern = "[.]Rmd$",
+                            full.names = TRUE)
+  for (f in student_rmd) {
+    file.copy(f, file.path(downloads_dir, basename(f)), overwrite = TRUE)
+  }
+} else {
+  message("  WARNING: build/student-lectures/ not found. Run scripts/generate-student-rmd.R first.")
 }
 
 cat("\nSite assembled in:", site_dir, "\n")

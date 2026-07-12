@@ -1,0 +1,36 @@
+---
+@@TITLE@@
+subtitle: "161.251 Regression Modelling"
+date: |
+  `r format(Sys.Date(), '%Y')`
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: false
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+@@SETUP@@
+
+# Render figures and caches beside the downloaded student file.
+@@SLUG@@
+knitr::opts_chunk$set(
+  fig.path = paste0(lecture_slug, "_files/figure-html/"),
+  cache.path = paste0(lecture_slug, "_cache/")
+)
+
+# xfun::embed_file() only accepts local files. Student lecture sources use
+# published data URLs instead, so provide an equivalent download link.
+student_embed_file <- function(path, text = basename(path), ...) {
+  knitr::asis_output(sprintf(
+    '<a href="%s" download="%s">%s</a>',
+    path,
+    basename(path),
+    text
+  ))
+}
+```
+
+@@CONTENT@@

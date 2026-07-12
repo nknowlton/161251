@@ -56,6 +56,9 @@ jobs:
       - name: Build bookdown
         run: Rscript scripts/render-book.R
 
+      - name: Generate student .Rmd files
+        run: Rscript scripts/generate-student-rmd.R
+
       - name: Assemble Pages artifact
         run: Rscript scripts/assemble-site.R
 
