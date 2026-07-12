@@ -1,4 +1,4 @@
-# Linear Models with One Factor {one-way-models-1}
+# Linear Models with One Factor {#one-way-models-1}
 
 ```{r one-way-models-1-chapter-setup, include=FALSE}
 source("../shared/setup.R")

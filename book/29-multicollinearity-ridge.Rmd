@@ -1,4 +1,4 @@
-# Multicollinearity and Ridge Regression {multicollinearity-ridge}
+# Multicollinearity and Ridge Regression {#multicollinearity-ridge}
 
 ```{r multicollinearity-ridge-chapter-setup, include=FALSE}
 source("../shared/setup.R")

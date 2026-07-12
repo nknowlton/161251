@@ -1,4 +1,4 @@
-# Linear Regression Modelling with R {regression-with-r}
+# Linear Regression Modelling with R {#regression-with-r}
 
 ```{r regression-with-r-chapter-setup, include=FALSE}
 source("../shared/setup.R")

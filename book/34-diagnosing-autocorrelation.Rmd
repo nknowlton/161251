@@ -1,4 +1,4 @@
-# Diagnosing Autocorrelated Errors {diagnosing-autocorrelation}
+# Diagnosing Autocorrelated Errors {#diagnosing-autocorrelation}
 
 ```{r diagnosing-autocorrelation-chapter-setup, include=FALSE}
 source("../shared/setup.R")

@@ -1,4 +1,4 @@
-# Diagnostics and Multiple Comparisons for Oneway ANOVA {one-way-models-2}
+# Diagnostics and Multiple Comparisons for Oneway ANOVA {#one-way-models-2}
 
 ```{r one-way-models-2-chapter-setup, include=FALSE}
 source("../shared/setup.R")

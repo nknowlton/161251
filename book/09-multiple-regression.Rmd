@@ -1,4 +1,4 @@
-# Introduction to Multiple Linear Regression {multiple-regression}
+# Introduction to Multiple Linear Regression {#multiple-regression}
 
 ```{r multiple-regression-chapter-setup, include=FALSE}
 source("../shared/setup.R")

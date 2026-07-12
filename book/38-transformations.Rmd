@@ -1,4 +1,4 @@
-# Appendix: Transformations in regression models {transformations}
+# Appendix: Transformations in regression models {#transformations}
 
 ```{r transformations-chapter-setup, include=FALSE}
 source("../shared/setup.R")

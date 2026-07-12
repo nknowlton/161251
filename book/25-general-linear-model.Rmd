@@ -1,4 +1,4 @@
-# The General Linear Model {general-linear-model}
+# The General Linear Model {#general-linear-model}
 
 ```{r general-linear-model-chapter-setup, include=FALSE}
 source("../shared/setup.R")

@@ -1,4 +1,4 @@
-# The Basics of Regression Modelling {regression-basics}
+# The Basics of Regression Modelling {#regression-basics}
 
 ```{r regression-basics-chapter-setup, include=FALSE}
 source("../shared/setup.R")

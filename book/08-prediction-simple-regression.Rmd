@@ -1,4 +1,4 @@
-# Prediction in Simple Linear Regression {prediction-simple-regression}
+# Prediction in Simple Linear Regression {#prediction-simple-regression}
 
 ```{r prediction-simple-regression-chapter-setup, include=FALSE}
 source("../shared/setup.R")

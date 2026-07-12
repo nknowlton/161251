@@ -1,4 +1,4 @@
-# Models with binary predictors {binary-predictors}
+# Models with binary predictors {#binary-predictors}
 
 ```{r binary-predictors-chapter-setup, include=FALSE}
 source("../shared/setup.R")

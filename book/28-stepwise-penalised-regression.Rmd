@@ -1,4 +1,4 @@
-# Stepwise and Penalised Regression {stepwise-penalised-regression}
+# Stepwise and Penalised Regression {#stepwise-penalised-regression}
 
 ```{r stepwise-penalised-regression-chapter-setup, include=FALSE}
 source("../shared/setup.R")

@@ -25,7 +25,7 @@ for (i in seq_len(nrow(meta))) {
   body_file <- sprintf("../lecture-content/%s", fname)
 
   content <- sprintf(
-    '# %s {%s}\n\n```{r %s-chapter-setup, include=FALSE}\nsource("../shared/setup.R")\n\nknitr::opts_chunk$set(\n  fig.path = "_main_files/figure-html/%s-",\n  cache.path = "../build/cache/book/%s/"\n)\n```\n\n```{r child-%s, child="%s"}\n```\n',
+    '# %s {#%s}\n\n```{r %s-chapter-setup, include=FALSE}\nsource("../shared/setup.R")\n\nknitr::opts_chunk$set(\n  fig.path = "_main_files/figure-html/%s-",\n  cache.path = "../build/cache/book/%s/"\n)\n```\n\n```{r child-%s, child="%s"}\n```\n',
     title, slug, slug, slug, slug, slug, body_file
   )
 

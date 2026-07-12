@@ -1,4 +1,4 @@
-# Testing in Multiple Regression Models (1) {testing-multiple-regression-1}
+# Testing in Multiple Regression Models (1) {#testing-multiple-regression-1}
 
 ```{r testing-multiple-regression-1-chapter-setup, include=FALSE}
 source("../shared/setup.R")

@@ -1,4 +1,4 @@
-# Basic Matrix Algebra {matrix-algebra}
+# Basic Matrix Algebra {#matrix-algebra}
 
 ```{r matrix-algebra-chapter-setup, include=FALSE}
 source("../shared/setup.R")

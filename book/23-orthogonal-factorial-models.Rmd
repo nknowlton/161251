@@ -1,4 +1,4 @@
-# Orthogonal Factorial Models {orthogonal-factorial-models}
+# Orthogonal Factorial Models {#orthogonal-factorial-models}
 
 ```{r orthogonal-factorial-models-chapter-setup, include=FALSE}
 source("../shared/setup.R")

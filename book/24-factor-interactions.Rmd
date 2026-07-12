@@ -1,4 +1,4 @@
-# Factors with Interactions {factor-interactions}
+# Factors with Interactions {#factor-interactions}
 
 ```{r factor-interactions-chapter-setup, include=FALSE}
 source("../shared/setup.R")

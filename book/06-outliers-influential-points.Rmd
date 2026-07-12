@@ -1,4 +1,4 @@
-# Outliers and Influential Points {outliers-influential-points}
+# Outliers and Influential Points {#outliers-influential-points}
 
 ```{r outliers-influential-points-chapter-setup, include=FALSE}
 source("../shared/setup.R")

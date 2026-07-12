@@ -1,4 +1,4 @@
-# Weighted regression {weighted-regression}
+# Weighted regression {#weighted-regression}
 
 ```{r weighted-regression-chapter-setup, include=FALSE}
 source("../shared/setup.R")

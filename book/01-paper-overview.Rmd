@@ -1,4 +1,4 @@
-# Paper Overview {paper-overview}
+# Paper Overview {#paper-overview}
 
 ```{r paper-overview-chapter-setup, include=FALSE}
 source("../shared/setup.R")

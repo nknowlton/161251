@@ -1,4 +1,4 @@
-# Appendix: Models with Many Factors {many-factors}
+# Appendix: Models with Many Factors {#many-factors}
 
 ```{r many-factors-chapter-setup, include=FALSE}
 source("../shared/setup.R")

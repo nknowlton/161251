@@ -1,4 +1,4 @@
-# Appendix: Nonlinear least squares {nonlinear-least-squares}
+# Appendix: Nonlinear least squares {#nonlinear-least-squares}
 
 ```{r nonlinear-least-squares-chapter-setup, include=FALSE}
 source("../shared/setup.R")

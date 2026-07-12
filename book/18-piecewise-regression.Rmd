@@ -1,4 +1,4 @@
-# Piecewise Regression Models {piecewise-regression}
+# Piecewise Regression Models {#piecewise-regression}
 
 ```{r piecewise-regression-chapter-setup, include=FALSE}
 source("../shared/setup.R")

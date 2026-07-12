@@ -1,4 +1,4 @@
-# Matrices and Linear Regression Models {matrices-linear-regression}
+# Matrices and Linear Regression Models {#matrices-linear-regression}
 
 ```{r matrices-linear-regression-chapter-setup, include=FALSE}
 source("../shared/setup.R")

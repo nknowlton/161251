@@ -1,4 +1,4 @@
-# Simple Linear Regression {simple-linear-regression}
+# Simple Linear Regression {#simple-linear-regression}
 
 ```{r simple-linear-regression-chapter-setup, include=FALSE}
 source("../shared/setup.R")

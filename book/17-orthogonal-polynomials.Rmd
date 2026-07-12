@@ -1,4 +1,4 @@
-# Models using orthogonal polynomials {orthogonal-polynomials}
+# Models using orthogonal polynomials {#orthogonal-polynomials}
 
 ```{r orthogonal-polynomials-chapter-setup, include=FALSE}
 source("../shared/setup.R")

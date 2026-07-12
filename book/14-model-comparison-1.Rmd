@@ -1,4 +1,4 @@
-# Comparison of Multiple Linear Regression Models {model-comparison-1}
+# Comparison of Multiple Linear Regression Models {#model-comparison-1}
 
 ```{r model-comparison-1-chapter-setup, include=FALSE}
 source("../shared/setup.R")

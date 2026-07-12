@@ -1,4 +1,4 @@
-# Appendix: Introduction to R and RStudio {intro-r-rstudio}
+# Appendix: Introduction to R and RStudio {#intro-r-rstudio}
 
 ```{r intro-r-rstudio-chapter-setup, include=FALSE}
 source("../shared/setup.R")

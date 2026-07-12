@@ -1,4 +1,4 @@
-# Time-Indexed Regression: From Flexible Models to Trend {time-indexed-regression}
+# Time-Indexed Regression: From Flexible Models to Trend {#time-indexed-regression}
 
 ```{r time-indexed-regression-chapter-setup, include=FALSE}
 source("../shared/setup.R")

@@ -1,4 +1,4 @@
-# Splines and LOESS: Flexible Regression Curves {splines-loess}
+# Splines and LOESS: Flexible Regression Curves {#splines-loess}
 
 ```{r splines-loess-chapter-setup, include=FALSE}
 source("../shared/setup.R")

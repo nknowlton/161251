@@ -1,4 +1,4 @@
-# Appendix: Regression through the origin {regression-through-origin}
+# Appendix: Regression through the origin {#regression-through-origin}
 
 ```{r regression-through-origin-chapter-setup, include=FALSE}
 source("../shared/setup.R")

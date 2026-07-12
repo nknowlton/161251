@@ -1,4 +1,4 @@
-# Comparison of General Linear Models {model-comparison-2}
+# Comparison of General Linear Models {#model-comparison-2}
 
 ```{r model-comparison-2-chapter-setup, include=FALSE}
 source("../shared/setup.R")

@@ -1,4 +1,4 @@
-# Polynomial Regression Models {polynomial-regression}
+# Polynomial Regression Models {#polynomial-regression}
 
 ```{r polynomial-regression-chapter-setup, include=FALSE}
 source("../shared/setup.R")

@@ -1,4 +1,4 @@
-# Checking the Assumptions {checking-assumptions}
+# Checking the Assumptions {#checking-assumptions}
 
 ```{r checking-assumptions-chapter-setup, include=FALSE}
 source("../shared/setup.R")

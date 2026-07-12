@@ -1,4 +1,4 @@
-# Regression Models for Trend and Seasonality {trend-seasonality}
+# Regression Models for Trend and Seasonality {#trend-seasonality}
 
 ```{r trend-seasonality-chapter-setup, include=FALSE}
 source("../shared/setup.R")
