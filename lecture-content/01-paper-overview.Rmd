@@ -1,19 +1,19 @@
 
 
-This lecture provides an overview of 161.251.
+Welcome to 161.251 Regression Modelling! This first lecture gives you a map of the course i.e., what we'll cover, how you'll be assessed, and where to find help when you need it.
 
-
-This course is all about using regression models.
+This course is all about using regression models. Regression is one of the most widely-used tools in statistics, and you'll find it applied everywhere: science, business, engineering, social science, and beyond.
 
 - These models seek to describe the variation of one variable in terms of one or more others, so far as this is possible.
 
-- These models are a vital tool in the application of statistics.
+- They are a vital tool in the application of statistics — and by the end of this course, you'll be able to build, interpret, and critique them yourself.
+
+![Palmer Penguins: a nice illustration of grouped data with a clear relationship between variables](../graphics/penguin_plot.png)
 
 ## Prescription 
 
-(as updated for the 2022 offering)
 
-Common data analysis and regression techniques for application in science, business and social science. Topics include simple and multiple regression; linear models with categorical explanatory variables; model diagnostics; inference for linear models; polynomial regression; models for time dependence; methods for variable selection; non-linear and weighted regression.
+Common data analysis and regression techniques for application in science, business and social science. Topics include simple and multiple regression; general linear models with categorical and continuous explanatory variables; model diagnostics and model comparison; inference for linear models; polynomial and piecewise regression; variable selection including stepwise and penalised methods; multicollinearity and ridge regression; weighted regression; splines and LOESS; models for time dependence, trend, and seasonality; and diagnosing and modelling autocorrelated errors.
 
 
 ## Learning Outcomes
@@ -33,7 +33,7 @@ N.B. For this course the "suitable statistical software" is R. Even if you have 
 
 ## Some of the new Stuff You'll Learn
 
-Polynomial Regression
+### Polynomial Regression
 
 
 ```{r FevPolyplot, fig.alt="polynomial model plotted", echo=FALSE, eval=TRUE}
@@ -43,9 +43,11 @@ Fev |> ggplot(aes(y=FEV, x=Age)) + geom_point(pch=19) +
 geom_function(fun = function(x) Coeffs[1] + Coeffs[2]*x + Coeffs[3]*x^2 + Coeffs[4]*x^3 + Coeffs[5]*x^4, linewidth=2, col="blue")
 ```
 
+Not all relationships are straight lines. Polynomial regression lets us fit curves to data — here we've modelled lung function (FEV) against age using a flexible curve that captures the non-linear pattern.
 
 
-Model Diagnostic Plots
+
+### Model Diagnostic Plots
 
 ```{r HillsDiagPlots, echo=FALSE}
 Hills <- read.csv(file="../data/hills.csv",header=TRUE,row.names=1)
@@ -54,14 +56,18 @@ par(mfrow=c(2,2))
 plot(Hills.lm)
 ```
 
+Building a model is only half the story — you also need to check whether it's any good. Diagnostic plots help you spot problems like outliers, non-constant variance, or points that exert too much influence on the fitted line.
 
 
 
-Regression for Grouped Data
+
+### Regression for Grouped Data
 
 ```{r OzonePlot, echo=FALSE, fig.cap="Ozone vs temperature for each of five months (May to September)"}
 plot(Ozone~Temp, col=Month, pch=Month, data=airquality)
 ```
+
+Regression isn't just for continuous predictors. We can also model how a response varies across groups — here, ozone levels against temperature, with each month shown in a different colour. This is the gateway to ANOVA and factorial models.
 
 ## Computer Practicals
 
@@ -93,7 +99,7 @@ Check the Stream site for 161.251 on a regular basis for:
 ## Assessment for 161.251
 
 
-You will use R for all assessment exercises. Each of them is worth 25% towards your final grade.
+You will use R for all assessment exercises. Each of them is worth 20% towards your final grade.
 
 - Assessments 2&3: These are traditional assignments. You will write them using R markdown.
 - Assessments 1&4: These have a time-constrained component like a traditional test, but they require preparation like you would do for an assignment. There may be written questions where you will use output from work done prior to the test time. The focus is on showing understanding. You may be asked to deal with practical issues; for these questions you will demonstrate your ability to augment your analyses using R / Rmarkdown        
@@ -101,7 +107,7 @@ You will use R for all assessment exercises. Each of them is worth 25% towards y
 You must allocate sufficient time to prepare for the test sessions; they cannot be completed at test time if you have not done any preparation.
 
 
-The dates for Assessments 1-3 are on Stream; the fourth assessment date is determined by the Examinations Section and is conducted in the standard examination period.
+The dates for Assessments 1-4 are on Stream; the fifth assessment date is determined by the Examinations Section and is conducted as a secured assessment. For the 2026 year, secured assessments are not on R and are simply word documents that you will fill in. These exams take place at special locations the university has arranged. Questions about the secured assessment should be directed at the College level.
 
 We strongly recommend that you make use of R markdown via RStudio to complete as much work for the course as you can so that you are well versed in its use for the first and fourth assessment exercises.
 
@@ -113,6 +119,8 @@ If you have not used R markdown before, then you will need to gain some skill us
 
 You will soon find that R markdown is a huge time saver, especially for anyone who isn't perfect (probably all of us).
 
+![RStudio is the recommended environment for this course](../resources/RStudio.png)
+
 
 
 ## Useful reference material
@@ -122,10 +130,10 @@ We believe we've provided everything you ***need*** within the provided course m
 
 While we are keen for you to ask questions on Stream, sometimes people just want to look things up for themselves.  Using Google might be what you prefer, but if you want a head start on looking for help in good quality references, take a look at the following options.
 
-[Linear Models with R]() by Julian J. Faraway presents some very nice examples and is a fairly easy read. Even though the second edition was released in 2014, the R code remains as useful today as it was at the time of writing. The data used in Faraway's books are in the `faraway` package.
+[Linear Models with R](https://people.bath.ac.uk/jjf23/book/) by Julian J. Faraway presents some very nice examples and is a fairly easy read. Even though the second edition was released in 2014, the R code remains as useful today as it was at the time of writing. The data used in Faraway's books are in the `faraway` package.
 
 
-[Introduction to Linear Regression Analysis]() (now in a sixth edition) by Montgomery, Peck, and Vining (often referred to as MPV) is a classic text. Its earlier editions were not aligned to any software, but the most recent editions are aligned to the two most widely used software options (R and SAS). There is an R package that includes a number of the datasets used in the (third edition of the) text, called `MPV`.
+*Introduction to Linear Regression Analysis* (now in a sixth edition) by Montgomery, Peck, and Vining (often referred to as MPV) is a classic text. Its earlier editions were not aligned to any software, but the most recent editions are aligned to the two most widely used software options (R and SAS). There is an R package that includes a number of the datasets used in the (third edition of the) text, called `MPV`.
 
 
 
@@ -137,7 +145,7 @@ If you're wanting to take a deeper look at how and why different types of graphs
 The [Graphics Cookbook](https://r-graphics.org/) by Winston Chang, has plenty of examples that can help you create presentation quality graphs of many types using the `ggplot2` package. It might prove a slightly better option to consult if you already know what you are trying to achieve, but can't recall how to do it. Everyone needs this sort of reference from time to time.
 
 
-The [R Markdown Cookbook](https://bookdown.org/yihui/rmarkdown-cookbook/) by Yihui Xie, Christophe Dervieux, and Emily Riederer, should be one of the first refernces you seek when things aren't going right with your R markdown documents. It will help you go from novice to power R markdown user if that's what you want. Watch though that you don't spend too much time making your R markdown documents more awesome than the situation deserves.
+The [R Markdown Cookbook](https://bookdown.org/yihui/rmarkdown-cookbook/) by Yihui Xie, Christophe Dervieux, and Emily Riederer, should be one of the first references you seek when things aren't going right with your R markdown documents. It will help you go from novice to power R markdown user if that's what you want. Watch though that you don't spend too much time making your R markdown documents more awesome than the situation deserves.
  
 
 
@@ -145,9 +153,9 @@ The [R Markdown Cookbook](https://bookdown.org/yihui/rmarkdown-cookbook/) by Yih
 
 ## Use of Generative AI tools
 
-Like many people, the staff teaching you in 161.251 like what Gen AI has to offer us. It can help us find answers to our problems and it's great for  finding problmes with our R code.
+Like many people, the staff teaching you in 161.251 like what Gen AI has to offer us. It can help us find answers to our problems and it's great for finding problems with our R code.
 
-Using tools like ChatGPT is great for people who know when it is delivering useful responses. . It is not good for people who cannot see when it leads them astray, which probably includes many students.
+Using tools like ChatGPT is great for people who know when it is delivering useful responses. It is not good for people who cannot see when it leads them astray, which probably includes many students.
 
 You must limit your use of Gen AI though because we have to assess your work, not the Gen AI developers. You enrolled in this course to learn how to develop your statistical knowledge, not to become experts in relying on ChatGPT. Please be very careful to follow instructions set out for assessments, and the policies of Massey with respect to using Gen AI. 
 

@@ -32,6 +32,10 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
 }
 
+h3 {
+  font-size: 1.5em;
+}
+
 pre {
   word-break: normal;
   word-wrap: normal;
@@ -84,9 +88,11 @@ p.caption { color: #777; margin-top: 10px; }
 }
 .course-header .course-header-brand {
   font-weight: 700;
+  font-size: 1.15rem;
   margin-right: auto;
 }
 .course-header .course-header-links {
   display: flex;
   gap: 0.5rem;
+  font-size: 1.05rem;
 }
