@@ -95,14 +95,27 @@ res_src <- file.path(repo_root, "resources")
 res_dest <- file.path(course_dir, "resources")
 copy_dir(res_src, res_dest)
 
-# 7. Lab and widget landing pages
-cat("  Copying lab/widget landing pages...\n")
-for (page in c("labs", "widget")) {
-  src <- file.path(repo_root, "site", page, "index.html")
-  if (file.exists(src)) {
-    dest_dir <- file.path(course_dir, page)
-    dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
-    file.copy(src, file.path(dest_dir, "index.html"), overwrite = TRUE)
+# 7. Lab landing page and rendered Quarto/OJS widget site
+cat("  Copying lab landing page...\n")
+labs_page <- file.path(repo_root, "site", "labs", "index.html")
+if (file.exists(labs_page)) {
+  labs_dest <- file.path(course_dir, "labs")
+  dir.create(labs_dest, recursive = TRUE, showWarnings = FALSE)
+  file.copy(labs_page, file.path(labs_dest, "index.html"), overwrite = TRUE)
+}
+
+cat("  Copying rendered interactive widgets...\n")
+widget_build <- file.path(repo_root, "build", "widgets")
+widget_dest <- file.path(course_dir, "widget")
+if (dir.exists(widget_build)) {
+  copy_dir(widget_build, widget_dest)
+} else {
+  widget_page <- file.path(repo_root, "site", "widget", "index.html")
+  if (file.exists(widget_page)) {
+    dir.create(widget_dest, recursive = TRUE, showWarnings = FALSE)
+    file.copy(widget_page, file.path(widget_dest, "index.html"), overwrite = TRUE)
+  } else {
+    message("  WARNING: build/widgets not found and widget fallback is missing.")
   }
 }
 

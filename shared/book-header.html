@@ -58,6 +58,7 @@
   <span class="course-header-links">
     <a href="/161251/">Course home</a>
     <a href="/161251/notes/">Lecture notes</a>
+    <a href="/161251/widget/">Interactive labs</a>
     <a href="/">Main website</a>
   </span>
 </div>
@@ -80,5 +81,24 @@ document.addEventListener("DOMContentLoaded", function () {
   link.setAttribute("aria-label", link.title);
   link.innerHTML = '<i class="fa fa-download" aria-hidden="true"></i>Download code';
   toolbar.appendChild(link);
+
+  // Add a contextual interactive-lab link from the same lecture map used by
+  // the widget hub. This keeps the mapping in one public JSON interface.
+  fetch("/161251/widget/lecture-map.json")
+    .then(function (response) { return response.ok ? response.json() : null; })
+    .then(function (map) {
+      if (!map || !map.lectures) return;
+      var entry = map.lectures[chapterNumber];
+      if (!entry) return;
+      var widget = document.createElement("a");
+      widget.className = "chapter-code-download chapter-widget-link";
+      widget.href = "/161251/widget/labs/" + entry.lab + ".html?lecture=" + chapterNumber + "&mode=" + encodeURIComponent(entry.mode) + "&dataset=" + encodeURIComponent(entry.dataset);
+      widget.title = "Open the interactive lab for this lecture";
+      widget.setAttribute("aria-label", widget.title);
+      widget.style.right = "11rem";
+      widget.innerHTML = '<i class="fa fa-sliders" aria-hidden="true"></i>Try interactively';
+      toolbar.appendChild(widget);
+    })
+    .catch(function () { /* The notes remain usable if the widget site is unavailable. */ });
 });
 </script>

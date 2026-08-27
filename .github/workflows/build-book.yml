@@ -53,6 +53,19 @@ jobs:
             GGally
             broom.mixed
 
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: 1.10.14
+
+      - name: Build interactive OJS widgets
+        run: quarto render widgets --no-clean
+
+      - name: Test widget calculations
+        run: |
+          node widgets/tests/labs.test.mjs
+          node widgets/tests/ui.test.mjs
+
       - name: Build bookdown
         run: Rscript scripts/render-book.R
 

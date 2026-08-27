@@ -3,6 +3,9 @@
 .RData
 .Ruserdata
 
+# Local MCP connection settings may contain credentials.
+.vscode/mcp.json
+
 # Ignore all HTML except tracked landing pages and shared headers
 *.html
 !site/

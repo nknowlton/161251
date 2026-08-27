@@ -372,12 +372,56 @@ for (hf in header_files) {
 }
 
 # ---------------------------------------------------------------------------
-# 20. Deployment directory contains expected entry points (if it exists)
+# 20. Interactive widget map and source pages are internally consistent
+# ---------------------------------------------------------------------------
+widget_map_path <- file.path(repo_root, "widgets", "lecture-map.json")
+widget_labs_dir <- file.path(repo_root, "widgets", "labs")
+if (!file.exists(widget_map_path)) {
+  add_error("widgets/lecture-map.json not found")
+} else if (!requireNamespace("jsonlite", quietly = TRUE)) {
+  add_warning("jsonlite is not installed; interactive widget map was not parsed")
+} else {
+  widget_map <- tryCatch(
+    jsonlite::fromJSON(widget_map_path, simplifyVector = FALSE),
+    error = function(e) {
+      add_error(paste("Failed to parse widgets/lecture-map.json:", conditionMessage(e)))
+      NULL
+    }
+  )
+  if (!is.null(widget_map)) {
+    lab_ids <- names(if (is.null(widget_map$labs)) list() else widget_map$labs)
+    if (length(lab_ids) == 0) add_error("Interactive widget map has no labs")
+    for (lab_id in lab_ids) {
+      page <- file.path(widget_labs_dir, paste0(lab_id, ".qmd"))
+      if (!file.exists(page)) add_error(paste("Missing widget page:", file.path("widgets", "labs", basename(page))))
+    }
+    lecture_ids <- sprintf("%02d", meta$LectureNo)
+    mapped_ids <- names(if (is.null(widget_map$lectures)) list() else widget_map$lectures)
+    if (!identical(sort(mapped_ids), sort(lecture_ids))) {
+      add_error("widgets/lecture-map.json lecture keys do not match course/lectures.csv")
+    }
+    for (lecture_id in intersect(mapped_ids, lecture_ids)) {
+      entry <- widget_map$lectures[[lecture_id]]
+      if (is.null(entry$lab) || !(entry$lab %in% lab_ids)) {
+        add_error(paste("Lecture", lecture_id, "references an unknown widget lab"))
+      }
+      if (is.null(entry$mode) || !nzchar(entry$mode)) add_error(paste("Lecture", lecture_id, "has no widget mode"))
+      if (is.null(entry$dataset) || !nzchar(entry$dataset)) add_error(paste("Lecture", lecture_id, "has no widget dataset"))
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# 21. Deployment directory contains expected entry points (if it exists)
 # ---------------------------------------------------------------------------
 site_dir <- file.path(repo_root, "build", "site")
 if (file.exists(site_dir)) {
   if (!file.exists(file.path(site_dir, "index.html"))) {
     add_warning("build/site/index.html not found")
+  }
+  if (file.exists(file.path(repo_root, "build", "widgets")) &&
+      !file.exists(file.path(site_dir, "161251", "widget", "index.html"))) {
+    add_error("Rendered widgets were not assembled into build/site/161251/widget")
   }
 }
 
