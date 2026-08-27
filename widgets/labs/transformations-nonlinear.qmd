@@ -1,0 +1,14 @@
+---
+title: "Transformations and Nonlinear Fitting"
+description: "Explore through-origin models, the power ladder, back-transformation, and iterative nonlinear fitting."
+---
+
+Transformations change the scale on which the model is fitted. Nonlinear least squares changes the fitting algorithm itself. Use the modes to separate those ideas.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("transformations-nonlinear");
+```
+
+**Lectures:** 7 and 37–40.

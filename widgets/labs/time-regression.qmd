@@ -1,0 +1,14 @@
+---
+title: "Time-Indexed Regression"
+description: "Build trend and seasonality, diagnose autocorrelation, and compare OLS with GLS."
+---
+
+First explain structure in the mean. Then check whether dependence remains in the errors.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("time-regression");
+```
+
+**Lectures:** 32–35.

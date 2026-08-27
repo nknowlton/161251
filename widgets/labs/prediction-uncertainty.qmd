@@ -1,0 +1,14 @@
+---
+title: "Prediction and Uncertainty"
+description: "Compare confidence intervals for a mean response with prediction intervals for a new observation."
+---
+
+Move the prediction point inside and outside the observed range. The interval widths and interpretation update together.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("prediction-uncertainty");
+```
+
+**Lecture:** 8.

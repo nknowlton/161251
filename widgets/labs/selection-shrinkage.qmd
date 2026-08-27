@@ -1,0 +1,14 @@
+---
+title: "Selection, Collinearity, and Shrinkage"
+description: "Simulate bias and variance, search models, inspect VIF, and compare ridge with lasso."
+---
+
+Model selection and coefficient stability are related but different questions. The modes in this lab keep that distinction visible.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("selection-shrinkage");
+```
+
+**Lectures:** 27–29.

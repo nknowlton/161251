@@ -1,0 +1,14 @@
+---
+title: "Sums of Squares and F Tests"
+description: "Decompose variation and compare nested models using the F statistic."
+---
+
+The F statistic balances improvement in residual sum of squares against the number of extra parameters.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("f-tests");
+```
+
+**Lectures:** 10, 14, 20–22, 24, and 26.

@@ -1,0 +1,14 @@
+---
+title: "Weights and Precision"
+description: "Understand why group size and variance determine the information carried by a row."
+---
+
+A weighted fit gives more influence to observations that represent more precise information. Compare the line and the residual scale together.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("weighted-least-squares");
+```
+
+**Lecture:** 30.

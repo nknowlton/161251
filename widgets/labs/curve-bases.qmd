@@ -1,0 +1,14 @@
+---
+title: "Curve and Basis Workbench"
+description: "Compare polynomial, piecewise, spline, natural spline, and LOESS fits."
+---
+
+All of these curves are still linear in their coefficients. The controls reveal the different basis functions and the flexibility they buy.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("curve-bases");
+```
+
+**Lectures:** 16–18 and 31.

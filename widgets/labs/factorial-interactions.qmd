@@ -1,0 +1,14 @@
+---
+title: "Factorial Design and Interactions"
+description: "Explore balance, orthogonality, main effects, interactions, and model hierarchy."
+---
+
+The cell means show exactly what an interaction adds to a main-effects model.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("factorial-interactions");
+```
+
+**Lectures:** 22–24 and 39.

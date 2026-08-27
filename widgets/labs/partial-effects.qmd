@@ -1,0 +1,14 @@
+---
+title: "Multiple Regression and Partial Effects"
+description: "Understand adjusted slopes, planes, omitted-variable bias, and added-variable plots."
+---
+
+An adjusted slope is a relationship after the other predictors have been accounted for. Use the slices and residualised view to make that phrase concrete.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("partial-effects");
+```
+
+**Lectures:** 9, 11, and 15.

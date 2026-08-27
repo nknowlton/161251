@@ -1,0 +1,14 @@
+---
+title: "Matrix and Projection Geometry"
+description: "Make the design matrix, least-squares projection, hat matrix, and orthogonality tangible."
+---
+
+The matrix formulas are compact because they describe a geometric projection. Begin with the small matrices, then turn on the regression view.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("matrix-geometry");
+```
+
+**Lectures:** 12, 13, 17, 19, 22, 23, 25, and 39.

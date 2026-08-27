@@ -1,0 +1,23 @@
+---
+title: "Interactive Regression Labs"
+description: "Accessible, interactive help for the mathematical ideas in 161.251 Regression Modelling."
+---
+
+These labs are companions to the [lecture notes](../notes/). Each lab begins with a clean mathematical example and then offers presets using the datasets from the course.
+
+Use the lecture number, concept, or search box to find a relevant activity. Every visual result is paired with exact values, an explanation, and a table so that the interaction does not depend on colour or sight alone.
+
+```{ojs}
+//| echo: false
+import {mountHub} from "./js/labs.js";
+mountHub();
+```
+
+## How to use a lab
+
+1. Start with the default synthetic example.
+2. Change one control at a time and read the short interpretation below the figure.
+3. Choose a course-data preset when you want to connect the idea to a lecture example.
+4. Use **Reset** to return to the teaching state.
+
+The calculations run in your browser. No answers or personal information are sent anywhere.

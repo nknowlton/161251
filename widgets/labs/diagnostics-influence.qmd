@@ -1,0 +1,14 @@
+---
+title: "Diagnostics and Influence"
+description: "See how residual patterns, outliers, leverage, and transformations affect a fitted model."
+---
+
+Model checking is an active investigation. Introduce one problem at a time and see which diagnostic responds.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("diagnostics-influence");
+```
+
+**Lectures:** 5–7.

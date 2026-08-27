@@ -1,0 +1,14 @@
+---
+title: "General Linear Model Lines"
+description: "Compare null, single, parallel, and separate-line models for a factor and covariate."
+---
+
+The model formula selects which lines are allowed. Centre the covariate to see how the intercept changes without changing fitted values.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("general-linear-models");
+```
+
+**Lectures:** 25–26.

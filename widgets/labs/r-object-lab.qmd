@@ -1,0 +1,14 @@
+---
+title: "R Object and Indexing Lab"
+description: "Practise vector arithmetic, assignments, indexing, and data-frame thinking."
+---
+
+This is a small browser-based companion to the R introduction. It traces a safe set of common expressions rather than pretending to be a complete R interpreter.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("r-object-lab");
+```
+
+**Lecture:** 36.

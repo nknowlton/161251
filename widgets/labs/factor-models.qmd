@@ -1,0 +1,14 @@
+---
+title: "Factor Models and Comparisons"
+description: "See how group means, indicator variables, contrasts, and multiple comparisons fit together."
+---
+
+Change the reference group and compare the overall factor test with pairwise comparisons.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("factor-models");
+```
+
+**Lectures:** 15 and 19–21.

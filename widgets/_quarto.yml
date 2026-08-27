@@ -1,0 +1,75 @@
+project:
+  type: website
+  output-dir: ../build/widgets
+  execute-dir: project
+  render:
+    - index.qmd
+    - labs/*.qmd
+  resources:
+    - js/
+    - lecture-map.json
+
+website:
+  title: "Interactive Regression Labs"
+  site-url: https://knowlton.co.nz/161251/widget/
+  search: true
+  page-navigation: true
+  navbar:
+    background: "#1d5b63"
+    foreground: white
+    left:
+      - text: "161.251 Regression Modelling"
+        href: https://knowlton.co.nz/161251/
+      - text: "Interactive labs"
+        href: index.qmd
+      - text: "Lecture notes"
+        href: https://knowlton.co.nz/161251/notes/
+    right:
+      - icon: house
+        href: https://knowlton.co.nz/161251/
+        aria-label: "Course home"
+  sidebar:
+    style: docked
+    search: true
+    contents:
+      - index.qmd
+      - section: "Foundations"
+        contents:
+          - labs/model-studio.qmd
+          - labs/diagnostics-influence.qmd
+          - labs/prediction-uncertainty.qmd
+          - labs/partial-effects.qmd
+          - labs/f-tests.qmd
+          - labs/matrix-geometry.qmd
+      - section: "Curves and factors"
+        contents:
+          - labs/curve-bases.qmd
+          - labs/factor-models.qmd
+          - labs/factorial-interactions.qmd
+          - labs/general-linear-models.qmd
+      - section: "Later regression tools"
+        contents:
+          - labs/selection-shrinkage.qmd
+          - labs/weighted-least-squares.qmd
+          - labs/time-regression.qmd
+      - section: "Appendices"
+        contents:
+          - labs/r-object-lab.qmd
+          - labs/transformations-nonlinear.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    code-fold: true
+    code-tools: true
+    html-math-method: katex
+    self-contained: false
+    link-external-newwindow: false
+
+execute:
+  freeze: auto
+  echo: false
+  warning: false
+  message: false

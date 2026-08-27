@@ -1,0 +1,14 @@
+---
+title: "Regression Model Studio"
+description: "Explore the mean function, error variation, least squares, sampling, and R output."
+---
+
+This lab connects the model equation to data. Change the controls, then read the numerical summary below the plot.
+
+```{ojs}
+//| echo: false
+import {mountLab} from "../js/labs.js";
+mountLab("model-studio");
+```
+
+**Lectures:** 1–4.
