@@ -54,6 +54,12 @@ jobs:
             broom.mixed
 
       - name: Set up Quarto
+        run: |
+          if dpkg -s quarto >/dev/null 2>&1; then
+            sudo apt-get remove -y quarto
+          fi
+
+      - name: Install pinned Quarto
         uses: quarto-dev/quarto-actions/setup@v2
         with:
           version: 1.10.14
