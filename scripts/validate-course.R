@@ -38,7 +38,10 @@ if (nrow(meta) == 0) {
 # ---------------------------------------------------------------------------
 # 2. Required metadata columns exist
 # ---------------------------------------------------------------------------
-required_cols <- c("LectureNo", "Week", "LectureTitle", "Slug", "Presenter", "IncludeInBook")
+required_cols <- c(
+  "LectureNo", "Week", "LectureTitle", "Slug", "Presenter",
+  "IncludeInBook", "IncludeInSlides"
+)
 missing_cols <- setdiff(required_cols, names(meta))
 if (length(missing_cols) > 0) {
   add_error(paste("Missing required columns in lectures.csv:",
@@ -67,7 +70,7 @@ if (any(duplicated(meta$Slug))) {
 meta$Filename <- sprintf("%02d-%s.Rmd", meta$LectureNo, meta$Slug)
 
 # ---------------------------------------------------------------------------
-# 5. All expected lecture files exist (lecture-content/, lectures/, book/)
+# 5. All expected lecture files exist (lecture-content/, lectures/, book/, slides/)
 # ---------------------------------------------------------------------------
 for (i in seq_len(nrow(meta))) {
   fname <- meta$Filename[i]
@@ -77,19 +80,29 @@ for (i in seq_len(nrow(meta))) {
       add_error(paste("Missing file:", file.path(dir_name, fname)))
     }
   }
+  if (tolower(trimws(meta$IncludeInSlides[i])) == "yes") {
+    fpath <- file.path(repo_root, "slides", fname)
+    if (!file.exists(fpath)) {
+      add_error(paste("Missing file:", file.path("slides", fname)))
+    }
+  }
 }
 
 # ---------------------------------------------------------------------------
 # 6. No unregistered lecture files exist
 # ---------------------------------------------------------------------------
-for (dir_name in c("lecture-content", "lectures", "book")) {
+for (dir_name in c("lecture-content", "lectures", "book", "slides")) {
   dir_path <- file.path(repo_root, dir_name)
   rmd_files <- list.files(dir_path, pattern = "\\.Rmd$", full.names = FALSE)
   # Exclude index.Rmd in book/
   if (dir_name == "book") {
     rmd_files <- setdiff(rmd_files, "index.Rmd")
   }
-  extra <- setdiff(rmd_files, meta$Filename)
+  expected <- meta$Filename
+  if (dir_name == "slides") {
+    expected <- meta$Filename[tolower(trimws(meta$IncludeInSlides)) == "yes"]
+  }
+  extra <- setdiff(rmd_files, expected)
   if (length(extra) > 0) {
     add_error(paste("Unregistered .Rmd files in", dir_name, ":",
                     paste(extra, collapse = ", ")))
@@ -190,15 +203,16 @@ for (i in seq_len(nrow(meta))) {
 }
 
 # ---------------------------------------------------------------------------
-# 11. No generated output inside canonical source directories
+# 11. No tracked generated output inside canonical source directories
 # ---------------------------------------------------------------------------
-for (dir_name in c("lecture-content", "lectures", "book")) {
-  dir_path <- file.path(repo_root, dir_name)
-  # Check for HTML, cache, figure files
-  html_files <- list.files(dir_path, pattern = "\\.html$", recursive = TRUE,
-                           full.names = FALSE)
-  cache_dirs <- list.dirs(dir_path, recursive = TRUE, full.names = FALSE)
-  cache_dirs <- cache_dirs[grepl("cache|_files|_main_files", cache_dirs)]
+for (dir_name in c("lecture-content", "lectures", "book", "slides")) {
+  tracked_files <- tryCatch(
+    system2("git", c("ls-files", "--", dir_name), stdout = TRUE, stderr = FALSE),
+    error = function(e) character()
+  )
+  # Local Knit previews are allowed. Only committed generated files are errors.
+  html_files <- tracked_files[grepl("\\.html$", tracked_files)]
+  cache_dirs <- tracked_files[grepl("cache|_files|_main_files", tracked_files)]
   if (length(html_files) > 0) {
     add_error(paste("HTML files found in source directory", dir_name, ":",
                     paste(head(html_files, 5), collapse = ", ")))
@@ -290,7 +304,47 @@ for (i in seq_len(nrow(meta))) {
 }
 
 # ---------------------------------------------------------------------------
-# 16. Output directories excluded from version control
+# 16. Slide wrappers have valid output and child configuration
+# ---------------------------------------------------------------------------
+slide_rows <- which(tolower(trimws(meta$IncludeInSlides)) == "yes")
+for (i in slide_rows) {
+  fname <- meta$Filename[i]
+  slug <- meta$Slug[i]
+  slide_file <- file.path(repo_root, "slides", fname)
+  if (!file.exists(slide_file)) next
+
+  content <- paste(readLines(slide_file, warn = FALSE), collapse = "\n")
+  if (!grepl("slidy_presentation", content, fixed = TRUE)) {
+    add_error(paste("Missing Slidy output in slide wrapper", fname))
+  }
+  if (!grepl("beamer_presentation", content, fixed = TRUE)) {
+    add_error(paste("Missing Beamer output in slide wrapper", fname))
+  }
+  if (!grepl("slide_level:[[:space:]]*2", content)) {
+    add_error(paste("Slide level must be 2 in", fname))
+  }
+  if (!grepl(paste0("lecture_slug\\s*<-\\s*\"", slug, "\""), content)) {
+    add_error(paste("Missing or incorrect lecture_slug in slide wrapper", fname))
+  }
+  if (!grepl("fig\\.path", content) || !grepl("cache\\.path", content)) {
+    add_error(paste("Missing figure or cache path in slide wrapper", fname))
+  }
+
+  child_match <- grep('child\\s*=\\s*"([^"]+)"', readLines(slide_file), value = TRUE)
+  if (length(child_match) == 0) {
+    add_error(paste("Missing child path in slide wrapper", fname))
+  } else {
+    child_path <- sub('.*child\\s*=\\s*"([^"]+)".*', '\\1', child_match[1])
+    resolved <- normalizePath(file.path(repo_root, "slides", child_path),
+                              mustWork = FALSE)
+    if (!file.exists(resolved)) {
+      add_error(paste("Broken child path in slides/", fname, ": ", child_path, sep = ""))
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# 17. Output directories excluded from version control
 # ---------------------------------------------------------------------------
 gitignore_path <- file.path(repo_root, ".gitignore")
 if (file.exists(gitignore_path)) {
@@ -303,9 +357,9 @@ if (file.exists(gitignore_path)) {
 }
 
 # ---------------------------------------------------------------------------
-# 17. No absolute local filesystem paths committed
+# 18. No absolute local filesystem paths committed
 # ---------------------------------------------------------------------------
-for (dir_name in c("lecture-content", "lectures", "book", "shared", "scripts")) {
+for (dir_name in c("lecture-content", "lectures", "book", "slides", "shared", "scripts")) {
   dir_path <- file.path(repo_root, dir_name)
   files <- list.files(dir_path, pattern = "\\.Rmd$|\\.R$|\\.yml$|\\.yaml$|\\.css$|\\.html$",
                       recursive = TRUE, full.names = TRUE)
@@ -322,7 +376,7 @@ for (dir_name in c("lecture-content", "lectures", "book", "shared", "scripts")) 
 }
 
 # ---------------------------------------------------------------------------
-# 18. No case-sensitive path mismatch
+# 19. No case-sensitive path mismatch
 # ---------------------------------------------------------------------------
 data_files <- list.files(data_dir, pattern = "\\.csv$")
 for (i in seq_len(nrow(meta))) {
@@ -352,7 +406,7 @@ for (i in seq_len(nrow(meta))) {
 }
 
 # ---------------------------------------------------------------------------
-# 19. No broken course navigation links
+# 20. No broken course navigation links
 # ---------------------------------------------------------------------------
 header_files <- c(
   file.path(repo_root, "shared", "course-header.html"),
@@ -372,7 +426,7 @@ for (hf in header_files) {
 }
 
 # ---------------------------------------------------------------------------
-# 20. Interactive widget map and source pages are internally consistent
+# 21. Interactive widget map and source pages are internally consistent
 # ---------------------------------------------------------------------------
 widget_map_path <- file.path(repo_root, "widgets", "lecture-map.json")
 widget_labs_dir <- file.path(repo_root, "widgets", "labs")
@@ -412,8 +466,16 @@ if (!file.exists(widget_map_path)) {
 }
 
 # ---------------------------------------------------------------------------
-# 21. Deployment directory contains expected entry points (if it exists)
+# 22. Deployment directory contains expected entry points (if it exists)
 # ---------------------------------------------------------------------------
+landing_path <- file.path(repo_root, "site", "index.html")
+if (file.exists(landing_path) && any(tolower(trimws(meta$IncludeInSlides)) == "yes")) {
+  landing_content <- paste(readLines(landing_path, warn = FALSE), collapse = "\n")
+  if (!grepl('href="slides/"', landing_content, fixed = TRUE)) {
+    add_error("site/index.html is missing the Slides link")
+  }
+}
+
 site_dir <- file.path(repo_root, "build", "site")
 if (file.exists(site_dir)) {
   if (!file.exists(file.path(site_dir, "index.html"))) {
@@ -422,6 +484,10 @@ if (file.exists(site_dir)) {
   if (file.exists(file.path(repo_root, "build", "widgets")) &&
       !file.exists(file.path(site_dir, "161251", "widget", "index.html"))) {
     add_error("Rendered widgets were not assembled into build/site/161251/widget")
+  }
+  if (file.exists(file.path(repo_root, "build", "slides")) &&
+      !file.exists(file.path(site_dir, "161251", "slides", "index.html"))) {
+    add_error("Rendered slides were not assembled into build/site/161251/slides")
   }
 }
 

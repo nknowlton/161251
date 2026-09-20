@@ -72,8 +72,17 @@ jobs:
           node widgets/tests/labs.test.mjs
           node widgets/tests/ui.test.mjs
 
+      - name: Validate course structure
+        run: Rscript scripts/validate-course.R
+
       - name: Build bookdown
         run: Rscript scripts/render-book.R
+
+      - name: Generate slide wrappers
+        run: Rscript scripts/generate-slide-wrappers.R
+
+      - name: Build Slidy presentations
+        run: Rscript scripts/render-slides.R all slidy
 
       - name: Generate student .Rmd files
         run: Rscript scripts/generate-student-rmd.R
@@ -91,6 +100,7 @@ jobs:
           required=(
             _site/index.html
             _site/notes/index.html
+            _site/slides/index.html
             _site/labs/index.html
             _site/widget/index.html
             _site/labs/lab10A.Rmd
@@ -106,6 +116,11 @@ jobs:
           done
 
           test "$(find _site/notes/downloads -maxdepth 1 -name '*.Rmd' | wc -l)" -gt 0
+          expected_slides="$(awk -F, 'NR > 1 && tolower($7) == "yes" { count++ } END { print count + 0 }' course/lectures.csv)"
+          actual_slides="$(find _site/slides -mindepth 2 -maxdepth 2 -type f -name '*.html' | wc -l)"
+          test "$actual_slides" -eq "$expected_slides"
+          test "$(grep -c 'class=\"slide-link\"' _site/slides/index.html)" -eq "$expected_slides"
+          grep -q 'href="slides/"' _site/index.html
           ! grep -Eq -- '-sols\.Rmd' _site/labs/index.html
 
       - uses: actions/upload-pages-artifact@v5

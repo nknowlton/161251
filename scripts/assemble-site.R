@@ -10,6 +10,7 @@
 #   ├── 161251/
 #   │   ├── index.html          (redirect or copy of course landing)
 #   │   ├── notes/              (full Bookdown output)
+#   │   ├── slides/             (browser-based presentation HTML)
 #   │   ├── lectures/           (standalone lecture HTML, if available)
 #   │   ├── data/               (course datasets)
 #   │   ├── labs/               (lab Rmd files)
@@ -49,6 +50,71 @@ copy_dir <- function(from, to, pattern = NULL) {
   invisible()
 }
 
+html_escape <- function(value) {
+  value <- as.character(value)
+  value <- gsub("&", "&amp;", value, fixed = TRUE)
+  value <- gsub("<", "&lt;", value, fixed = TRUE)
+  value <- gsub(">", "&gt;", value, fixed = TRUE)
+  value <- gsub('"', "&quot;", value, fixed = TRUE)
+  value
+}
+
+write_slide_index <- function(destination) {
+  metadata_path <- file.path(repo_root, "course", "lectures.csv")
+  if (!file.exists(metadata_path)) {
+    message("  WARNING: course/lectures.csv not found; slide index not generated.")
+    return(invisible())
+  }
+
+  meta <- read.csv(metadata_path, stringsAsFactors = FALSE, strip.white = TRUE)
+  rows <- meta[tolower(trimws(meta$IncludeInSlides)) == "yes", , drop = FALSE]
+  rows <- rows[order(rows$LectureNo), , drop = FALSE]
+  links <- character()
+  if (nrow(rows) > 0) {
+    links <- vapply(seq_len(nrow(rows)), function(i) {
+      no <- rows$LectureNo[i]
+      slug <- rows$Slug[i]
+      filename <- sprintf("%02d-%s.html", no, slug)
+      sprintf(
+        '      <li><a class="slide-link" href="%s/%s">Lecture %d: %s</a></li>',
+        html_escape(slug), html_escape(filename), no,
+        html_escape(rows$LectureTitle[i])
+      )
+    }, character(1))
+  }
+
+  content <- c(
+    "<!doctype html>",
+    '<html lang="en">',
+    "  <head>",
+    '    <meta charset="utf-8">',
+    '    <meta name="viewport" content="width=device-width, initial-scale=1">',
+    "    <title>161.251 Regression Modelling Slides</title>",
+    "    <style>",
+    "      :root { color: #20313b; background: #f5f1e8; font-family: Georgia, serif; }",
+    "      body { box-sizing: border-box; max-width: 52rem; margin: 0 auto; padding: 4rem 1.5rem; }",
+    "      h1 { font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1; margin: 0; }",
+    "      p { font-size: 1.15rem; line-height: 1.6; }",
+    "      ul { display: grid; gap: 0.8rem; list-style: none; padding: 0; margin-top: 2rem; }",
+    "      a { display: block; background: #1d5b63; color: #fff; padding: 1rem 1.25rem; text-decoration: none; font-size: 1.1rem; }",
+    "      a:hover, a:focus { background: #133f45; }",
+    "      .back { background: transparent; color: #1d5b63; padding-left: 0; font-size: 1rem; }",
+    "    </style>",
+    "  </head>",
+    "  <body>",
+    "    <p><a class=\"back\" href=\"../\">← Back to course homepage</a></p>",
+    "    <h1>Regression Modelling Slides</h1>",
+    "    <p>Browser-based presentation slides for lectures 25–35.</p>",
+    "    <ul>",
+    links,
+    "    </ul>",
+    "  </body>",
+    "</html>"
+  )
+  writeLines(content, file.path(destination, "index.html"))
+  invisible()
+}
+
 cat("Assembling site in", site_dir, "\n")
 
 # 1. Course landing page
@@ -77,25 +143,37 @@ if (dir.exists(lec_out)) {
   copy_dir(lec_out, lec_dest)
 }
 
-# 4. Data files
+# 4. Rendered browser-based presentation slides
+cat("  Copying rendered presentation slides...\n")
+slides_out <- file.path(repo_root, "build", "slides")
+slides_dest <- file.path(course_dir, "slides")
+if (dir.exists(slides_out)) {
+  copy_dir(slides_out, slides_dest)
+} else {
+  message("  WARNING: build/slides/ not found. Run scripts/render-slides.R all slidy first.")
+  dir.create(slides_dest, recursive = TRUE, showWarnings = FALSE)
+}
+write_slide_index(slides_dest)
+
+# 5. Data files
 cat("  Copying data files...\n")
 data_src <- file.path(repo_root, "data")
 data_dest <- file.path(course_dir, "data")
 copy_dir(data_src, data_dest)
 
-# 5. Lab files
+# 6. Lab files
 cat("  Copying lab files...\n")
 labs_src <- file.path(repo_root, "labs")
 labs_dest <- file.path(course_dir, "labs")
 copy_dir(labs_src, labs_dest)
 
-# 6. Resources (images, downloadable files)
+# 7. Resources (images, downloadable files)
 cat("  Copying resources...\n")
 res_src <- file.path(repo_root, "resources")
 res_dest <- file.path(course_dir, "resources")
 copy_dir(res_src, res_dest)
 
-# 7. Lab landing page and rendered Quarto/OJS widget site
+# 8. Lab landing page and rendered Quarto/OJS widget site
 cat("  Copying lab landing page...\n")
 labs_page <- file.path(repo_root, "site", "labs", "index.html")
 if (file.exists(labs_page)) {
@@ -119,7 +197,7 @@ if (dir.exists(widget_build)) {
   }
 }
 
-# 8. Downloadable self-contained student .Rmd files
+# 9. Downloadable self-contained student .Rmd files
 cat("  Copying downloadable student .Rmd files...\n")
 downloads_dir <- file.path(notes_dir, "downloads")
 if (!dir.exists(downloads_dir)) dir.create(downloads_dir, recursive = TRUE)

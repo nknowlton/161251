@@ -1,0 +1,49 @@
+---
+title: "Lecture 33: Regression Models for Trend and Seasonality"
+subtitle: "161.251 Regression Modelling"
+author: "Nick Knowlton"
+date: "`r format(Sys.Date(), '%Y')`"
+output:
+  slidy_presentation:
+    slide_level: 2
+    incremental: false
+    highlight: tango
+    css: ../shared/slidy.css
+    self_contained: true
+  beamer_presentation:
+    toc: true
+    slide_level: 2
+    incremental: false
+    latex_engine: xelatex
+    extra_dependencies:
+      - longtable
+      - booktabs
+      - array
+    pandoc_args: ["--lua-filter=../shared/beamer-caption.lua"]
+---
+
+```{r slide-setup, include=FALSE}
+source("../shared/setup.R")
+
+lecture_slug <- "trend-seasonality"
+slide_format <- if (knitr::is_latex_output()) "beamer" else "slidy"
+
+knitr::opts_chunk$set(
+  fig.width = 9,
+  fig.height = 5.5,
+  fig_caption = !knitr::is_latex_output(),
+  fig.path = file.path(
+    "../build/slides",
+    lecture_slug,
+    paste0(slide_format, "_files/figure-")
+  ),
+  cache.path = file.path(
+    "../build/cache/slides",
+    lecture_slug,
+    paste0(slide_format, "/")
+  )
+)
+```
+
+```{r child-trend-seasonality, child="../lecture-content/33-trend-seasonality.Rmd"}
+```

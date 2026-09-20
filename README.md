@@ -5,17 +5,19 @@
 This repository contains all lecture materials for **161.251 Regression Modelling** at Massey University. The course is co-taught:
 
 - **Jonathan Godfrey** — Weeks 1–8 (lectures 1–24) plus appendix material
-- **Nick Knowlton** — Weeks 9–12 (lectures 25–34)
+- **Nick Knowlton** — Weeks 9–12 (lectures 25–35)
 
 ## How the materials are organised
 
 There is **one canonical copy of each lecture**. The teaching content (code,
 figures, equations, explanation) lives in `lecture-content/` as a body-only
-`.Rmd` file — no YAML, no setup chunk. Two tiny wrapper files reference it:
+`.Rmd` file — no YAML, no setup chunk. Three small wrapper types reference it:
 
 1. **`lectures/`** — a standalone `.Rmd` with YAML header that you can open in
    RStudio and click **Knit** to preview a single lecture.
-2. **`book/`** — a Bookdown chapter wrapper that includes the same body file
+2. **`slides/`** — a presentation `.Rmd` with Slidy and Beamer output formats
+   for Nick's lectures 25–35.
+3. **`book/`** — a Bookdown chapter wrapper that includes the same body file
    via a child document.
 
 The teaching content is never duplicated. Only the ~15-line wrapper
@@ -37,6 +39,10 @@ configuration is repeated per lecture.
 │   ├── 01-paper-overview.Rmd
 │   └── ...
 │
+├── slides/                      ← Slidy/Beamer wrappers for lectures 25–35
+│   ├── 25-general-linear-model.Rmd
+│   └── ...
+│
 ├── book/                        ← Bookdown configuration and chapter wrappers
 │   ├── index.Rmd                ← Book preface and bibliography setup
 │   ├── _bookdown.yml             ← Explicit chapter order (committed, not generated)
@@ -51,7 +57,8 @@ configuration is repeated per lecture.
 │   ├── setup.R                   ← Common packages and knitr options
 │   ├── lecture.css               ← Standalone lecture styling
 │   ├── course-header.html        ← Navigation header for standalone lectures
-│   └── book-header.html          ← Navigation header for Bookdown pages
+│   ├── book-header.html          ← Navigation header for Bookdown pages
+│   └── beamer-caption.lua        ← Beamer-safe caption filter
 │
 ├── data/                         ← Course datasets (CSV files)
 ├── labs/                         ← Computer lab exercises
@@ -59,13 +66,16 @@ configuration is repeated per lecture.
 │
 ├── scripts/
 │   ├── render-lecture.R           ← Render a single lecture
+│   ├── render-slides.R             ← Render Slidy or Beamer slides
 │   ├── render-book.R              ← Render the full Bookdown site
 │   ├── generate-book-wrappers.R   ← Regenerate book/ wrappers (when restructuring)
+│   ├── generate-slide-wrappers.R   ← Regenerate slides/ wrappers
 │   ├── validate-course.R          ← Validate repository structure
 │   └── assemble-site.R            ← Assemble deployment directory
 │
 └── build/                        ← Generated output (gitignored)
     ├── lectures/
+    ├── slides/
     ├── book/
     ├── cache/
     └── site/
@@ -76,6 +86,7 @@ configuration is repeated per lecture.
 1. Open the relevant file in `lecture-content/` (e.g. `03-simple-linear-regression.Rmd`)
 2. Make your changes — this is the teaching content
 3. Preview by opening `lectures/03-simple-linear-regression.Rmd` in RStudio and clicking **Knit**
+4. For lectures 25–35, render the presentation wrapper with `scripts/render-slides.R`
 
 You do not need to run any script to preview a single lecture.
 
@@ -104,17 +115,37 @@ Rscript scripts/render-lecture.R 03-simple-linear-regression
 
 Output is written to `build/lectures/<slug>/index.html`.
 
+## How to render presentation slides
+
+The presentation wrappers use the same master files as the Bookdown chapters.
+Slidy is the default output and produces browser-based HTML slides. Beamer
+produces a PDF and requires XeLaTeX.
+
+```bash
+Rscript scripts/render-slides.R 26
+Rscript scripts/render-slides.R 26 beamer
+Rscript scripts/render-slides.R 26 all
+```
+
+Outputs are written to `build/slides/<slug>/`. These personal presentation
+outputs are rendered as browser-based Slidy decks and published at
+`/161251/slides/` by the GitHub Pages workflow. Beamer PDFs remain available
+for local rendering.
+
 ## How to add or restructure a lecture
 
 1. Edit `course/lectures.csv` — add or modify a row with the lecture number,
    week, title, slug, and presenter
 2. If adding a new lecture, create `lecture-content/NN-slug.Rmd` with the
    teaching content
-3. Run `Rscript scripts/generate-book-wrappers.R` to regenerate the book
+3. Set `IncludeInBook` and, when appropriate, `IncludeInSlides` in
+   `course/lectures.csv`
+4. Run `Rscript scripts/generate-book-wrappers.R` to regenerate the Bookdown
    chapter wrappers and `_bookdown.yml`
-4. Create a `lectures/NN-slug.Rmd` wrapper (copy an existing one and update
-   the slug and child path)
-5. Commit the new files
+5. Run `Rscript scripts/generate-slide-wrappers.R` to regenerate presentation
+   wrappers when `IncludeInSlides` is `yes`
+6. Create a `lectures/NN-slug.Rmd` wrapper when adding a standalone lecture
+7. Commit the new source and wrapper files
 
 ### lectures.csv columns
 
@@ -126,6 +157,7 @@ Output is written to `build/lectures/<slug>/index.html`.
 | `Slug` | Kebab-case slug for filenames | `general-linear-model` |
 | `Presenter` | Presenter name | `Nick Knowlton` |
 | `IncludeInBook` | Whether to include in Bookdown | `yes` |
+| `IncludeInSlides` | Whether to generate a presentation wrapper | `yes` |
 
 Filenames use `sprintf("%02d-%s", LectureNo, Slug)`.
 
@@ -146,7 +178,7 @@ Rscript scripts/assemble-site.R
 ```
 
 This assembles `build/site/` with the Bookdown output, data files, labs, and
-resources.
+resources, and browser-based presentation slides.
 
 ## What about the old `godfrey/` directory?
 
