@@ -39,13 +39,11 @@ Both `Y ~ A` and `Y ~ x` are nested within `Y ~ A + x`. However, `Y ~ A` and `Y 
 
 The separate-lines model `Y ~ A * x` contains the parallel-lines model `Y ~ A + x`, because setting all `A:x` interaction coefficients to zero produces the parallel-lines model.
 
-## The partial *F* test
+## Recall from Lecture 14: the partial *F* test
 
-Adding terms to a linear model cannot increase its residual sum of squares. A larger model has more flexibility, so its RSS will be the same or smaller.
+Lecture 14 introduced nested-model comparisons and the partial *F* test. We now use that machinery for the factor and covariate models from Lecture 25, where one scientific effect can correspond to several coefficients.
 
-The question is therefore not simply whether RSS decreases. It almost always does.
-
-The question is whether the decrease in RSS is large enough to justify the additional parameters, relative to the residual variation that remains in the larger model.
+Adding terms to a linear model cannot increase its residual sum of squares. A larger model has more flexibility, so its RSS will be the same or smaller. The question is whether the decrease in RSS is large enough to justify the additional parameters, relative to the residual variation that remains in the larger model.
 
 Let $M_R$ be a reduced model and $M_F$ be a full model, with $M_R$ nested within $M_F$. The hypotheses are
 
@@ -75,24 +73,6 @@ Under $H_0$, the statistic follows an *F* distribution with $df_R-df_F$ and $df_
 
 The models must be nested and fitted to the same observations. The usual linear-model assumptions also apply.
 
-## One model or two models in `anova()`?
-
-These two uses of `anova()` look similar but answer different questions.
-
-```
-anova(model)
-```
-
-produces a sequential, or Type I, ANOVA table. Terms are added to the model in sequence, so in a non-orthogonal design the sums of squares can depend on the order of the terms.
-
-In contrast,
-
-```
-anova(reduced_model, full_model)
-```
-
-directly compares two fitted nested models. The hypothesis is determined by the terms that are present in the full model but absent from the reduced model.
-
 ## The Samara data revisited
 
 Recall that we model the mean speed of fall of samara as a function of disk loading and the tree from which each fruit fell.
@@ -113,28 +93,6 @@ m3 <- lm(Velocity ~ Load * TreeF, data = Samara)
 ```
 
 Here `m1` is one common regression line, `m2` gives parallel lines with different intercepts but a common slope, and `m3` gives separate lines with different intercepts and potentially different slopes.
-
-### Orthogonality and the order of terms
-
-Lecture 23 showed that in an orthogonal design, changing the order of terms does not change the sums of squares attributed to those terms. The Samara data are not orthogonal. Tree and Load overlap in the information they carry, so the sequential sums of squares depend strongly on which is entered first.
-
-```{r samara-type-one}
-samara_tree_first <- lm(Velocity ~ TreeF + Load, data = Samara)
-samara_load_first <- lm(Velocity ~ Load + TreeF, data = Samara)
-
-anova(samara_tree_first)
-anova(samara_load_first)
-```
-
-If our scientific question is specifically whether Tree adds information after accounting for Load, the comparison should be written explicitly:
-
-```{r samara-adjusted-question}
-anova(m1, m2)
-```
-
-Here `m1` already contains `Load`, and `m2` adds `TreeF`. The test therefore asks whether Tree improves the model after Load has already been accounted for.
-
-Type II and Type III sums of squares provide other conventions for adjusted tests in non-orthogonal designs. We do not need them for the present analysis because we can state the scientific comparison directly using reduced and full models.
 
 ## Comparing the Samara models
 
@@ -228,7 +186,16 @@ samara_model_plot
 
 Moving from `m1` to `m2` allows the trees to move vertically apart. Moving from `m2` to `m3` also allows their slopes to differ.
 
-The partial *F* tests now ask whether each of these additional freedoms improves the fit enough to retain it.
+| Model | Formula | What changed? |
+|:--|:--|:--|
+| `m1` | `Velocity ~ Load` | One common line |
+| `m2` | `Velocity ~ Load + TreeF` | Adds `TreeF`: 2 additional df, allowing vertical shifts |
+| `m3` | `Velocity ~ Load * TreeF` | Adds `TreeF:Load`: 2 additional df, allowing slope differences |
+
+The partial *F* tests now connect the geometry to the scientific question:
+
+- Does `TreeF` shift the lines vertically? Compare `m1` with `m2`.
+- Do the slopes differ by Tree? Compare `m2` with `m3`.
 
 ## Comparison 1: Do the slopes need to differ?
 
@@ -250,7 +217,7 @@ The evidence for different slopes is borderline. At a strict 5% significance lev
 anova(m1, m2)
 ```
 
-There is little evidence that allowing different intercepts improves the fit once Load is already in the model. Following a strict simplification path at $\alpha=0.05$, this leads to `m1`.
+There is little evidence that Tree requires an additional intercept shift after accounting for Load.
 
 ## Comparison 3: Joint comparison
 
@@ -262,58 +229,48 @@ anova(m1, m3)
 
 This is a different question from carrying out the previous two tests separately. The joint comparison has a *P*-value of approximately 0.099.
 
-## All three models in one call
+## Why explicit comparisons matter
 
-There is a subtle difference between:
+Lecture 23 showed that in an orthogonal design, changing the order of terms does not change the sums of squares attributed to those terms. The Samara data are not orthogonal. Tree and Load are not providing independent pieces of information: the trees were sampled over different Load distributions.
 
+```{r samara-load-by-tree, echo=FALSE, fig.width=6, fig.height=4, out.width="65%", fig.cap="The Samara data have different Load distributions across trees."}
+ggplot(Samara, aes(x = TreeF, y = Load, colour = TreeF)) +
+  geom_jitter(width = 0.08, height = 0, alpha = 0.75, show.legend = FALSE) +
+  stat_summary(fun = mean, geom = "point", size = 4, show.legend = FALSE) +
+  labs(x = "Tree", y = "Load") +
+  theme_minimal(base_size = 13)
 ```
+
+Consequently, the variation attributed to Tree depends on whether Load has already been accounted for. These two uses of `anova()` therefore answer different questions.
+
+```{r samara-type-one}
+samara_tree_first <- lm(Velocity ~ TreeF + Load, data = Samara)
+samara_load_first <- lm(Velocity ~ Load + TreeF, data = Samara)
+
+anova(samara_tree_first)
+anova(samara_load_first)
+```
+
+`anova(model)` produces a sequential, or Type I, ANOVA table. Terms are added to the model in sequence, so in a non-orthogonal design the sums of squares can depend on the order of the terms.
+
+In contrast, `anova(reduced_model, full_model)` directly compares two fitted nested models. The hypothesis is determined by the terms that are present in the full model but absent from the reduced model.
+
+If our scientific question is specifically whether Tree adds information after accounting for Load, the comparison should be written explicitly:
+
+```{r samara-adjusted-question}
 anova(m1, m2)
 ```
 
-and
+Here `m1` already contains `Load`, and `m2` adds `TreeF`. The test therefore asks whether Tree improves the model after Load has already been accounted for.
 
-```
-anova(m1, m2, m3)
-```
+Type II and Type III sums of squares provide other conventions for adjusted tests in non-orthogonal designs. We do not need them here because we can state the scientific comparison directly using reduced and full models.
 
-The change in RSS from `m1` to `m2` is the same in both cases. What can change is the denominator of the *F* statistic.
+## A small R detail
 
-In the two-model comparison, R estimates the residual variance from `m2`, the larger model in that comparison.
-
-When all three models are supplied together, R uses the residual mean square from the largest model, `m3`, as the common estimate of residual variance for the comparisons in the table.
-
-Therefore the *F* statistic and *P*-value for `m1` versus `m2` can differ between the two calls even though the two fitted models themselves have not changed.
+When several nested models are supplied in one `anova()` call, R uses the largest model's residual mean square as the common denominator. For a specific scientific hypothesis, use `anova(reduced, full)` so the comparison is explicit. This is why the `m1` versus `m2` result can differ when `m3` is included in the same call.
 
 ```{r samara-anova-all}
-anova(m1,m2)
 anova(m1, m2, m3)
-```
-
-In this lecture, use pairwise `anova(reduced, full)` calls when the aim is to answer a specific scientific question. This keeps both the hypothesis and the denominator model explicit.
-
-## Manual check of the partial *F* test
-
-For `m2` versus `m3`, we can reproduce the test by hand:
-
-```{r manual-F}
-rss_reduced <- sum(residuals(m2)^2)
-rss_full <- sum(residuals(m3)^2)
-
-d <- df.residual(m2) - df.residual(m3)
-r <- df.residual(m3)
-
-Fval <- ((rss_reduced - rss_full) / d) /
-        (rss_full / r)
-
-pval <- pf(Fval, d, r, lower.tail = FALSE)
-```
-
-This reproduces the partial *F* test from `anova(m2, m3)`.
-
-```{r manual-F-table, echo=FALSE, results='asis'}
-tibble(comparison = "m2 versus m3", d = d, r = r, F = Fval, `Pr(>F)` = pval) |>
-  kable(digits = 6, caption = "Manual partial F calculation") |>
-  kable_styling(full_width = FALSE)
 ```
 
 Model comparison does not replace model checking. Once we have chosen the mean structure, the usual LINE diagnostics still need to be checked.

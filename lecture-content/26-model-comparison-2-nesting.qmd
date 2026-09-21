@@ -21,17 +21,19 @@ format:
 }}%%
 
 flowchart TD
+  direction["<b>MORE FLEXIBLE</b><br/>set coefficients to zero<br/><b>SIMPLER</b>"]:::direction
     full["<b>Separate regression lines</b><br/><code>Y ~ A * x</code>"]
     parallel["<b>Parallel regression lines</b><br/><code>Y ~ A + x</code>"]
     factor["<b>Factor-only model</b><br/><code>Y ~ A</code>"]
     single["<b>Single regression line</b><br/><code>Y ~ x</code>"]
     null["<b>Null model</b><br/><code>Y ~ 1</code>"]
 
-    full --> parallel
-    parallel --> factor
-    parallel --> single
-    factor --> null
-    single --> null
+    direction -.-> full
+    full -->|set <code>A:x</code> = 0| parallel
+    parallel -->|set <code>x</code> = 0| factor
+    parallel -->|set <code>A</code> = 0| single
+    factor -->|set <code>A</code> = 0| null
+    single -->|set <code>x</code> = 0| null
 
     classDef flexible fill:#f8f5f0,stroke:#325d88,stroke-width:2px,color:#3e3f3a
     classDef intermediate fill:#fff0e8,stroke:#f47c3c,stroke-width:2px,color:#3e3f3a
@@ -40,5 +42,6 @@ flowchart TD
     class full,parallel flexible
     class factor,single intermediate
     class null simple
+    classDef direction fill:#325d88,stroke:#325d88,stroke-width:2px,color:#ffffff
     linkStyle default stroke:#325d88,stroke-width:2px
 ```
