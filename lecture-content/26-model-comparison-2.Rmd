@@ -1,329 +1,462 @@
-
-```{r extraPkgs, message=FALSE, warning=FALSE}
-library(car)          # Type I vs Type III ANOVA
-library(emmeans)      # Marginal means and trends
-library(kableExtra)   # Table styling
-library(patchwork)    # Plot composition
-library(scales)
-library(gridExtra)
-library(grid)
+```{r extraPkgs, message=FALSE, warning=FALSE, include=FALSE}
+library(kableExtra)
 ```
-
 
 ## Learning objectives
 
-By the end of this in-class session you will be able to:
+By the end of this lecture you should be able to:
 
-1. Recall the five canonical GLM forms from Lecture 25 and how parameterization and contrasts affect interpretation.
-
-2. Map natural orderings of GLMs and identify which pairs are nested.
-
-3. Conduct partial F tests for nested GLMs and interpret RSS, df, F, and P.
-
-4. Explain why p-values can change when multiple models are passed to `anova()`.
-
-5. Compare three Samara models and select a defensible specification.
-
-6. Transfer the workflow to a second dataset on body fat with one covariate and one factor.
-
+1. Identify when one linear model is nested within another.
+2. State the hypothesis tested by comparing two nested models.
+3. Use a partial *F* test to decide whether the additional terms in a larger model improve the fit.
+4. Interpret the change in RSS, degrees of freedom, *F* statistic and *P*-value in a nested-model comparison.
+5. Explain the difference between `anova(model)` and `anova(reduced_model, full_model)`.
+6. Apply nested-model comparisons to the Samara and body-fat examples introduced in the course.
 
 ## Quick recall of Lecture 25
 
-**Five canonical model forms for one factor `A` and one covariate `x`:**
+In Lecture 25 we saw that a factor and a numerical covariate can be combined in the same linear model. For one factor `A` and one covariate `x`, increasingly flexible models allow the factor to change neither the intercept nor slope, the intercept only, or both intercept and slope.
 
-- Separate slopes: `Y ~ A + A:x` or equivalently `Y ~ A * x`
-- Parallel slopes: `Y ~ A + x`
-- Single regression line: `Y ~ x`
-- Intercepts only by level: `Y ~ A`
-- Null model: `Y ~ 1`
+The main progression was:
 
-**Equivalence of parameterizations:** two formulas can span the same model space even if coefficients differ. Same fitted values implies same residuals and identical SSE.
+```
+Y ~ x
+Y ~ A + x
+Y ~ A * x
+```
 
-**Centering covariates:** centering turns the intercept into the mean response at average `x`, which improves interpretability in interaction models.
+We now want to ask whether the additional flexibility in the larger models is supported by the data.
 
-## Comparison on Nested Linear Models
+## Nested linear models
 
-For any linear model $M0$ nested within $M1$, we can test:
+A model is nested within another model if it can be obtained by placing restrictions on the parameters of the larger model.
 
-* $H_0$: $M0$ adequate vs
+For one factor `A` and one numerical covariate `x`, the nesting relationships are:
 
-* $H_1$: $M0$ not adequate.
+![Nesting relationships for one factor and one numerical covariate.](../resources/26-model-comparison-2-nesting.svg){width=70%}
 
+Both `Y ~ A` and `Y ~ x` are nested within `Y ~ A + x`. However, `Y ~ A` and `Y ~ x` are not generally nested within each other.
 
-using an *F* test.
+The separate-lines model `Y ~ A * x` contains the parallel-lines model `Y ~ A + x`, because setting all `A:x` interaction coefficients to zero produces the parallel-lines model.
 
-The hypotheses can be stated in terms of parameters of model $M1$.
+## The partial *F* test
 
-The *F* test statistic is
+Adding terms to a linear model cannot increase its residual sum of squares. A larger model has more flexibility, so its RSS will be the same or smaller.
 
-$$F = \frac{[RSS_{M0} - RSS_{M1}]/d}{RSS_{M1}/r}$$ where *d* is
-    the difference in the number of (regression) parameters between the
-    models, and *r* is the residual degrees of freedom for $M1$.
+The question is therefore not simply whether RSS decreases. It almost always does.
 
+The question is whether the decrease in RSS is large enough to justify the additional parameters, relative to the residual variation that remains in the larger model.
 
-If $H_0$ is correct then *F* has an *F* distribution with $d,r$
-    degrees of freedom.
+Let $M_R$ be a reduced model and $M_F$ be a full model, with $M_R$ nested within $M_F$. The hypotheses are
 
-Extreme large values of the test statistic provide evidence against
-    $H_0$.
+$$
+H_0:\text{the additional coefficients in }M_F\text{ are all zero}
+$$
 
-Hence if $f_{obs}$ is the observed value of the test statistic,
-    and *X* is a random variable from an $F_{d,r}$ distribution,
-    then the *P*-value is given by $P= P(X \ge f_{obs})$
+versus
 
-This test can be carried out in R using `anova(M0, M1)` where `M0` and `M1` are respectively the $M0$ and $M1$ fitted models.
+$$
+H_1:\text{at least one of the additional coefficients is non-zero}.
+$$
 
-## The Samara Data revisited
+The partial *F* statistic is
 
-Recall that we were modelling the mean speed of fall of samara
-    (fruit from a maple tree) as a function of the disk loading (a
-    covariate) and the tree from which it fell (a factor) for each
-    fruit.
+$$
+F = \frac{ (RSS_R-RSS_F)/(df_R-df_F) }{ RSS_F/df_F }.
+$$
 
-We fitted separate linear regressions for each of the three trees.
+The numerator is the reduction in RSS per additional parameter.
 
-We shall now consider simpler models:
-    
-- Parallel regressions for each tree (i.e. equal slope for `Load` for all trees);
-- A single regression model for every fruit (i.e. equal slope and intercept for each tree).
-    
-We shall compare these models with each other, and with the separate regressions model.
+The denominator is the residual mean square from the full model, which estimates the remaining error variance.
 
+A large *F* statistic means that the additional terms have removed a large amount of residual variation relative to the background residual variation.
 
-Grab the data here:`r xfun::embed_file("../data/samara.csv",text = " samara.csv")`
+Under $H_0$, the statistic follows an *F* distribution with $df_R-df_F$ and $df_F$ degrees of freedom.
+
+The models must be nested and fitted to the same observations. The usual linear-model assumptions also apply.
+
+## One model or two models in `anova()`?
+
+These two uses of `anova()` look similar but answer different questions.
+
+```
+anova(model)
+```
+
+produces a sequential, or Type I, ANOVA table. Terms are added to the model in sequence, so in a non-orthogonal design the sums of squares can depend on the order of the terms.
+
+In contrast,
+
+```
+anova(reduced_model, full_model)
+```
+
+directly compares two fitted nested models. The hypothesis is determined by the terms that are present in the full model but absent from the reduced model.
+
+## The Samara data revisited
+
+Recall that we model the mean speed of fall of samara as a function of disk loading and the tree from which each fruit fell.
+
+Grab the data here: `r xfun::embed_file("../data/samara.csv",text = " samara.csv")`
 
 ```{r SamaraReadData, echo=FALSE}
-Samara <- read_csv("../data/samara.csv",show_col_types = FALSE) |>
-  transform(Tree = factor(Tree))
-
+Samara <- read_csv("../data/samara.csv", show_col_types = FALSE) |>
+  mutate(TreeF = factor(Tree))
 ```
 
-```{r samara-plot, echo=FALSE}
-p_samara <- Samara |>
-  ggplot(aes(x = Load, y = Velocity, color = Tree, shape = Tree)) +
-  geom_point(size = 2.6, alpha = 0.9) +
-  labs(title = "Samara: Velocity vs Load by Tree",
-       x = "Load (disk loading)",
-       y = "Velocity") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "bottom")
-p_samara
-```
-
-## Natural ordering of GLMs and nesting
-
-We focus on the nesting relations for one factor `Tree` and covariate `Load`:
-
-- Null ⊂ Intercepts-only ⊂ Parallel slopes ⊂ Separate slopes
-
-`Single line` vs `Intercepts-only` are not nested when groups differ in mean at `x = 0`. 
-Valid partial F tests require true nesting and common error variance.
-
-
-We fit:
-
-- M2: Separate regressions: `Velocity ~ Tree + Load + Tree:Load`
-- M1: Parallel regressions: `Velocity ~ Tree + Load`
-- M0: Single regression: `Velocity ~ Load`
+We use the same three models as Lecture 25:
 
 ```{r samara-models}
-M2_sep <- lm(Velocity ~ Tree + Load + Tree:Load, data = Samara)  # separate slopes
-M1_par <- lm(Velocity ~ Tree + Load, data = Samara)              # parallel slopes
-M0_one <- lm(Velocity ~ Load, data = Samara)                     # single line
+m1 <- lm(Velocity ~ Load, data = Samara)
+m2 <- lm(Velocity ~ Load + TreeF, data = Samara)
+m3 <- lm(Velocity ~ Load * TreeF, data = Samara)
 ```
 
-```{r samara-summaries, echo=FALSE,  results='asis'}
-summaries <- bind_rows(
-  glance(M2_sep) |> mutate(model = "Separate (Tree + Load + Tree:Load)"),
-  glance(M1_par) |> mutate(model = "Parallel (Tree + Load)"),
-  glance(M0_one) |> mutate(model = "Single (Load)")
-) |>
-  mutate(rss = map_dbl(list(M2_sep, M1_par, M0_one), ~ sum(residuals(.x)^2))) |>
-  transmute(model,
-            df_resid = df.residual,
-            rss,
-            r.sq = r.squared,
-            adj.r.sq = adj.r.squared,
-            AIC = AIC,
-            BIC = BIC) |>
-  arrange(AIC)
+Here `m1` is one common regression line, `m2` gives parallel lines with different intercepts but a common slope, and `m3` gives separate lines with different intercepts and potentially different slopes.
 
+### Orthogonality and the order of terms
+
+Lecture 23 showed that in an orthogonal design, changing the order of terms does not change the sums of squares attributed to those terms. The Samara data are not orthogonal. Tree and Load overlap in the information they carry, so the sequential sums of squares depend strongly on which is entered first.
+
+```{r samara-type-one}
+samara_tree_first <- lm(Velocity ~ TreeF + Load, data = Samara)
+samara_load_first <- lm(Velocity ~ Load + TreeF, data = Samara)
+
+anova(samara_tree_first)
+anova(samara_load_first)
 ```
 
+If our scientific question is specifically whether Tree adds information after accounting for Load, the comparison should be written explicitly:
 
-```{r tbl-summaries, echo=FALSE, fig.cap="Model summaries with RSS, df, R^2, AIC, BIC",fig.width=12, fig.height=4, out.width="90%", fig.align='center'}
+```{r samara-adjusted-question}
+anova(m1, m2)
+```
 
+Here `m1` already contains `Load`, and `m2` adds `TreeF`. The test therefore asks whether Tree improves the model after Load has already been accounted for.
 
-tbl <- summaries |>
-  mutate(across(c(rss, r.sq, adj.r.sq, AIC, BIC), ~round(., 3)))
+Type II and Type III sums of squares provide other conventions for adjusted tests in non-orthogonal designs. We do not need them for the present analysis because we can state the scientific comparison directly using reduced and full models.
 
-theme_tbl <- ttheme_minimal(
-  base_size = 16,                                  # font size
-  core    = list(padding = unit(c(6, 10), "pt")),  # cell padding
-  colhead = list(fg_params = list(fontface = "bold"))
+## Comparing the Samara models
+
+The summary table contains only the quantities needed to see the basic pattern: more flexible model, fewer residual degrees of freedom, and smaller RSS.
+
+```{r samara-summaries, echo=FALSE, results='asis'}
+summaries <- tibble(
+  Model = c("m1: one line", "m2: parallel lines", "m3: separate lines"),
+  Formula = c("Velocity ~ Load", "Velocity ~ Load + TreeF", "Velocity ~ Load * TreeF"),
+  `Residual df` = c(df.residual(m1), df.residual(m2), df.residual(m3)),
+  RSS = c(sum(residuals(m1)^2), sum(residuals(m2)^2), sum(residuals(m3)^2))
 )
 
-tg <- tableGrob(tbl, rows = NULL, theme = theme_tbl)
-grid.newpage(); grid.draw(tg)
-```
-
-## Visualizing fitted lines
-
-Let's look at these fits visually to remind ourselves what the data looks like and how the models differ.
-
-```{r fittedlines, echo=FALSE, fig.width=14, fig.height=4, dpi=150, out.width="100%"}
-
-# Make a version of plot_lines that maps color for the predicted lines
-plot_lines_with_legend <- function(model, title) {
-  newdat <- tidyr::crossing(
-    Tree = factor(levels(Samara$Tree), levels = levels(Samara$Tree)),
-    Load = seq(min(Samara$Load), max(Samara$Load), length.out = 100)
-  )
-  newdat$Velocity_hat <- predict(model, newdata = newdat)
-  # Ensure both points and lines use the same color mapping (Tree)
-  p <- p_samara +
-    geom_line(data = newdat, aes(x = Load, y = Velocity_hat, color = Tree), linewidth = 1)
-  p + labs(title = title)
-}
-
-p1 <- plot_lines_with_legend(M2_sep, "Separate slopes")
-p2 <- plot_lines_with_legend(M1_par, "Parallel slopes")
-p3 <- plot_lines_with_legend(M0_one, "Single regression line")
-
-# Collect a single legend and put it at the bottom
-(p1 + p2 + p3) + plot_layout(ncol = 3, guides = "collect") & theme(legend.position = "bottom")
-
-```
-
-
-## Pairwise nested comparisons with partial F tests
-
-```{r samara-anovas}
-# M1 vs M2 tests the interaction
-anova(M1_par, M2_sep)
-```
-
-## Pairwise nested comparisons with partial F tests continued
-
-```{r samara-anovas-2}
-# M0 vs M1 tests Tree after Load
-anova(M0_one, M1_par)
-```
-
-
-## Pairwise nested comparisons with partial F tests continued
-```{r samara-anovas-3}
-# M0 vs M2 tests Tree and interaction together
-anova(M0_one, M2_sep)
-```
-
-## All models in one call and denominator effect
-
-```{r samara-anova-3}
-anova(M0_one, M1_par, M2_sep)
-```
-
-**Note:** The p-value for `M0` vs `M1` can change because the denominator uses the largest model in the call. Decide a maximal model ahead of time or clearly document the sequential plan.
-
-## Manual check of the F test
-
-We verify `M1` vs `M2` by hand.
-
-Remember \[ F = \frac{(RSS_{M1} - RSS_{M2})/d}{RSS_{M2}/r} \]
-
-```{r manual-F}
-rss_M1 <- sum(residuals(M1_par)^2)
-rss_M2 <- sum(residuals(M2_sep)^2)
-d      <- attr(logLik(M2_sep),"df") - attr(logLik(M1_par),"df")  # number of added parameters
-r      <- df.residual(M2_sep)                                    # residual df in larger model
-Fval   <- ((rss_M1 - rss_M2)/d) / (rss_M2/r)
-pval   <- pf(Fval, d, r, lower.tail = FALSE)
-
-```
-
-```{r manual-F-table, echo=FALSE}
-tibble(comparison = "M1 vs M2", d = d, r = r, F = Fval, `Pr(>F)` = pval) |>
-  kable(digits = 6, caption = "Manual partial F reproduces anova()") |>
+summaries |>
+  mutate(RSS = round(RSS, 3)) |>
+  kable(caption = "Residual information for the three Samara models") |>
   kable_styling(full_width = FALSE)
 ```
 
+Before looking at the tests, compare the fitted lines. The observations, colours, axes, and scales are the same in all three panels.
 
+```{r fittedlines, echo=FALSE, fig.width=14, fig.height=4, dpi=150, out.width="100%", fig.cap="The same Samara observations with fitted lines from the three candidate models."}
+model_labels <- c(
+  m1 = "m1: one line",
+  m2 = "m2: parallel lines",
+  m3 = "m3: separate lines"
+)
 
-## Diagnostics checklist for the chosen model
+plot_data <- bind_rows(
+  Samara |> mutate(model = unname(model_labels["m1"])),
+  Samara |> mutate(model = unname(model_labels["m2"])),
+  Samara |> mutate(model = unname(model_labels["m3"]))
+) |>
+  mutate(model = factor(model, levels = unname(model_labels)))
 
-```{r diagnostics}
-chosen <- M1_par
-p1 <- ggplot(data.frame(fitted = fitted(chosen), resid = resid(chosen)), aes(fitted, resid)) +
-  geom_point() + geom_hline(yintercept = 0, linetype = 2) +
-  labs(title = "Residuals vs Fitted") + theme_minimal(base_size = 13)
-p2 <- ggplot(data.frame(stdres = rstandard(chosen)), aes(sample = stdres)) +
-  stat_qq() + stat_qq_line() +
-  labs(title = "Normal Q-Q") + theme_minimal(base_size = 13)
-p1 | p2
+load_grid <- tibble(
+  Load = seq(min(Samara$Load), max(Samara$Load), length.out = 100)
+)
+
+pred_m1 <- load_grid |>
+  mutate(
+    Velocity = predict(m1, newdata = load_grid),
+    model = unname(model_labels["m1"])
+  )
+
+new_m2 <- tidyr::expand_grid(Load = load_grid$Load, TreeF = levels(Samara$TreeF))
+pred_m2 <- new_m2 |>
+  mutate(
+    Velocity = predict(m2, newdata = new_m2),
+    model = unname(model_labels["m2"])
+  )
+
+new_m3 <- tidyr::expand_grid(Load = load_grid$Load, TreeF = levels(Samara$TreeF))
+pred_m3 <- new_m3 |>
+  mutate(
+    Velocity = predict(m3, newdata = new_m3),
+    model = unname(model_labels["m3"])
+  )
+
+samara_model_plot <- ggplot() +
+  geom_point(
+    data = plot_data,
+    mapping = aes(x = Load, y = Velocity, colour = TreeF, shape = TreeF),
+    size = 2.2,
+    alpha = 0.8
+  ) +
+  geom_line(
+    data = pred_m1,
+    mapping = aes(x = Load, y = Velocity),
+    colour = "black",
+    linewidth = 1
+  ) +
+  geom_line(
+    data = pred_m2,
+    mapping = aes(x = Load, y = Velocity, colour = TreeF, group = TreeF),
+    linewidth = 1
+  ) +
+  geom_line(
+    data = pred_m3,
+    mapping = aes(x = Load, y = Velocity, colour = TreeF, group = TreeF),
+    linewidth = 1
+  ) +
+  facet_wrap(~ model, nrow = 1) +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(x = "Load", y = "Velocity", colour = "Tree", shape = "Tree") +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+
+samara_model_plot
 ```
 
+Moving from `m1` to `m2` allows the trees to move vertically apart. Moving from `m2` to `m3` also allows their slopes to differ.
+
+The partial *F* tests now ask whether each of these additional freedoms improves the fit enough to retain it.
+
+## Comparison 1: Do the slopes need to differ?
+
+`m3` adds the `TreeF:Load` interaction to `m2`. The null hypothesis is therefore that the interaction coefficients are all zero.
+
+In practical terms: once we allow the trees to have different intercepts, is there evidence that the relationship between Load and Velocity also differs among trees?
+
+```{r samara-anova-m2-m3}
+anova(m2, m3)
+```
+
+The evidence for different slopes is borderline. At a strict 5% significance level we would not reject the parallel-slopes model, but a *P*-value this close to 0.05 should not be interpreted as evidence that the slopes are identical.
+
+## Comparison 2: If slopes are parallel, do the trees need different intercepts?
+
+`m2` adds `TreeF` to the model that already contains `Load`. This tests whether Tree provides additional information about Velocity after accounting for Load.
+
+```{r samara-anova-m1-m2}
+anova(m1, m2)
+```
+
+There is little evidence that allowing different intercepts improves the fit once Load is already in the model. Following a strict simplification path at $\alpha=0.05$, this leads to `m1`.
+
+## Comparison 3: Joint comparison
+
+This comparison adds both the Tree main effect and the Tree-by-Load interaction at once. It tests whether allowing Tree to affect either the intercept or the slope improves the model compared with one common regression line.
+
+```{r samara-anova-m1-m3}
+anova(m1, m3)
+```
+
+This is a different question from carrying out the previous two tests separately. The joint comparison has a *P*-value of approximately 0.099.
+
+## All three models in one call
+
+There is a subtle difference between:
+
+```
+anova(m1, m2)
+```
+
+and
+
+```
+anova(m1, m2, m3)
+```
+
+The change in RSS from `m1` to `m2` is the same in both cases. What can change is the denominator of the *F* statistic.
+
+In the two-model comparison, R estimates the residual variance from `m2`, the larger model in that comparison.
+
+When all three models are supplied together, R uses the residual mean square from the largest model, `m3`, as the common estimate of residual variance for the comparisons in the table.
+
+Therefore the *F* statistic and *P*-value for `m1` versus `m2` can differ between the two calls even though the two fitted models themselves have not changed.
+
+```{r samara-anova-all}
+anova(m1,m2)
+anova(m1, m2, m3)
+```
+
+In this lecture, use pairwise `anova(reduced, full)` calls when the aim is to answer a specific scientific question. This keeps both the hypothesis and the denominator model explicit.
+
+## Manual check of the partial *F* test
+
+For `m2` versus `m3`, we can reproduce the test by hand:
+
+```{r manual-F}
+rss_reduced <- sum(residuals(m2)^2)
+rss_full <- sum(residuals(m3)^2)
+
+d <- df.residual(m2) - df.residual(m3)
+r <- df.residual(m3)
+
+Fval <- ((rss_reduced - rss_full) / d) /
+        (rss_full / r)
+
+pval <- pf(Fval, d, r, lower.tail = FALSE)
+```
+
+This reproduces the partial *F* test from `anova(m2, m3)`.
+
+```{r manual-F-table, echo=FALSE, results='asis'}
+tibble(comparison = "m2 versus m3", d = d, r = r, F = Fval, `Pr(>F)` = pval) |>
+  kable(digits = 6, caption = "Manual partial F calculation") |>
+  kable_styling(full_width = FALSE)
+```
+
+Model comparison does not replace model checking. Once we have chosen the mean structure, the usual LINE diagnostics still need to be checked.
 
 ## Body Fat case study
 
-In this section, we are concerned with modelling a small data set on human body fat.
-
-The response is percentage fat.  Age is a numerical covariate, gender is a factor.
-
+The Body Fat data provide a second example with one numerical covariate and one factor. The response is percentage body fat, Age is a numerical covariate, and Gender is a factor.
 
 Grab the data here: `r xfun::embed_file("../data/fat.csv",text = " fat.csv")`
 
 ```{r load-fat, echo=FALSE, message=FALSE}
-Fat <- readr::read_csv("../data/fat.csv", show_col_types = FALSE)
+Fat <- readr::read_csv("../data/fat.csv", show_col_types = FALSE) |>
+  mutate(Gender = factor(Gender))
 ```
 
-Various model comparisons and model summaries are provided. Decide which is the best model, and write down the fitted model equation for males and females.
-
-Columns: `Percent.Fat` response, `Age` numeric, `Gender` factor.
-
-```{r fat-plot}
-p_fat <- ggplot(Fat, aes(x = Age, y = Percent.Fat, color = Gender, shape = Gender)) +
-  geom_point(size = 2.6, alpha = 0.9) +
-  labs(title = "Percent Body Fat vs Age by Gender",
-       x = "Age", y = "Percent Fat") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "bottom")
-p_fat
-```
-
-## Three models and comparisons
+Use the same nested-model logic as for the Samara data. Does Gender need to change the Age slope, the intercept, or neither?
 
 ```{r fat-models}
 F0 <- lm(Percent.Fat ~ Age, data = Fat)
 F1 <- lm(Percent.Fat ~ Gender + Age, data = Fat)
-F2 <- lm(Percent.Fat ~ Gender + Age + Gender:Age, data = Fat)
+F2 <- lm(Percent.Fat ~ Gender * Age, data = Fat)
+```
 
-anova(F0, F1)
+Before looking at the tests, predict which comparison tests the slope difference and which tests the intercept difference.
+
+
+```{r fat-fitted-lines, echo=FALSE, fig.width=14, fig.height=4, dpi=150, out.width="100%", fig.cap="The same Body Fat observations with fitted lines from the three candidate models."}
+fat_model_labels <- c(
+  F0 = "F0: one line",
+  F1 = "F1: parallel lines",
+  F2 = "F2: separate lines"
+)
+
+fat_plot_data <- bind_rows(
+  Fat |> mutate(model = unname(fat_model_labels["F0"])),
+  Fat |> mutate(model = unname(fat_model_labels["F1"])),
+  Fat |> mutate(model = unname(fat_model_labels["F2"]))
+) |>
+  mutate(model = factor(model, levels = unname(fat_model_labels)))
+
+age_grid <- tibble(Age = seq(min(Fat$Age), max(Fat$Age), length.out = 100))
+
+pred_F0 <- age_grid |>
+  mutate(
+    Percent.Fat = predict(F0, newdata = age_grid),
+    model = unname(fat_model_labels["F0"])
+  )
+
+new_F1 <- tidyr::expand_grid(Age = age_grid$Age, Gender = levels(Fat$Gender))
+pred_F1 <- new_F1 |>
+  mutate(
+    Percent.Fat = predict(F1, newdata = new_F1),
+    model = unname(fat_model_labels["F1"])
+  )
+
+new_F2 <- tidyr::expand_grid(Age = age_grid$Age, Gender = levels(Fat$Gender))
+pred_F2 <- new_F2 |>
+  mutate(
+    Percent.Fat = predict(F2, newdata = new_F2),
+    model = unname(fat_model_labels["F2"])
+  )
+
+fat_model_plot <- ggplot() +
+  geom_point(
+    data = fat_plot_data,
+    mapping = aes(x = Age, y = Percent.Fat, colour = Gender, shape = Gender),
+    size = 2.2,
+    alpha = 0.8
+  ) +
+  geom_line(
+    data = pred_F0,
+    mapping = aes(x = Age, y = Percent.Fat),
+    colour = "black",
+    linewidth = 1
+  ) +
+  geom_line(
+    data = pred_F1,
+    mapping = aes(x = Age, y = Percent.Fat, colour = Gender, group = Gender),
+    linewidth = 1
+  ) +
+  geom_line(
+    data = pred_F2,
+    mapping = aes(x = Age, y = Percent.Fat, colour = Gender, group = Gender),
+    linewidth = 1
+  ) +
+  facet_wrap(~ model, nrow = 1) +
+  scale_colour_brewer(palette = "Dark2") +
+  labs(x = "Age", y = "Percent fat", colour = "Gender", shape = "Gender") +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+
+fat_model_plot
+```
+
+## Does Gender need to change the slope?
+
+`F2` adds one Gender-by-Age interaction coefficient. This tests whether the Age slope differs between females and males.
+
+```{r fat-anova-F1-F2}
 anova(F1, F2)
-
 ```
-Since we are talking about a one degree of freedom difference, the p-value from 
-anova(F1, F2) is the same as the p-value for the interaction term in F2, namely 0.0679. So we don't use the interaction model.  
 
-Similarly the difference between the first two models is one df, so the p-value from anova(F0, F1) would be the same as for the coefficient of GenderM, namely 0.0182. 
+The *P*-value is approximately 0.068, so there is not strong evidence at the 5% level that separate slopes are required. We therefore continue with the parallel-lines model `F1`.
 
-So we need to use the second model.  
+## Does Gender need to change the intercept?
 
-## Selected model terms
+`F1` adds the Gender intercept shift to a model that already contains Age.
 
-```{r fat-summaries}
+```{r fat-anova-F0-F1}
+anova(F0, F1)
+```
 
+The *P*-value is approximately 0.018, providing evidence that Gender contributes to expected percentage body fat after accounting for Age.
+
+Of these three prespecified models, `F1` is the simplest model supported by these comparisons: the fitted lines have different intercepts but a common Age slope.
+
+When the larger model adds exactly one coefficient, the partial *F* test and the corresponding two-sided *t* test are equivalent:
+
+$$F=t^2.$$
+
+This is why the *P*-value from `anova(F1, F2)` matches the *P*-value for the `Gender:Age` coefficient in `summary(F2)`, and why `anova(F0, F1)` matches the Gender coefficient test in `summary(F1)`.
+
+## Fitted equations for the retained Body Fat model
+
+```{r fat-summary}
 summary(F1)
-
 ```
 
+With females as the reference level:
 
-## Fitted equations for the selected model
+$$
+E(\text{Fat}\mid\text{Female}) = \beta_0+\beta_{\text{Age}}\text{Age}
+$$
 
-If we select the parallel slopes `F1` with treatment contrasts and `Gender` coded with F as reference:
+and
 
-- Females: `E[Fat] = β0 + β_Age * Age`
+$$
+E(\text{Fat}\mid\text{Male}) = (\beta_0+\beta_{\text{GenderM}}) + \beta_{\text{Age}}\text{Age}.
+$$
 
-- Males: `E[Fat] = (β0 + β_GenderM) + β_Age * Age`
+## Body Fat fitted equations
+
+The common Age coefficient gives the slope of both lines. `GenderM` gives the vertical difference between the male and female fitted lines.
 
 ```{r fat-equation}
 co <- coef(F1)
@@ -337,16 +470,24 @@ tibble(
     sprintf("Fat = %.2f + %.2f * Age", beta0 + beta_male, beta_age)
   )
 ) |>
-  kable(caption = "Fitted equations by Gender (parallel slopes model)") |>
+  kable(caption = "Fitted equations by Gender (parallel-slopes model)") |>
   kable_styling(full_width = FALSE)
 ```
 
+## Reporting a nested-model comparison
 
+When reporting a nested-model comparison:
 
+1. State the reduced and full models.
+2. State what additional terms are being tested and translate that into the scientific question.
+3. Report the change in RSS and degrees of freedom, the *F* statistic and the *P*-value.
+4. State whether the data provide evidence that the additional model structure is needed.
+5. Interpret the retained model in terms of the response and explanatory variables.
 
-## Reporting template
+A non-significant comparison does not prove that the smaller model is true. It means that the data do not provide sufficient evidence that the additional structure improves the model.
 
-- State the model forms, nesting, and the scientific contrast.
-- Report RSS, df, F, and p with the denominator model identified.
-- Add a sentence on diagnostics and effect interpretation.
-- If two models are close, prefer the simpler one for clarity unless the complex model adds needed scientific nuance.
+In this lecture the candidate models were specified in advance. We knew exactly which larger model we wanted to compare with which smaller model, so the scientific hypothesis determined the comparison.
+
+A harder problem occurs when there are many plausible predictors and many possible models. There may no longer be one obvious reduced-versus-full comparison.
+
+That is the problem of **model selection**, which we consider next.

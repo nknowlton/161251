@@ -1,0 +1,44 @@
+---
+title: "Lecture 26 model nesting diagram"
+format:
+  html:
+    self-contained: true
+    toc: false
+---
+
+```{mermaid}
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Roboto, Segoe UI, sans-serif",
+    "primaryColor": "#f8f5f0",
+    "primaryTextColor": "#3e3f3a",
+    "primaryBorderColor": "#325d88",
+    "lineColor": "#325d88",
+    "secondaryColor": "#eef6df",
+    "tertiaryColor": "#fff0e8"
+  }
+}}%%
+
+flowchart TD
+    full["<b>Separate regression lines</b><br/><code>Y ~ A * x</code>"]
+    parallel["<b>Parallel regression lines</b><br/><code>Y ~ A + x</code>"]
+    factor["<b>Factor-only model</b><br/><code>Y ~ A</code>"]
+    single["<b>Single regression line</b><br/><code>Y ~ x</code>"]
+    null["<b>Null model</b><br/><code>Y ~ 1</code>"]
+
+    full --> parallel
+    parallel --> factor
+    parallel --> single
+    factor --> null
+    single --> null
+
+    classDef flexible fill:#f8f5f0,stroke:#325d88,stroke-width:2px,color:#3e3f3a
+    classDef intermediate fill:#fff0e8,stroke:#f47c3c,stroke-width:2px,color:#3e3f3a
+    classDef simple fill:#eef6df,stroke:#93c54b,stroke-width:2px,color:#3e3f3a
+
+    class full,parallel flexible
+    class factor,single intermediate
+    class null simple
+    linkStyle default stroke:#325d88,stroke-width:2px
+```
