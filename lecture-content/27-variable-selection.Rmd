@@ -1,23 +1,48 @@
 
-## Variable selection
+## From model comparison to model selection
 
-In previous lectures we have looked at tests for single explanatory variables and groups of explanatory variables.
+In Lecture 26, the scientific question gave us a reduced model and a full model to compare. We knew in advance which additional terms we wanted to test.
 
-Often, however, a statistician will simply want to know what is the best group of explanatory variables for describing the response.
+Real modelling problems are often less tidy. We may have many plausible explanatory variables and many possible models. There may be no single reduced-versus-full comparison that answers the whole problem.
 
-In this lecture we will consider various criteria for model selection, and cover an example on finding a suitable variable set "by hand".
+This changes the question from **model comparison** to **model selection**.
 
-## Overfitting and Underfitting
+The central question is:
 
-We begin by considering the following question:  Should all the explanatory variables be used, or should some be omitted?
+> How do we balance model fit against model complexity when several models are plausible?
 
-Why might we want to omit variables? 
+### What are we trying to do?
 
--	Perhaps we want to detect variables which affect the response  but avoid collecting unnecessary measurements in the future. This is called variable screening
+Before choosing a model, identify the modelling goal:
 
--	Perhaps we want to predict from the model. Our predictions will be less accurate if the model is incorrectly specified.
-	
-We first consider the risks and benefits of including a predictor that might have coefficient $\beta=0$.
+- **Explanation or inference:** estimate and interpret effects after adjustment for other variables.
+- **Prediction:** predict new observations accurately.
+- **Description:** find a compact model that describes the observed relationships.
+
+These goals can lead us to prefer different models. A variable can be scientifically important even if it contributes little to prediction, and a useful predictor does not necessarily have a causal interpretation.
+
+## Overfitting and underfitting
+
+Should all the plausible explanatory variables be used, or should some be omitted? The answer involves two risks.
+
+```{r bias-variance-continuum, echo=FALSE, fig.width=9, fig.height=1.8, out.width="90%", fig.cap="The bias-variance trade-off as model flexibility changes."}
+continuum <- tibble(
+  x = c(1, 5, 9),
+  label = c("Too simple\nunderfitting\nmore potential bias", "A useful balance", "Too flexible\noverfitting\nmore variance")
+)
+
+ggplot(continuum, aes(x = x, y = 0)) +
+  geom_segment(aes(x = 1.4, xend = 8.6, y = 0, yend = 0),
+               arrow = grid::arrow(ends = "both", length = grid::unit(0.12, "inches")),
+               colour = "#325d88", linewidth = 1.2) +
+  geom_point(aes(colour = label), size = 4, show.legend = FALSE) +
+  geom_text(aes(label = label), vjust = -0.8, lineheight = 0.95, size = 3.7) +
+  scale_colour_manual(values = c("#f47c3c", "#325d88", "#93c54b")) +
+  coord_cartesian(xlim = c(0.5, 9.5), ylim = c(-0.2, 1.8), expand = FALSE) +
+  theme_void()
+```
+
+This is the **bias-variance trade-off**. A model that is too simple can omit structure. A model that is too complicated can fit accidental features of the current data and produce less stable estimates.
 
 ### Dropping or Including Variables that have $\beta=0$
 
@@ -98,67 +123,84 @@ In the first model, $B$ is wrongly ignored and $A$ is both biased and has a larg
 
 ### Summary: Bias vs Variance Trade-off
 
-In summary, if we omit a needed variable then we may introduce bias into our estimation.
-	
-The big problem with bias is that there may be no sign that we have a mistake. 
+Omitting a needed variable can bias the remaining estimates and predictions, especially when the omitted predictor overlaps with variables retained in the model. Including an unnecessary variable can leave the estimates centred correctly while increasing their standard errors.
 
-In some cases we don't even *have* the needed variable, so we can't try it in the model. 
+In practice we do not know which situation we are in. Model selection therefore requires a modelling goal and criteria that reflect the cost of complexity. A hypothesis test can contribute evidence, but it is not a complete decision rule.
 
-At least in case 1, when we wrongly enter an unnecessary variable, it doesn't bias our estimates, just increases our standard errors. So at least we know exactly how bad things are. But with an omitted variable we don't know how bad things are.
-	
-For this reason, we may decide to err on the side of caution and add in variables even if we are uncertain about their relevance.  Then at least we can avoid bias. 
+## How should we judge extra complexity?
 
-## Model Selection: Bias and Variance
+If adding variables always decreases RSS, how can we tell whether the extra complexity is worthwhile? The answer depends on the goal and on which candidate models are being compared.
 
-Model selection, then, comes down to balancing the effects of variance and bias.
+### Fit measures
 
-- If we omit a variable, it may dramatically decrease the variance of the other parameter estimates. This is a plus. 
+The coefficient of determination
 
-- But if the variable is important, then the other parameter estimates may be biased.  This is a minus. 
+$$R^2 = 1 - \frac{\sum(y_i-\hat y_i)^2}{\sum(y_i-\bar y)^2}$$
 
-So what should we choose?  There is no settled rule for every circumstance, but in general we should probably be more concerned to avoid bias (especially since we don't know how bad this is!) than to avoid a small increase in variance (at least we do know how bad it is - we can see the standard errors.)
+measures the proportion of sample response variation accounted for by the fitted model. It does not penalise complexity, so $R^2$ cannot decrease when variables are added.
 
-Consequently we may decide to err on the side of including variables with P-values a little  bigger than 0.05, *especially if they seem to induce a sizeable change in the other coefficient estimates.*   This is another thing to watch out for in model selection. 
+Adjusted $R^2$ accounts for residual degrees of freedom:
 
-## Review of Model Selection Criteria
+$$R^2_{\mathrm{Adj}} = 1 - \frac{\sum(y_i-\hat y_i)^2/(n-p)}{\sum(y_i-\bar y)^2/(n-1)}.$$
 
-There are a number of measures we can use for model selection:
+It can decrease when an added term does not reduce RSS enough to justify its degrees of freedom. A decrease is evidence against that particular added structure, not proof that the variable should never be used.
 
-- Coefficient of determination $R^2$
+The residual standard error is the residual scale estimate:
 
-- Adjusted Coefficient of determination $R^2_{Adj}$
+$$S = \sqrt{\frac{RSS}{df_{\mathrm{residual}}}}.$$
 
-- Residual Standard Error $S$
+It measures remaining unexplained variation on the response scale. It is useful for comparing fitted models to the extent that they have the same response and observations.
 
-- $P$-values of individual coefficients
+### Partial *F* tests and AIC
 
-Each of these are slightly different, so it pays to consider more than one.
+Partial *F* tests are useful when we have a particular nested change in mind. AIC provides another criterion:
 
-### Coefficient of determination $R^2$
+$$AIC = n\log(RSS/n) + 2p + \text{constant},$$
 
-Recall that this is the proportion of total variation  which is explained by the model. (Alternatively, 1 minus the ratio of unexplained variation to total variation):
-$$ R^2 = \frac{SS_{Regn}}{SST}  = 1 - \frac{\sum(y_i-\hat y_i)^2}{\sum(y_i-\bar y)^2}. $$
-$R^2$ is useful for comparing two models with the **same** number of regression parameters.   If models have different numbers of regression parameters we use the adjusted version.
+where $p$ is the number of fitted regression parameters. Smaller AIC is preferred when comparing candidate models fitted to the same response and observations.
 
-### Adjusted Coefficient of determination $R^2_{Adj}$
+Unlike the partial *F* test, AIC does not require one model to be nested inside another. It still does not identify a universally correct model. It gives one way to balance fitted error against model complexity.
 
-Recall that this is 1 minus the ratio of Mean Square Error to Mean Square Total: 
-$$ R^2_{Adj} = 1 - \frac{MSE}{MST}  = 1 - \frac{\sum(y_i-\hat y_i)^2/(n-p)}{\sum(y_i-\bar y)^2/(n-1)}.$$
-When considering adding a variable to a regression, the $R^2_{Adj}$ goes up if the variable is "worth" at least one row of data (one degree of freedom), which is a pretty low bar to cross.
+Individual coefficient *P*-values answer a more specific question about one coefficient under one parameterisation. They should not be treated as a complete model-selection rule.
 
-But at least if a variable can't meet that rule then we know to exclude it.
+### Cross-validation: a prediction question
 
-### Residual Standard Error $S$
+All of the criteria above are calculated from the data used to fit the model. If prediction is our main goal, the stronger question is:
 
-This is the standard deviation of the residuals, 
-$$ S = \frac{1}{n-p}\sum{(y_i - \hat y_i)^2} $$
-or in other words the standard deviation of how the $y_i$s vary around the model predictions. We might choose to include a variable if it reduces the $S$.
+> How well does the model predict observations it did not use to fit itself?
 
-### $P$-value for individual coefficients
+The basic cross-validation idea is:
 
-We usually prefer models that only include variables with coefficient $P$-value is small (e.g. $< 0.05$).
+```{r cross-validation-diagram, echo=FALSE, fig.width=8, fig.height=2.2, out.width="90%", fig.cap="The basic cross-validation cycle."}
+cv_steps <- tibble(
+  x = c(1, 3, 5, 7),
+  label = c("Fit on\ntraining data", "Predict\nheld-out data", "Measure\nprediction error", "Repeat\nwith new folds")
+)
 
-However the "0.05" criterion is somewhat arbitrary and occasionally we allow in variables with slightly higher $P$-values to potentially reduce bias.
+ggplot(cv_steps, aes(x = x, y = 0)) +
+  geom_segment(data = tibble(x = c(1.35, 3.35, 5.35), xend = c(2.65, 4.65, 6.65)),
+               aes(x = x, xend = xend, y = 0, yend = 0),
+               arrow = grid::arrow(length = grid::unit(0.12, "inches")),
+               colour = "#325d88", linewidth = 1) +
+  geom_label(aes(label = label), fill = "#f8f5f0", colour = "#3e3f3a", label.size = 0.4,
+             size = 3.5, lineheight = 0.9) +
+  coord_cartesian(xlim = c(0.4, 7.6), ylim = c(-0.7, 0.8), expand = FALSE) +
+  theme_void()
+```
+
+We introduce that idea here but leave implementation, including `cv.glmnet()`, for Lecture 28.
+
+## Select terms, not arbitrary coefficients
+
+The scientific predictor and the individual regression coefficients are not always the same thing. A four-level factor creates three treatment coefficients, but it is still one scientific predictor.
+
+Similarly, in
+
+```
+y ~ A * x
+```
+
+`A:x` is one interaction term, even though it can correspond to several interaction coefficients. If we retain an interaction, we normally retain the corresponding main effects as well. This is the hierarchy principle.
 
 ## Example:  Model Selection for Climate Data
 
@@ -238,19 +280,11 @@ lm2 |> summary()
 lm3 |> summary()
 ```
 
-#### First three predictors — assessment
+#### First three predictors: assessment
 
-For these first three predictors:
+The first three additions agree across the measures we have considered: the added-term *P*-values are small, $S$ decreases, and adjusted $R^2$ increases. This is consistent with retaining `Lat`, `Height` and `Sea` for this candidate model path.
 
- - They  have significant p-values
- - $S$ has gone down each time
- - The adjusted $R^2$ and has gone up each time.
- 
-There is no reason to doubt that `Lat`, `Height` and `Sea` should all be included.   
-
-Also note the regression coefficient for `Height` altered by about 2 standard errors, which suggests that `Sea` is correcting for bias, all the more reason for including it.
-
-This makes sense - sea level towns will mostly have a very low height, but there'll also be an additional warming effect of being close to the sea.
+The `Height` coefficient also changes noticeably when `Sea` is added. This tells us that the interpretation of `Height` depends on whether `Sea` is adjusted for. The predictors overlap in the information they carry, so the coefficient in a multiple regression is a conditional association, not an isolated effect of height.
 
 #### Model 4: Adding NorthIsland
 
@@ -259,9 +293,7 @@ lm4 = lm( MnJlyTemp ~ Lat+ Height + Sea + NorthIsland, data=climate)
 lm4 |> summary()
 ```
 
-Same conclusions as before, we should include `NorthIsland`
-
-Including it has induced big changes in the coefficients (especially `Lat`) which again is evidence it is important.
+The added-term *P*-value is small, and the fit measures improve. The large change in the `Lat` coefficient tells us that the interpretation of latitude depends on whether `NorthIsland` is included. It does not, by itself, prove that the new variable is correcting bias.
 
 **Why do you think adding North vs South island is useful over and above Latitude? Wouldn't Latitude do everything here??**
 
@@ -273,7 +305,7 @@ lm5 |> summary()
 ```
 
 
-The `Rain` variable is not significant (P=0.1) which goes against including `Rain`.  However $S$ has gone down and the adjusted R-squared has gone up.  So we may decide that if our aim is to predict for new data, then we should include this variable in the model.
+The evidence for `Rain` is mixed. Its coefficient *P*-value is approximately 0.10, while $S$ decreases and adjusted $R^2$ increases. These are all in-sample measures, so they do not establish that `Rain` will improve prediction for new towns. If prediction were the primary goal, this would be a natural case for validation or cross-validation.
 
 #### Model 6: Adding Longitude
 
@@ -282,51 +314,31 @@ lm6 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland+ Rain + Long, data=climate)
 lm6 |> summary()
 ```
 
-At this point all the indications are bad:  The P-value for `Long` is >0.5, the adjusted R-squared has gone down and S has gone up.
+The evidence against adding `Long` is consistent: its *P*-value is greater than 0.5, adjusted $R^2$ decreases, and $S$ increases. This candidate addition does not improve the fitted model by these measures.
 
-So we should not include `Long` in the model.
+### Climate model-building progression
 
-### Climate Data Case Study — Key Takeaways
+The progression is a sequence of candidate comparisons, not a proof that one final formula is universally correct. The table puts the main evidence side by side.
 
-**Goal:** Predict NZ July temperature from location and climate covariates
+```{r climate-progression, echo=FALSE, results='asis'}
+climate_progression <- tibble(
+  Model = paste("lm", 1:6),
+  `Added term` = c("Lat", "Height", "Sea", "NorthIsland", "Rain", "Long"),
+  `Adjusted R2` = sapply(list(lm1, lm2, lm3, lm4, lm5, lm6), function(model) summary(model)$adj.r.squared),
+  RSE = sapply(list(lm1, lm2, lm3, lm4, lm5, lm6), sigma),
+  AIC = sapply(list(lm1, lm2, lm3, lm4, lm5, lm6), AIC),
+  `Added-term evidence` = c("< 0.001", "< 0.001", "< 0.001", "< 0.001", "0.10", "> 0.5")
+)
 
-**Final model path:**  `MnJlyTemp ~ Lat + Height + Sea + NorthIsland + Rain`
+knitr::kable(climate_progression, digits = 3,
+             caption = "Climate candidate models and in-sample comparison measures")
+```
 
-**Model progression**
+The table helps us describe what changes as terms are added. It does not replace the modelling goal, subject-matter reasoning, or validation of future prediction.
 
-| Model | Variables                     | \(R^2_{\text{Adj}}\) | \(S\)  | Key variable \(p\) |
-|:-----:|-------------------------------|:--------------------:|:------:|:------------------:|
-| 1     | Lat                           | 0.570                | 1.82   | < 0.001            |
-| 2     | + Height                      | 0.837                | 1.12   | < 0.001            |
-| 3     | + Sea                         | 0.865                | 1.02   | < 0.001            |
-| 4     | + NorthIsland                 | 0.883                | 0.95   | < 0.001            |
-| 5     | + Rain                        | 0.889                | 0.92   | 0.10               |
-| 6     | + Long                        | 0.886                | 0.93   | 0.54               |
+### A final model check
 
-### Climate Data Case Study — Key Takeaways Continued
-
-**What to watch for**
-
-- Coefficient shifts after adding variables indicate possible bias correction
-- Look for agreement among criteria, not just \(p\) values
-- Longitude rejected: \(p>0.5\), \(R^2_{\text{Adj}}\downarrow\), \(S\uparrow\)
-
-**Warning signs**
-
-- Large coefficient changes when adding or removing variables → potential bias
-- Sole reliance on \(p<0.05\) can miss important predictors
-- Ignoring \(R^2_{\text{Adj}}\) and \(S\) gives an incomplete picture
-- Criteria in conflict → justify with domain knowledge and prediction error
-
-**Recommendation:**  
-
-Retain `Lat`, `Height`, `Sea`, `NorthIsland`. Retain `Rain` when prediction accuracy is the goal, as it is here.
-
-### Done? Model Diagnostics
-
-Not so fast! We now have a model, but is it any good? Does it meet our LINE assumptions? 
-
-After variable selection, you must check if the final model satisfies the assumptions of linear regression. Let's check the diagnostics for our chosen model: 
+Choosing a plausible mean structure is not the end of the analysis. We still need to check whether the fitted model shows evidence of problems with the LINE assumptions.
 
 `lm(MnJlyTemp ~ Lat + Height + Sea + NorthIsland + Rain, data = climate)`.
 
@@ -337,14 +349,14 @@ par(mfrow = c(2, 2))
 plot(lm5)
 ```
 
-#### Interpretation of Diagnostic Plots:
+#### Interpretation of diagnostic plots
 
-- Residuals vs. Fitted: The red line is nearly flat and the points are randomly scattered around 0. This looks good and suggests the linearity assumption holds. No obvious patterns.
-- Normal Q-Q: The points fall very closely along the dashed line except one point (9). This indicates the residuals are normally distributed, which is great.
-- Scale-Location: The points are randomly scattered and the red line is relatively flat. This confirms the assumption of equal variance (homoscedasticity).
-- Residuals vs. Leverage: No points appear outside of the dashed Cook's distance lines, meaning we don't have any single data points that are overly influential on our results.
+- Residuals vs. Fitted: the points show no strong systematic pattern, so there is not strong evidence of a problem with the linear mean structure.
+- Normal Q-Q: the points are reasonably close to the reference line, with one noticeable departure. This is not proof of normality, but it gives no strong warning at this scale.
+- Scale-Location: the spread does not show a strong trend across fitted values, so there is not strong evidence of changing variance.
+- Residuals vs. Leverage: no observation stands out as obviously influential from this plot alone.
 
-**Conclusion**: Our final model not only makes intuitive sense but also passes the standard diagnostic checks! It appears to be a robust and reliable model.
+These plots do not confirm the assumptions or certify the model. They give us evidence about whether the fitted model shows important departures that need further investigation.
 
 ## Running Example Preview: Seoul Bike Sharing Demand
 
@@ -389,8 +401,13 @@ tibble(
 )
 ```
 
-The richer model wins on all three criteria: higher adjusted $R^2$ (55% vs 38% of variation explained), lower residual standard error (433 vs 510 bikes), and lower AIC (131,228 vs 134,080). This is not surprising — adding 9 more predictors almost always improves in-sample fit. The real question is whether all those extra variables are *worth* their degrees of freedom, or whether a smaller subset would predict almost as well. That is exactly what the next lecture on stepwise selection addresses.
+The richer model has higher adjusted $R^2$, lower residual standard error, and lower AIC in this sample. Adding terms usually improves in-sample fit, so these measures do not establish that the richer model will predict future bike demand better. The real question is whether all those extra variables are worth their degrees of freedom, or whether a smaller subset would predict almost as well.
 
-The point here is not that the richer model must be correct. It is that realistic datasets often give us many plausible predictors, and we need principled ways to decide which are worth keeping.
+The point here is not that the richer model must be correct. Realistic datasets often give us many plausible predictors, and manual comparison becomes cumbersome.
 
-In the next lecture we will ask how automated procedures search through those choices.
+With six candidate predictors, manual comparison is manageable. With 10, 20 or 50 plausible predictors, the number of possible models grows rapidly. We now have two possible responses:
+
+1. automate the process of adding and removing terms;
+2. avoid discrete include-or-exclude decisions and instead shrink coefficients towards zero.
+
+These are the two approaches developed in the next lecture: stepwise search and penalised regression.
