@@ -15,9 +15,9 @@ By the end of this lecture you should be able to:
 
 ## Quick recall of Lecture 25
 
-In Lecture 25 we saw that a factor and a numerical covariate can be combined in the same linear model. For one factor `A` and one covariate `x`, increasingly flexible models allow the factor to change neither the intercept nor slope, the intercept only, or both intercept and slope.
+Lecture 25 gave us three increasingly flexible ways to combine a factor `A` with a numerical covariate `x`. The factor can do nothing, shift the intercept, or also change the slope.
 
-The main progression was:
+The progression was:
 
 ```
 Y ~ x
@@ -25,7 +25,7 @@ Y ~ A + x
 Y ~ A * x
 ```
 
-We now want to ask whether the additional flexibility in the larger models is supported by the data.
+Now we ask the next question: is that extra flexibility actually supported by the data?
 
 ## Nested linear models
 
@@ -41,7 +41,7 @@ The separate-lines model `Y ~ A * x` contains the parallel-lines model `Y ~ A + 
 
 ## Recall from Lecture 14: the partial *F* test
 
-Lecture 14 introduced nested-model comparisons and the partial *F* test. We now use that machinery for the factor and covariate models from Lecture 25, where one scientific effect can correspond to several coefficients.
+We do not need a new test here. Lecture 14 already gave us nested-model comparisons and the partial *F* test. We now use the same machinery for the factor-and-covariate models from Lecture 25, where one scientific effect can correspond to several coefficients.
 
 Adding terms to a linear model cannot increase its residual sum of squares. A larger model has more flexibility, so its RSS will be the same or smaller. The question is whether the decrease in RSS is large enough to justify the additional parameters, relative to the residual variation that remains in the larger model.
 
@@ -96,7 +96,7 @@ Here `m1` is one common regression line, `m2` gives parallel lines with differen
 
 ## Comparing the Samara models
 
-The summary table contains only the quantities needed to see the basic pattern: more flexible model, fewer residual degrees of freedom, and smaller RSS.
+First look at what happens as we make the model more flexible: residual degrees of freedom decrease and RSS gets smaller.
 
 ```{r samara-summaries, echo=FALSE, results='asis'}
 summaries <- tibble(
@@ -192,7 +192,7 @@ Moving from `m1` to `m2` allows the trees to move vertically apart. Moving from 
 | `m2` | `Velocity ~ Load + TreeF` | Adds `TreeF`: 2 additional df, allowing vertical shifts |
 | `m3` | `Velocity ~ Load * TreeF` | Adds `TreeF:Load`: 2 additional df, allowing slope differences |
 
-The partial *F* tests now connect the geometry to the scientific question:
+Now we can ask the two questions we actually care about:
 
 - Does `TreeF` shift the lines vertically? Compare `m1` with `m2`.
 - Do the slopes differ by Tree? Compare `m2` with `m3`.
@@ -201,7 +201,7 @@ The partial *F* tests now connect the geometry to the scientific question:
 
 `m3` adds the `TreeF:Load` interaction to `m2`. The null hypothesis is therefore that the interaction coefficients are all zero.
 
-In practical terms: once we allow the trees to have different intercepts, is there evidence that the relationship between Load and Velocity also differs among trees?
+So, once we allow the trees to have different intercepts, is there evidence that the relationship between Load and Velocity also differs among trees?
 
 ```{r samara-anova-m2-m3}
 anova(m2, m3)
@@ -231,7 +231,7 @@ This is a different question from carrying out the previous two tests separately
 
 ## Why explicit comparisons matter
 
-Lecture 23 showed that in an orthogonal design, changing the order of terms does not change the sums of squares attributed to those terms. The Samara data are not orthogonal. Tree and Load are not providing independent pieces of information: the trees were sampled over different Load distributions.
+This is where the orthogonality point from Lecture 23 matters. In an orthogonal design, changing the order of terms does not change the sums of squares attributed to them. The Samara data are not orthogonal: the trees were sampled over different Load distributions, so Tree and Load overlap in the information they carry.
 
 ```{r samara-load-by-tree, echo=FALSE, fig.width=6, fig.height=4, out.width="65%", fig.cap="The Samara data have different Load distributions across trees."}
 ggplot(Samara, aes(x = TreeF, y = Load, colour = TreeF)) +
@@ -241,7 +241,7 @@ ggplot(Samara, aes(x = TreeF, y = Load, colour = TreeF)) +
   theme_minimal(base_size = 13)
 ```
 
-Consequently, the variation attributed to Tree depends on whether Load has already been accounted for. These two uses of `anova()` therefore answer different questions.
+That means the variation attributed to Tree depends on whether Load has already been accounted for. The two uses of `anova()` below therefore answer different questions.
 
 ```{r samara-type-one}
 samara_tree_first <- lm(Velocity ~ TreeF + Load, data = Samara)
@@ -277,7 +277,7 @@ Model comparison does not replace model checking. Once we have chosen the mean s
 
 ## Body Fat case study
 
-The Body Fat data provide a second example with one numerical covariate and one factor. The response is percentage body fat, Age is a numerical covariate, and Gender is a factor.
+Now do the same thing with the Body Fat data. The response is percentage body fat, Age is the numerical covariate, and Gender is the factor.
 
 Grab the data here: `r xfun::embed_file("../data/fat.csv",text = " fat.csv")`
 
@@ -433,7 +433,7 @@ tibble(
 
 ## Reporting a nested-model comparison
 
-When reporting a nested-model comparison:
+A good write-up of a nested-model comparison needs five things:
 
 1. State the reduced and full models.
 2. State what additional terms are being tested and translate that into the scientific question.
@@ -443,8 +443,6 @@ When reporting a nested-model comparison:
 
 A non-significant comparison does not prove that the smaller model is true. It means that the data do not provide sufficient evidence that the additional structure improves the model.
 
-In this lecture the candidate models were specified in advance. We knew exactly which larger model we wanted to compare with which smaller model, so the scientific hypothesis determined the comparison.
+Everything in this lecture was manageable because the candidate models were specified in advance. The scientific question told us which reduced model to compare with which full model.
 
-A harder problem occurs when there are many plausible predictors and many possible models. There may no longer be one obvious reduced-versus-full comparison.
-
-That is the problem of **model selection**, which we consider next.
+The next problem is harder. What if there are many plausible predictors and no single obvious reduced-versus-full comparison? That takes us from **model comparison** to **model selection**, which is where we go next.
