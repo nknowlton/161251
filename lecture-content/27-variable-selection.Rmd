@@ -358,9 +358,11 @@ plot(lm5)
 
 These plots do not confirm the assumptions or certify the model. They give us evidence about whether the fitted model shows important departures that need further investigation.
 
-## Running Example Preview: Seoul Bike Sharing Demand
+## A more realistic running example
 
-Later in the course we will return to one richer applied dataset several times: hourly bike demand from the Seoul Bike Sharing System.
+From this point in the course, we will keep coming back to one larger dataset to show how we can build up a more complex, and therefore more realistic, regression model. The data describe hourly bike rentals in Seoul, South Korea, together with weather and calendar information that might help explain or predict demand.
+
+Rather than introducing a new small dataset for every method, we will use the Seoul bike data to see what happens as a model becomes more complicated. We will start with several plausible predictors here, then return to the same problem when we look at automated variable selection, penalised regression, multicollinearity and other complications later in the course.
 
 `r xfun::embed_file("../data/seoul_bike_hourly.csv")`
 
@@ -369,13 +371,9 @@ seoul_hourly = read_csv("../data/seoul_bike_hourly.csv")
 seoul_hourly
 ```
 
-The response is `rented_bike_count`, and there are many plausible explanatory variables:
+The response is `rented_bike_count`. Potential explanatory variables include weather measurements such as temperature, humidity, wind speed and rainfall, as well as calendar information such as hour, season and whether the day is a holiday.
 
-- `hour`, `season`, `holiday`, `functioning_day`
-- `temperature`, `humidity`, `wind_speed`, `visibility`
-- `dew_point_temperature`, `solar_radiation`, `rainfall`, `snowfall`
-
-This is a useful reminder that model selection is rarely about one obviously correct formula. In a real prediction problem, many variables may look reasonable at first glance.
+There is no obvious single model here. Several predictors look reasonable, some are likely to overlap in the information they contain, and the number of possible models grows quickly. That is much closer to what happens with real data.
 
 ```{r seoul candidate models, message=FALSE}
 seoul_basic = lm(
@@ -401,13 +399,6 @@ tibble(
 )
 ```
 
-The richer model has higher adjusted $R^2$, lower residual standard error, and lower AIC in this sample. Adding terms usually improves in-sample fit, so these measures do not establish that the richer model will predict future bike demand better. The real question is whether all those extra variables are worth their degrees of freedom, or whether a smaller subset would predict almost as well.
+The richer model has higher adjusted $R^2$, lower residual standard error, and lower AIC in this sample. These are in-sample comparisons, so they do not establish that the richer model will predict future bike demand better.
 
-The point here is not that the richer model must be correct. Realistic datasets often give us many plausible predictors, and manual comparison becomes cumbersome.
-
-With six candidate predictors, manual comparison is manageable. With 10, 20 or 50 plausible predictors, the number of possible models grows rapidly. We now have two possible responses:
-
-1. automate the process of adding and removing terms;
-2. avoid discrete include-or-exclude decisions and instead shrink coefficients towards zero.
-
-These are the two approaches developed in the next lecture: stepwise search and penalised regression.
+We can still compare a handful of candidate models by hand. Once there are many plausible predictors, that becomes tedious very quickly. In the next lecture we look at ways to automate that search, and at a different strategy where we keep a larger model but shrink its coefficients rather than repeatedly adding and removing variables.
