@@ -3,9 +3,9 @@
 
 In Lecture 26, the scientific question gave us a reduced model and a full model to compare. We knew in advance which additional terms we wanted to test.
 
-Real modelling problems are often less tidy. We may have many plausible explanatory variables and many possible models. There may be no single reduced-versus-full comparison that answers the whole problem.
+Real modelling problems are usually messier. We may have several plausible predictors and a lot of reasonable-looking models, with no single reduced-versus-full comparison that settles the question.
 
-This changes the question from **model comparison** to **model selection**.
+At that point we have moved from **model comparison** to **model selection**.
 
 The central question is:
 
@@ -19,11 +19,11 @@ Before choosing a model, identify the modelling goal:
 - **Prediction:** predict new observations accurately.
 - **Description:** find a compact model that describes the observed relationships.
 
-These goals can lead us to prefer different models. A variable can be scientifically important even if it contributes little to prediction, and a useful predictor does not necessarily have a causal interpretation.
+These are different jobs, and they can favour different models. A variable might matter scientifically without helping prediction much, while a strong predictor does not automatically have a causal interpretation.
 
 ## Overfitting and underfitting
 
-Should all the plausible explanatory variables be used, or should some be omitted? The answer involves two risks.
+So why not just put everything into the model? Because there are two ways to get this wrong.
 
 ```{r bias-variance-continuum, echo=FALSE, fig.width=9, fig.height=1.8, out.width="90%", fig.cap="The bias-variance trade-off as model flexibility changes."}
 continuum <- tibble(
@@ -46,37 +46,23 @@ This is the **bias-variance trade-off**. A model that is too simple can omit str
 
 ### Dropping or Including Variables that have $\beta=0$
 
-Suppose we have a regression model with several variables.  We might suspect one has regression coefficient $\beta=0$.  Should we drop it?
+Suppose one candidate variable really has coefficient $\beta=0$. If we leave it out, the remaining coefficients and predictions are usually estimated more precisely. If we include it anyway, we spend a degree of freedom estimating something that is not contributing signal.
 
-Some mathematical theory shows that if we omit a variable which (truly) has regression coefficient  $\beta=0$  then
-
-- Variances of the remaining regression coefficients are reduced
-
-- Variances of predictions from the model  at any point $x_0$  are reduced. 
-
-Both these things are good.
-
-Conversely if we include a variable whose coefficient $\beta=0$ this  increases these variances unnecessarily. This is called **overfitting**. We want to avoid this.
+That is one form of **overfitting**: the model is more complicated than it needs to be.
 
 ### Dropping or Including Variables that have $\beta \ne 0$
 
-On the other hand suppose we make a mistake and omit a variable that has regression coefficient $\ne 0$.   
+The opposite mistake is to leave out a variable that really belongs in the model. That is **underfitting**.
 
-Then we have the opposite problem, called **underfitting**.  Mathematical theory shows the consequence of underfitting is that 
+If the omitted predictor overlaps with predictors that remain in the model, their coefficient estimates can be biased because they are now being asked to absorb some of the missing structure. Predictions can also be biased because the fitted mean structure is wrong.
 
--	if the wrongly-omitted variables are correlated with the remaining variables then the expected values of the remaining regression coefficients $\beta_0,\beta_1,...\beta_{p-1}$ are **biased**. (i.e. may be a too big or too small).
-
-- Whether or not the omitted variables are correlated with the existing ones, the predictions $\hat y_i$ are biased.
-
-Both these things are bad!
-
-**In practice we do not know if parameters are zero.** We could use a hypothesis test to help us decide, but this is not a definitive answer.
+The awkward part is that we do not know in advance which coefficients are truly zero. A hypothesis test gives us evidence, but it does not solve the model-selection problem by itself.
 
 ## A Numerical Illustration of Under and Overfitting
 
-In this artificial example, we consider an industrial process whose Yield is thought  to depend on the process temperature at stage A of the process, and possibly also on the temperature at stage B.   
+To make this concrete, consider an artificial industrial process where Yield depends on the process temperature at stage A, and may also depend on the temperature at stage B.
 
-i.e.  We consider the model 
+We consider the model 
 $$ Y=\beta_0 + \beta_1 A+ \beta_2 B +\varepsilon.$$
 	
 We will assume the values of $A$ and $B$ and $\varepsilon$ are given in the data below.  The errors are random $\varepsilon \sim \mbox{Normal}(0, 1)$.
@@ -89,14 +75,14 @@ sim = read.csv("../data/simulation1.csv",header=TRUE)
 ```
 
 
-What we want to know is, what are the implications of using an incorrect model, 	i.e. incorrect assumptions about the $\beta$s. To understand the implications, we simulate two scenarios. 
+We will use two simple scenarios to see what happens when the fitted model is either too complicated or too simple.
 	
 ### Scenario 1: $\beta_0=50$, $\beta_1=10$ and $\beta_2=0$.
 
-For this illustration, the correct model doesn't depend on $B$ at all:
+In the first scenario, $B$ genuinely does nothing:
 $$Y  =  50 + 10 A + \varepsilon$$
 
-The following shows the result of modelling $Y$ by (1) $A$ alone and  (2) by $A$ and $B$.
+Compare the correct model using $A$ alone with an unnecessarily larger model that also includes $B$.
 
 ```{r overfitting}
 dat <- sim |> mutate(Y = 50 + 10*A + epsilon)
@@ -109,7 +95,7 @@ Adding the unnecessary variable doesn't introduce bias ($\hat\beta_1 \approx 10$
 
 ### Scenario 2: $\beta_0=50$, $\beta_1=5$ and $\beta_2=5$.
 
-We consider the model where $Y$ depends on both $A$ and $B$,
+Now both predictors genuinely matter:
 $$	Y  =  50 + 5 A + 5 B + \varepsilon $$
 
 ```{r underfitting}
@@ -119,7 +105,7 @@ lm2 = lm(Y ~ A + B, data=dat)
 lst(lm1, lm2) |> map_dfr(tidy, .id='model')
 ```
 
-In the first model, $B$ is wrongly ignored and $A$ is both biased and has a larger standard error. In the second model, the values of $\hat\beta_1$ and $\hat\beta_2$ are close to the true ones and the standard errors are the same as in the second analysis of Scenario 1.
+When we wrongly omit $B$, the estimated coefficient for $A$ is pulled away from its true value. Once both predictors are included, the fitted coefficients are close to the values used to generate the data.
 
 ### Summary: Bias vs Variance Trade-off
 
@@ -129,7 +115,7 @@ In practice we do not know which situation we are in. Model selection therefore 
 
 ## How should we judge extra complexity?
 
-If adding variables always decreases RSS, how can we tell whether the extra complexity is worthwhile? The answer depends on the goal and on which candidate models are being compared.
+Adding variables will always make RSS smaller, so that alone cannot tell us whether the extra complexity was worth it. We need criteria that put the improvement in fit into context.
 
 ### Fit measures
 
@@ -159,13 +145,13 @@ $$AIC = n\log(RSS/n) + 2p + \text{constant},$$
 
 where $p$ is the number of fitted regression parameters. Smaller AIC is preferred when comparing candidate models fitted to the same response and observations.
 
-Unlike the partial *F* test, AIC does not require one model to be nested inside another. It still does not identify a universally correct model. It gives one way to balance fitted error against model complexity.
+Unlike the partial *F* test, AIC can compare models that are not nested. It is still just a criterion, not a machine for finding the one true model, but it gives us a practical way to trade fit against complexity.
 
 Individual coefficient *P*-values answer a more specific question about one coefficient under one parameterisation. They should not be treated as a complete model-selection rule.
 
 ### Cross-validation: a prediction question
 
-All of the criteria above are calculated from the data used to fit the model. If prediction is our main goal, the stronger question is:
+Everything above is based on the data used to fit the model. If prediction is the goal, the more useful question is:
 
 > How well does the model predict observations it did not use to fit itself?
 
@@ -188,11 +174,11 @@ ggplot(cv_steps, aes(x = x, y = 0)) +
   theme_void()
 ```
 
-We introduce that idea here but leave implementation, including `cv.glmnet()`, for Lecture 28.
+For now, the idea is enough. We will actually use cross-validation in Lecture 28.
 
 ## Select terms, not arbitrary coefficients
 
-The scientific predictor and the individual regression coefficients are not always the same thing. A four-level factor creates three treatment coefficients, but it is still one scientific predictor.
+One more thing before we start selecting models: a model term is not always the same thing as one coefficient. A four-level factor creates three treatment coefficients, but scientifically it is still one predictor.
 
 Similarly, in
 
@@ -204,7 +190,7 @@ y ~ A * x
 
 ## Example:  Model Selection for Climate Data
 
-We wish to model the mean temperature in July (winter) in Aotearoa New Zealand using data from 36 towns. We have information on location (latitude, longitude, height (elevation), whether they're by the sea or in the North island) as well as climate information (mean temperature in January, total sunshine hours and total rainfall).
+We will build a model for mean July temperature across 36 towns in Aotearoa New Zealand. We have location variables such as latitude, longitude, elevation, coastal location and island, together with summer temperature, sunshine and rainfall.
 
 `r xfun::embed_file("../data/climate.csv")` 
 
@@ -235,7 +221,7 @@ climate |>
 - Closeness to the sea
 - Increased sunshine hours
 
-Many of these are likely correlated.
+Several of these predictors are clearly telling us partly the same story.
 
 ### Climate: Latitude/Longitude and North vs South
 
@@ -318,7 +304,7 @@ The evidence against adding `Long` is consistent: its *P*-value is greater than 
 
 ### Climate model-building progression
 
-The progression is a sequence of candidate comparisons, not a proof that one final formula is universally correct. The table puts the main evidence side by side.
+This is a model-building path, not proof that we have discovered the only correct formula. The table simply puts the evidence from each candidate addition in one place.
 
 ```{r climate-progression, echo=FALSE, results='asis'}
 climate_progression <- tibble(
@@ -334,11 +320,11 @@ knitr::kable(climate_progression, digits = 3,
              caption = "Climate candidate models and in-sample comparison measures")
 ```
 
-The table helps us describe what changes as terms are added. It does not replace the modelling goal, subject-matter reasoning, or validation of future prediction.
+The table is useful because it shows what each extra term buys us. It still does not replace the modelling goal, subject-matter knowledge, or proper validation if prediction is what we care about.
 
 ### A final model check
 
-Choosing a plausible mean structure is not the end of the analysis. We still need to check whether the fitted model shows evidence of problems with the LINE assumptions.
+Once we have a plausible mean structure, we still need to check whether the fitted model shows obvious problems with the LINE assumptions.
 
 `lm(MnJlyTemp ~ Lat + Height + Sea + NorthIsland + Rain, data = climate)`.
 
@@ -356,13 +342,13 @@ plot(lm5)
 - Scale-Location: the spread does not show a strong trend across fitted values, so there is not strong evidence of changing variance.
 - Residuals vs. Leverage: no observation stands out as obviously influential from this plot alone.
 
-These plots do not confirm the assumptions or certify the model. They give us evidence about whether the fitted model shows important departures that need further investigation.
+These plots do not certify the model. They tell us whether there are obvious departures that need more attention.
 
 ## A more realistic running example
 
-From this point in the course, we will keep coming back to one larger dataset to show how we can build up a more complex, and therefore more realistic, regression model. The data describe hourly bike rentals in Seoul, South Korea, together with weather and calendar information that might help explain or predict demand.
+From this point in the course, we are going to keep coming back to one more complex dataset rather than starting from scratch with a new toy example each time. The data are hourly bike rentals in Seoul, South Korea, together with weather and calendar variables that might help us explain or predict demand.
 
-Rather than introducing a new small dataset for every method, we will use the Seoul bike data to see what happens as a model becomes more complicated. We will start with several plausible predictors here, then return to the same problem when we look at automated variable selection, penalised regression, multicollinearity and other complications later in the course.
+We will build this model up as the course goes on. Here we start with several plausible predictors. Later we will come back to the same data for automated variable selection, penalised regression, multicollinearity and the other problems that appear once a model starts looking more like something we would fit in practice.
 
 `r xfun::embed_file("../data/seoul_bike_hourly.csv")`
 
@@ -373,7 +359,7 @@ seoul_hourly
 
 The response is `rented_bike_count`. Potential explanatory variables include weather measurements such as temperature, humidity, wind speed and rainfall, as well as calendar information such as hour, season and whether the day is a holiday.
 
-There is no obvious single model here. Several predictors look reasonable, some are likely to overlap in the information they contain, and the number of possible models grows quickly. That is much closer to what happens with real data.
+There is no obvious single model here. Several predictors are plausible, some are clearly related to one another, and the number of possible models gets large very quickly. That is exactly why this is useful as a running example.
 
 ```{r seoul candidate models, message=FALSE}
 seoul_basic = lm(
@@ -399,6 +385,6 @@ tibble(
 )
 ```
 
-The richer model has higher adjusted $R^2$, lower residual standard error, and lower AIC in this sample. These are in-sample comparisons, so they do not establish that the richer model will predict future bike demand better.
+The richer model looks better on all three in-sample criteria: adjusted $R^2$ is higher, while residual standard error and AIC are lower. That tells us it fits these data better after accounting, to some extent, for the extra complexity. It does not yet tell us that it will predict new bike demand better.
 
-We can still compare a handful of candidate models by hand. Once there are many plausible predictors, that becomes tedious very quickly. In the next lecture we look at ways to automate that search, and at a different strategy where we keep a larger model but shrink its coefficients rather than repeatedly adding and removing variables.
+With only a few candidate models we can still do this by hand. Once the predictor list gets longer, that becomes painful. In the next lecture we look at two ways forward: automate the search through candidate models, or keep a larger model and shrink the coefficients instead of repeatedly adding and removing terms.
