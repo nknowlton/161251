@@ -44,13 +44,13 @@ ggplot(continuum, aes(x = x, y = 0)) +
 
 This is the **bias-variance trade-off**. A model that is too simple can omit structure. A model that is too complicated can fit accidental features of the current data and produce less stable estimates.
 
-### Dropping or Including Variables that have $\beta=0$
+### What if $\beta=0$?
 
 Suppose one candidate variable really has coefficient $\beta=0$. If we leave it out, the remaining coefficients and predictions are usually estimated more precisely. If we include it anyway, we spend a degree of freedom estimating something that is not contributing signal.
 
 That is one form of **overfitting**: the model is more complicated than it needs to be.
 
-### Dropping or Including Variables that have $\beta \ne 0$
+### What if $\beta \ne 0$?
 
 The opposite mistake is to leave out a variable that really belongs in the model. That is **underfitting**.
 
@@ -58,7 +58,7 @@ If the omitted predictor overlaps with predictors that remain in the model, thei
 
 The awkward part is that we do not know in advance which coefficients are truly zero. A hypothesis test gives us evidence, but it does not solve the model-selection problem by itself.
 
-## A Numerical Illustration of Under and Overfitting
+## A small simulation
 
 To make this concrete, consider an artificial industrial process where Yield depends on the process temperature at stage A, and may also depend on the temperature at stage B.
 
@@ -75,7 +75,7 @@ sim = read.csv("../data/simulation1.csv",header=TRUE)
 ```
 
 
-We will use two simple scenarios to see what happens when the fitted model is either too complicated or too simple.
+We will use two simple scenarios: one where the larger model is unnecessary, and one where the smaller model leaves something important out.
 	
 ### Scenario 1: $\beta_0=50$, $\beta_1=10$ and $\beta_2=0$.
 
@@ -109,7 +109,7 @@ lst(lm1, lm2) |> map_dfr(tidy, .id='model')
 
 When we wrongly omit $B$, the estimated coefficient for $A$ is pulled away from its true value. Once both predictors are included, the fitted coefficients are close to the values used to generate the data.
 
-### Summary: Bias vs Variance Trade-off
+### What did the simulation show?
 
 Omitting a needed variable can bias the remaining estimates and predictions, especially when the omitted predictor overlaps with variables retained in the model. Including an unnecessary variable can leave the estimates centred correctly while increasing their standard errors.
 
@@ -167,7 +167,7 @@ knitr::include_graphics("../resources/cv_basic.svg")
 knitr::include_graphics("../resources/cv_5fold.gif")
 ```
 
-Your focus her should be on the idea not the implementation. We will apply it in Lecture 28 when to help us fit *large* models.
+For now, focus on the idea rather than the implementation. We will use cross-validation in Lecture 28 when we start fitting larger models.
 
 ## Select terms, not arbitrary coefficients
 
@@ -326,7 +326,7 @@ The evidence against adding `Long` is consistent: its *P*-value is greater than 
 
 ## Climate model-building progression
 
-This is a model-building path, not proof that we have discovered the only correct formula. The table simply puts the evidence from each candidate addition in one place.
+We have followed one sensible path through the candidate models. That does not prove we have found the only correct formula. The table just puts the evidence from each step in one place.
 
 ```{r climate-progression, echo=FALSE, results='asis'}
 climate_progression <- tibble(
