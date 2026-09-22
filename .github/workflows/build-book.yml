@@ -103,8 +103,7 @@ jobs:
             _site/slides/index.html
             _site/labs/index.html
             _site/widget/index.html
-            _site/labs/lab10A.Rmd
-            _site/labs/lab10B.Rmd
+            _site/labs/lab10.Rmd
             _site/labs/lab11A.Rmd
             _site/labs/lab11B.Rmd
             _site/labs/lab12A.Rmd
