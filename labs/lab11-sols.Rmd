@@ -1,0 +1,468 @@
+---
+title: "Lab 11 solutions"
+subtitle: "161.251 Regression Modelling"
+author: "Nick Knowlton nknowlton@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = "", dev = "png")
+library(tidyverse)
+library(car)
+library(glmnet)
+```
+
+# Computer Laboratory: Search, Shrinkage, and Weighting
+
+Last week we built and compared several Auto MPG models by hand. That worked because the candidate set was still manageable.
+
+This week we continue with the same data, but we now let the predictor set become larger. We will first automate part of the model search, then look at what happens when several predictors carry almost the same information. In the second part of the lab, the problem changes: we will use weighted regression because the observations themselves do not all carry the same amount of information.
+
+# Part A: Auto MPG
+
+```{r import-auto, message=FALSE}
+auto <- readr::read_csv("../data/auto_mpg.csv") |>
+  mutate(origin = factor(origin))
+
+levels(auto$origin)
+```
+
+Europe is the reference level for `origin`. As in Lab 10, we will model `mpg` and exclude `car_name` from the candidate predictors.
+
+## 1. Automated model search
+
+The null model contains only an intercept. The full candidate model contains the seven predictors we are willing to consider.
+
+```{r search-models}
+null_model <- lm(mpg ~ 1, data = auto)
+
+full_model <- lm(
+  mpg ~ cylinders + displacement + horsepower + weight +
+    acceleration + model_year + origin,
+  data = auto
+)
+```
+
+Run forward, backward, and both-direction stepwise searches using AIC. The `scope` tells `step()` which models define the lower and upper limits of the search.
+
+```{r run-searches}
+search_scope <- list(
+  lower = formula(null_model),
+  upper = formula(full_model)
+)
+
+forward_search <- step(
+  null_model,
+  scope = search_scope,
+  direction = "forward",
+  trace = 0
+)
+
+backward_search <- step(
+  full_model,
+  scope = search_scope,
+  direction = "backward",
+  trace = 0
+)
+
+both_search <- step(
+  null_model,
+  scope = search_scope,
+  direction = "both",
+  trace = 0
+)
+```
+
+Inspect the sequence followed by each search and its final formula.
+
+```{r search-paths}
+forward_search$anova
+backward_search$anova
+both_search$anova
+
+formula(forward_search)
+formula(backward_search)
+formula(both_search)
+```
+
+**Solution.** Forward search adds `weight`, `model_year`, `origin`, `displacement`, `horsepower`, and then `cylinders`. Backward search starts from the full model and removes only `acceleration`. The both-direction search started at the null model and followed the same path as forward search.
+
+All three procedures therefore finish at
+
+```text
+mpg ~ cylinders + displacement + horsepower + weight +
+      model_year + origin
+```
+
+They agree for these data and this candidate set. Stepwise procedures can still be path-dependent: at each stage they make a local decision from the models currently available. Agreement among these three runs does not establish that this is the uniquely best model, and it does not account for models or terms outside the specified scope.
+
+### Keeping a prespecified adjustment variable
+
+Suppose `origin` must remain in every candidate model because it was specified before the analysis. How can we prevent the search from removing it?
+
+**Solution.** Put `origin` in the lower model. It then becomes part of the lower boundary of the search.
+
+```{r forced-origin}
+origin_model <- lm(mpg ~ origin, data = auto)
+
+forced_origin_search <- step(
+  full_model,
+  scope = list(
+    lower = formula(origin_model),
+    upper = formula(full_model)
+  ),
+  direction = "backward",
+  trace = 0
+)
+
+formula(forced_origin_search)
+```
+
+This controls which models the algorithm is allowed to visit. It does not make the other statistical limitations of stepwise search disappear.
+
+## 2. This is where the predictors get in each other's way
+
+Automated search has treated the candidate terms as possible additions or removals. Before interpreting their coefficients, check how much information the numerical predictors share.
+
+```{r correlation-matrix}
+auto |>
+  select(
+    cylinders,
+    displacement,
+    horsepower,
+    weight,
+    acceleration,
+    model_year
+  ) |>
+  cor() |>
+  round(3)
+```
+
+**Solution.** `cylinders`, `displacement`, `horsepower`, and `weight` are strongly correlated. For example, the correlations of cylinders with displacement and displacement with weight are about 0.95 and 0.93. These variables are all carrying information about related aspects of vehicle size and power.
+
+Now inspect variance inflation factors for the full model.
+
+```{r vif-full}
+car::vif(full_model)
+```
+
+**Solution.** For the one-degree-of-freedom numerical terms, the `GVIF` column is the usual VIF. The values are about 10.7 for `cylinders`, 22.9 for `displacement`, 10.0 for `horsepower`, and 11.1 for `weight`. These values match what we saw in the correlation matrix: the model has difficulty separating the conditional contributions of these overlapping predictors.
+
+`origin` has two degrees of freedom, so its raw GVIF is not directly comparable with the one-degree-of-freedom terms. The adjusted `GVIF^(1/(2*Df))` column is provided for that comparison.
+
+### Simple and conditional coefficients
+
+Compare the coefficient from a separate simple regression for each of the four strongly correlated predictors with its coefficient in the full model.
+
+```{r coefficient-comparison}
+overlapping_predictors <- c(
+  "cylinders",
+  "displacement",
+  "horsepower",
+  "weight"
+)
+
+simple_models <- map(
+  overlapping_predictors,
+  ~ lm(reformulate(.x, response = "mpg"), data = auto)
+)
+
+coefficient_comparison <- tibble(
+  Predictor = overlapping_predictors,
+  `Simple coefficient` = map2_dbl(
+    simple_models,
+    overlapping_predictors,
+    ~ unname(coef(.x)[.y])
+  ),
+  `Full-model coefficient` = unname(
+    coef(full_model)[overlapping_predictors]
+  ),
+  `Full-model SE` = unname(
+    coef(summary(full_model))[overlapping_predictors, "Std. Error"]
+  )
+) |>
+  mutate(across(where(is.numeric), ~ round(.x, 4)))
+
+knitr::kable(coefficient_comparison)
+```
+
+**Solution.** Every simple-regression coefficient is negative: cars with more cylinders, greater displacement, more horsepower, or greater weight tend to have lower `mpg`. In the combined model, the coefficient magnitudes change substantially and the displacement coefficient becomes positive.
+
+That sign change does not mean greater displacement causes fuel economy to improve. The full-model displacement coefficient compares cars with the other included predictors held fixed, including weight, cylinders, and horsepower. The data contain relatively little independent variation with which to make that comparison. The fitted model can still describe or predict the response reasonably while its individual conditional coefficients are difficult to estimate precisely.
+
+## 3. Ridge and lasso
+
+Stepwise regression makes a hard decision: a term is either in the model or out of it. Penalised regression takes a different approach. We can keep a larger starting model but penalise large coefficients. Ridge usually keeps all predictors and shrinks their coefficients. Lasso can shrink some coefficients all the way to zero.
+
+`glmnet()` needs a numerical model matrix rather than a formula containing a factor.
+
+```{r glmnet-data}
+X <- model.matrix(
+  mpg ~ cylinders + displacement + horsepower + weight +
+    acceleration + model_year + origin,
+  data = auto
+)[, -1]
+
+y <- auto$mpg
+```
+
+Last week we introduced cross-validation as a way to evaluate performance on held-out observations. Here `cv.glmnet()` uses the same idea to choose the amount of shrinkage. We use the same folds for ridge and lasso so that their cross-validation results are directly comparable.
+
+```{r cross-validated-penalties}
+set.seed(161251)
+fold_id <- sample(rep(1:10, length.out = nrow(auto)))
+
+ridge_cv <- cv.glmnet(
+  X,
+  y,
+  alpha = 0,
+  foldid = fold_id
+)
+
+lasso_cv <- cv.glmnet(
+  X,
+  y,
+  alpha = 1,
+  foldid = fold_id
+)
+```
+
+### 3.1 Coefficient paths
+
+Plot the coefficient paths. What changes as the penalty becomes stronger?
+
+```{r coefficient-paths, fig.width=9, fig.height=5}
+par(mfrow = c(1, 2))
+plot(ridge_cv$glmnet.fit, xvar = "lambda", label = TRUE)
+title("Ridge coefficient paths")
+plot(lasso_cv$glmnet.fit, xvar = "lambda", label = TRUE)
+title("Lasso coefficient paths")
+par(mfrow = c(1, 1))
+```
+
+**Solution.** Both methods shrink coefficients towards zero as the penalty increases. Ridge shrinks the correlated predictors together and does not set them exactly to zero. The lasso paths can reach zero, so lasso can produce a smaller active set of predictors.
+
+The predictors use different units, so the vertical sizes of the returned coefficients should not be read as a direct ranking of predictor importance. `glmnet` standardises internally while fitting, then reports coefficients on the original scales.
+
+### 3.2 Choosing the penalty by cross-validation
+
+```{r cv-curves, fig.width=9, fig.height=5}
+par(mfrow = c(1, 2))
+plot(ridge_cv)
+title("Ridge cross-validation")
+plot(lasso_cv)
+title("Lasso cross-validation")
+par(mfrow = c(1, 1))
+
+penalty_choices <- tibble(
+  Method = c("Ridge", "Lasso"),
+  `lambda.min` = c(ridge_cv$lambda.min, lasso_cv$lambda.min),
+  `lambda.1se` = c(ridge_cv$lambda.1se, lasso_cv$lambda.1se)
+)
+
+knitr::kable(penalty_choices, digits = 4)
+```
+
+What trade-off is made by choosing `lambda.1se` rather than `lambda.min`?
+
+**Solution.** `lambda.min` gives the smallest mean cross-validated error among the fitted penalty values. `lambda.1se` chooses the most strongly regularised model whose estimated error is within one standard error of that minimum. It accepts a small amount of uncertainty in predictive performance in exchange for stronger shrinkage and, for lasso, usually a simpler active set.
+
+Cross-validation estimates performance on held-out folds from this dataset. It is more relevant to prediction than training RSS or adjusted R-squared, but it is still an estimate with sampling and fold-to-fold uncertainty.
+
+### 3.3 Which coefficients remain?
+
+```{r penalised-coefficients}
+round(as.matrix(coef(ridge_cv, s = "lambda.min")), 4)
+round(as.matrix(coef(ridge_cv, s = "lambda.1se")), 4)
+
+round(as.matrix(coef(lasso_cv, s = "lambda.min")), 4)
+round(as.matrix(coef(lasso_cv, s = "lambda.1se")), 4)
+```
+
+**Solution.** Ridge retains every coefficient at both penalty choices, but shrinks them. At `lambda.min`, lasso sets `cylinders`, `displacement`, and `acceleration` to zero. At the more strongly regularised `lambda.1se`, it also sets the Japan-versus-Europe origin contrast to zero.
+
+For this particular fold assignment, lasso retains weight and horsepower from the strongly correlated size-and-power group while dropping cylinders and displacement. This is one way lasso can behave with correlated predictors: it may retain some members of an overlapping group and remove others. It is not a general promise about which member will be chosen, and a different sample or fold assignment could change the active set.
+
+# Part B: Weighted regression for magazine readership
+
+So far this week we have been deciding how to handle predictors in the mean model. Weighted regression is a different problem. Now the rows themselves do not all carry the same amount of information.
+
+The magazine data contain an estimated mean number of magazines read for each age and sex group. Each row summarises `N` people and reports the within-group standard deviation `StDev`.
+
+```{r import-magazines, message=FALSE}
+mags <- readr::read_csv("../data/AveMags.csv") |>
+  mutate(
+    Sex = factor(Sex, levels = c(0, 1), labels = c("Male", "Female")),
+    Older = as.integer(Age >= 50),
+    precision_weight = N / StDev^2
+  )
+
+glimpse(mags)
+```
+
+## 4. Plot the grouped means
+
+```{r magazine-data-plot}
+ggplot(mags, aes(x = Age, y = Avemags)) +
+  geom_point(aes(size = N, colour = StDev, shape = Sex)) +
+  labs(
+    x = "Age",
+    y = "Mean number of magazines",
+    size = "Group size",
+    colour = "Within-group SD"
+  ) +
+  theme_minimal()
+```
+
+The fitted pattern needs to allow the age trend to change between teenagers, adults, and older adults. We will use the following mean structure rather than rebuilding it from scratch:
+
+```{r magazine-mean-model}
+magazine_unweighted <- lm(
+  Avemags ~ Age * Adult + Age * Older + Sex,
+  data = mags
+)
+```
+
+This is a hierarchical formula. It includes `Age`, both group indicators, and both corresponding age interactions. The teenage slope is the coefficient of `Age`; the adult slope adds the `Age:Adult` coefficient; and the older-adult slope also adds `Age:Older`. The `Adult` and `Older` main effects allow level changes at the group boundaries, so this model does not force the fitted pieces to meet exactly at those boundaries. The sex difference is additive and is held constant across ages.
+
+```{r magazine-unweighted-fit}
+mags |>
+  mutate(fitted = fitted(magazine_unweighted)) |>
+  ggplot(aes(x = Age, y = Avemags, colour = Sex)) +
+  geom_point() +
+  geom_line(aes(y = fitted)) +
+  labs(
+    x = "Age",
+    y = "Mean number of magazines"
+  ) +
+  theme_minimal()
+```
+
+**Solution.** The unweighted fit increases through the teenage ages, is approximately flat through adulthood, and decreases for the older group. Females have a higher fitted mean than males at each age because the model contains an additive sex effect but no age-by-sex interaction.
+
+## 5. Which rows are estimated most precisely?
+
+For a mean based on (N_i) independent people with within-group standard deviation (SD_i), its sampling variance is proportional to
+
+\[
+\frac{SD_i^2}{N_i}.
+\]
+
+We therefore use inverse-variance weights proportional to
+
+\[
+w_i = \frac{N_i}{SD_i^2}.
+\]
+
+```{r inspect-magazine-weights}
+mags |>
+  select(Age, Sex, N, StDev, precision_weight) |>
+  arrange(desc(precision_weight))
+```
+
+**Solution.** The age-67 groups receive by far the largest weights because they combine large sample sizes with relatively modest standard deviations. The teenage groups generally receive much less weight. The 16-year-old male group has the smallest weight because its estimated mean is based on only 18 people and has a large within-group standard deviation.
+
+## 6. Fit the same mean structure with weights
+
+```{r fit-weighted-model}
+magazine_weighted <- lm(
+  Avemags ~ Age * Adult + Age * Older + Sex,
+  data = mags,
+  weights = precision_weight
+)
+
+coefficient_comparison <- tibble(
+  Term = names(coef(magazine_unweighted)),
+  Unweighted = unname(coef(magazine_unweighted)),
+  Weighted = unname(coef(magazine_weighted))
+) |>
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+
+knitr::kable(coefficient_comparison)
+```
+
+Compare the fitted curves from the two models.
+
+```{r compare-magazine-fits}
+magazine_fits <- bind_rows(
+  mags |>
+    mutate(
+      fitted = fitted(magazine_unweighted),
+      fit = "Unweighted"
+    ),
+  mags |>
+    mutate(
+      fitted = fitted(magazine_weighted),
+      fit = "Weighted"
+    )
+)
+
+ggplot(magazine_fits, aes(x = Age, colour = Sex)) +
+  geom_point(aes(y = Avemags, size = precision_weight), alpha = 0.5) +
+  geom_line(aes(y = fitted, linetype = fit), linewidth = 0.9) +
+  labs(
+    x = "Age",
+    y = "Mean number of magazines",
+    size = "Precision weight",
+    linetype = "Fit"
+  ) +
+  theme_minimal()
+```
+
+**Solution.** Weighting changes the fit because the highly weighted adult and older groups now have more influence than the relatively imprecise teenage groups. The fitted female-minus-male difference decreases from about 1.13 magazines in the unweighted model to about 0.72 in the weighted model. The weighted teenage fitted values, especially for females, move down, while several fitted values for older males move up slightly.
+
+The weighting has not changed the response or the mean-model formula. It has changed the criterion being minimised: discrepancies from more precise group means count more heavily.
+
+## 7. Ordinary and weighted residuals
+
+For the unweighted model, inspect the ordinary residuals. For the weighted model, inspect
+
+\[
+\sqrt{w_i}(y_i - \hat{y}_i),
+\]
+
+which places the residuals on the scale used by weighted least squares.
+
+```{r compare-magazine-residuals}
+residual_comparison <- bind_rows(
+  mags |>
+    transmute(
+      Age,
+      Sex,
+      residual = resid(magazine_unweighted),
+      model = "Unweighted: ordinary residuals"
+    ),
+  mags |>
+    transmute(
+      Age,
+      Sex,
+      residual = resid(magazine_weighted) * sqrt(precision_weight),
+      model = "Weighted: weighted residuals"
+    )
+)
+
+ggplot(residual_comparison, aes(x = Age, y = residual, colour = Sex)) +
+  geom_hline(yintercept = 0, colour = "grey60") +
+  geom_point() +
+  facet_wrap(~ model, scales = "free_y", ncol = 1) +
+  labs(x = "Age", y = "Residual") +
+  theme_minimal()
+```
+
+**Solution.** The ordinary residual plot treats every group mean as equally precise even though the sample sizes and standard deviations differ considerably. The weighted residuals rescale each discrepancy by the information behind that row. A raw discrepancy from a precise group mean matters more; the same discrepancy from a noisy group mean matters less.
+
+We should not compare the vertical magnitudes across the two panels as if they were in identical units. The useful comparison is whether the residual structure is reasonable on the error scale assumed by each fit. Some variation and individual large residuals remain, but the weighted analysis no longer asks the low-information teenage rows to influence the fit as much as the large, more precise older groups.
+
+## Where this leaves us
+
+The two parts of this lab solve different problems:
+
+- Stepwise search and penalised regression respond to a large or redundant predictor set.
+- VIFs and coefficient comparisons diagnose why individual conditional effects can become unstable when predictors overlap.
+- Cross-validation chooses the amount of shrinkage using held-out predictions.
+- Weighted regression changes how much each observation contributes when the observations have different precisions.
+
+None of these methods chooses a scientifically meaningful model on its own. The model still depends on the question, the available variables, and the assumptions connecting the fitted calculation to that question.

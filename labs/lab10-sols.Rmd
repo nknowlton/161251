@@ -1,0 +1,317 @@
+---
+title: "Lab 10 solutions"
+subtitle: "161.251 Regression Modelling"
+author: "Nick Knowlton nknowlton@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = "", dev = "png")
+library(tidyverse)
+```
+
+# Computer Laboratory: Building and Comparing Linear Models
+
+This week we will use one dataset to bring together the ideas from Lectures 25--27. The lectures used the Samara, Body Fat and Climate examples. Here we will work with a different dataset so that you have to apply the same ideas in a new setting.
+
+The Auto MPG data contain fuel economy measurements for 392 cars, together with information about vehicle size, power, model year and region of origin.
+
+We will start with a simple question involving one numerical predictor and one factor. We will then compare increasingly flexible models before moving to a larger set of plausible predictors and asking how much complexity is worth keeping.
+
+```{r import, message=FALSE}
+auto <- readr::read_csv("../data/auto_mpg.csv") |>
+  mutate(origin = factor(origin))
+
+glimpse(auto)
+```
+
+We will model `mpg`. The variable `origin` is categorical, so we have explicitly converted it to a factor. We will not use `car_name` as a predictor.
+
+## 1. One line, parallel lines, or separate lines?
+
+### 1.1 Look at the data first
+
+Plot `mpg` against `weight`, using colour to distinguish the three regions of origin. What broad patterns do you see?
+
+**Solution.**
+
+```{r raw-plot}
+ggplot(auto, aes(x = weight, y = mpg, colour = origin)) +
+  geom_point(alpha = 0.7) +
+  labs(
+    x = "Weight (lb)",
+    y = "Fuel economy (miles per gallon)",
+    colour = "Origin"
+  ) +
+  theme_minimal()
+```
+
+Heavier cars tend to have lower fuel economy. The origins also occupy rather different parts of the weight range, so any apparent origin difference needs to be interpreted after accounting for weight. The relationship does not look perfectly straight, especially across the full weight range. We will return to that when we check the final model.
+
+This is an observational dataset. The patterns describe associations among these variables; they do not show that changing a car's weight or origin would cause the corresponding change in fuel economy.
+
+### 1.2 Translate formulas into fitted lines
+
+Consider these three models:
+
+```{r define-models}
+m1 <- lm(mpg ~ weight, data = auto)
+m2 <- lm(mpg ~ weight + origin, data = auto)
+m3 <- lm(mpg ~ weight * origin, data = auto)
+```
+
+Before looking at any model output, state what each model allows to change between origins and predict what its fitted lines should look like.
+
+**Solution.**
+
+- `m1` fits one common line. Neither the intercept nor the slope changes with origin.
+- `m2` fits parallel lines. Their intercepts can differ, but they share one slope for weight.
+- `m3` fits separate lines. Both intercepts and weight slopes can differ by origin.
+
+The interaction formula expands as
+
+```text
+origin * weight = origin + weight + origin:weight
+```
+
+The main effects provide the intercept and slope differences needed to interpret the interaction terms. We should not remove them while retaining `origin:weight`.
+
+### 1.3 Compare the fitted geometry
+
+Plot the three fitted models against the same observations. Match each visible change in the lines to the term that permits it.
+
+**Solution.**
+
+```{r fitted-lines}
+weight_values <- seq(min(auto$weight), max(auto$weight), length.out = 200)
+model_levels <- c("One common line", "Parallel lines", "Separate lines")
+
+common_grid <- tibble(weight = weight_values)
+common_fit <- common_grid |>
+  mutate(
+    fitted = predict(m1, newdata = common_grid),
+    model = factor("One common line", levels = model_levels)
+  )
+
+origin_grid <- crossing(
+  weight = weight_values,
+  origin = levels(auto$origin)
+)
+
+origin_fits <- bind_rows(
+  origin_grid |>
+    mutate(
+      fitted = predict(m2, newdata = origin_grid),
+      model = "Parallel lines"
+    ),
+  origin_grid |>
+    mutate(
+      fitted = predict(m3, newdata = origin_grid),
+      model = "Separate lines"
+    )
+) |>
+  mutate(model = factor(model, levels = model_levels))
+
+plot_data <- crossing(
+  auto,
+  model = factor(model_levels, levels = model_levels)
+)
+
+ggplot(plot_data, aes(x = weight, y = mpg, colour = origin)) +
+  geom_point(alpha = 0.35) +
+  geom_line(
+    data = origin_fits,
+    aes(y = fitted),
+    linewidth = 1
+  ) +
+  geom_line(
+    data = common_fit,
+    aes(x = weight, y = fitted),
+    inherit.aes = FALSE,
+    colour = "black",
+    linewidth = 1
+  ) +
+  facet_wrap(~ model) +
+  labs(
+    x = "Weight (lb)",
+    y = "Fuel economy (miles per gallon)",
+    colour = "Origin"
+  ) +
+  theme_minimal()
+```
+
+Adding `origin` moves the fitted lines vertically while keeping a common slope. Adding `origin:weight` then allows the lines to rotate away from that common slope.
+
+## 2. Ask the question, then compare the models
+
+A partial F test compares a reduced model with a larger model containing all the reduced model's terms. Each comparison below answers a different question.
+
+### 2.1 Does origin add information after weight?
+
+The scientific question is:
+
+> After accounting for vehicle weight, is there evidence that expected fuel economy differs by origin, if the weight slope is held common across origins?
+
+Here `m1` is the reduced model and `m2` adds the two origin parameters.
+
+```{r compare-common-parallel}
+anova(m1, m2)
+```
+
+**Solution.** The P-value is about 0.0024. There is evidence that the parallel-lines model improves on one common line. More precisely, at least one of the two origin contrasts contributes after weight is already in the model. This is a joint test of the `origin` term, not a search through the individual coefficient P-values.
+
+### 2.2 Do the weight slopes differ among origins?
+
+The scientific question is:
+
+> Is there evidence that the relationship between vehicle weight and expected fuel economy differs among origins?
+
+Model `m3` adds the two interaction parameters to `m2`.
+
+```{r compare-parallel-separate}
+anova(m2, m3)
+```
+
+**Solution.** The P-value is about 0.044. At the 5% level, there is modest evidence that allowing different weight slopes improves on the parallel-lines model. The evidence is much less decisive than it was for adding origin to the weight-only model.
+
+### 2.3 Does origin affect either intercepts or slopes?
+
+The broader scientific question is:
+
+> Does allowing origin to affect either the intercept or the slope improve on one common regression line?
+
+This comparison adds four parameters at once: two origin contrasts and two origin-by-weight interactions.
+
+```{r compare-common-separate}
+anova(m1, m3)
+```
+
+**Solution.** The P-value is about 0.0011. Taken together, the origin and origin-by-weight terms improve on the common-line model. This test does not tell us that every added coefficient is individually important. It tests the four added parameters jointly.
+
+### 2.4 Why term order can matter in a sequential ANOVA table
+
+Compare the following two tables. The fitted model is the same, but the terms enter in a different order.
+
+```{r sequential-anova}
+anova(lm(mpg ~ origin + weight, data = auto))
+anova(lm(mpg ~ weight + origin, data = auto))
+```
+
+Why do the sums of squares attributed to `origin` and `weight` change?
+
+**Solution.** These are sequential sums of squares. The first term receives the variation it can explain before the second term is added. Origin and weight are associated in these data, so they can explain some of the same variation in `mpg`. Whichever enters first receives that shared part.
+
+This is why the question should determine the comparison. If we want to know whether origin adds information after weight, we write down exactly those two models and use `anova(m1, m2)`. That direct nested-model comparison does not depend on which term happens to be printed first in a single sequential ANOVA table.
+
+## 3. Build a small candidate set by hand
+
+Suppose our goal is a reasonably compact descriptive model for mean fuel economy. Weight, origin, model year and horsepower are all plausible predictors. We will use the interaction model from the previous section as our starting point, then consider two additions in turn.
+
+Adding predictors will always reduce RSS, so a smaller RSS is not enough to justify a larger model. We will keep track of adjusted R-squared, residual standard error and AIC. When we have a specific nested question, we can also use a partial F test.
+
+```{r candidate-models}
+m4 <- lm(mpg ~ weight * origin + model_year, data = auto)
+m5 <- lm(mpg ~ weight * origin + model_year + horsepower, data = auto)
+
+candidate_models <- list(
+  "Weight only" = m1,
+  "Weight + origin" = m2,
+  "Weight * origin" = m3,
+  "+ model year" = m4,
+  "+ horsepower" = m5
+)
+
+model_comparison <- tibble(
+  Model = names(candidate_models),
+  Parameters = map_int(candidate_models, ~ length(coef(.x))),
+  `Adjusted R-squared` = map_dbl(
+    candidate_models,
+    ~ summary(.x)$adj.r.squared
+  ),
+  `Residual standard error` = map_dbl(candidate_models, sigma),
+  AIC = map_dbl(candidate_models, AIC)
+) |>
+  mutate(
+    `Adjusted R-squared` = round(`Adjusted R-squared`, 3),
+    `Residual standard error` = round(`Residual standard error`, 3),
+    AIC = round(AIC, 1)
+  )
+
+knitr::kable(model_comparison)
+```
+
+What does model year add to `m3`?
+
+```{r compare-add-year}
+anova(m3, m4)
+```
+
+**Solution.** Model year produces a substantial improvement. Adjusted R-squared increases from about 0.703 to 0.830, residual standard error drops from about 4.25 to 3.22 mpg, and AIC drops by more than 200. The partial F test also gives very strong evidence that model year adds information after the weight-by-origin structure.
+
+What does horsepower add once weight, origin, their interaction, and model year are already present?
+
+```{r compare-add-horsepower}
+anova(m4, m5)
+```
+
+**Solution.** Horsepower makes only a small reduction in RSS. Adjusted R-squared decreases slightly, residual standard error barely changes, and AIC increases from about 2037.9 to 2039.1. The partial F test gives a P-value of about 0.38. For this candidate set, `m4` is the more economical working model.
+
+That conclusion is conditional on the terms already in the model and on this deliberately small candidate set. It does not establish that horsepower has no association with fuel economy in every model, and it certainly is not a causal conclusion.
+
+## 4. What changes when the goal is prediction?
+
+Suppose our goal changes from explaining fuel economy to predicting `mpg` for cars we have not yet seen.
+
+Why are adjusted R-squared, residual standard error and AIC from the fitted sample not direct estimates of prediction performance on new data? What approach introduced in Lecture 27 would let us evaluate predictions on observations that were not used to fit a model?
+
+**Solution.** All three quantities are calculated from the same sample used to estimate the model. Adjusted R-squared and AIC penalise complexity in different ways, but none of these values is an observed out-of-sample prediction error.
+
+We could set aside validation observations, or use cross-validation, so that each prediction is assessed on an observation that was not used to fit that version of the model. We are identifying the approach here rather than implementing it in this lab.
+
+## 5. Check, revise, and recheck the working model
+
+Choosing a plausible mean structure is not the end of the analysis. Produce the standard diagnostic plots for `m4`. What does each plot suggest, and what can it not establish?
+
+```{r diagnostics-initial, fig.width=9, fig.height=7}
+par(mfrow = c(2, 2))
+plot(m4)
+par(mfrow = c(1, 1))
+```
+
+**Solution.** The residuals-versus-fitted plot has a pronounced curved pattern. This is evidence that the current linear mean structure has missed systematic structure. It would be misleading to say that the linearity condition looks reasonable for `m4`.
+
+The Q-Q plot is close to its reference line through much of the distribution but departs in the tails, especially the upper tail. The scale-location plot also suggests that the residual spread is not quite constant. A few observations have large standardised residuals or relatively high leverage, although the influence plot does not suggest that one observation completely determines the fit. These plots identify observations worth checking; they do not by themselves show that those observations are errors.
+
+The curvature is too strong to ignore. Add a quadratic weight term, while retaining the lower-order weight term and the existing weight-by-origin interaction.
+
+```{r revise-mean-structure}
+m6 <- lm(
+  mpg ~ weight * origin + I(weight^2) + model_year,
+  data = auto
+)
+
+anova(m4, m6)
+```
+
+**Solution.** Adding the quadratic term makes a large reduction in RSS, with a very small P-value in the nested-model comparison. It also increases adjusted R-squared from about 0.830 to 0.852, lowers the residual standard error from about 3.22 to 3.01 mpg, and lowers AIC from about 2037.9 to 1985.0.
+
+Now check the revised model rather than assuming that the added term has solved every problem.
+
+```{r diagnostics-revised, fig.width=9, fig.height=7}
+par(mfrow = c(2, 2))
+plot(m6)
+par(mfrow = c(1, 1))
+```
+
+The strong U-shaped pattern has been reduced substantially, although there is still some mild structure in the residuals. The Q-Q and scale-location plots retain the concerns about the tails and somewhat changing spread. No diagnostic plot proves that an assumption is true, and the standard four plots do not give a useful direct check of independence here because the rows are different cars rather than an ordered time sequence.
+
+Model `m6` is therefore a better working model for the mean than `m4`, but it is not a claim that we have found the uniquely correct model. If the analysis were consequential, we would investigate the labelled observations, the changing variance, and other plausible mean structures before reporting final inferences.
+
+## Where this leaves us
+
+With a small number of candidate models we can still work through these choices by hand. Once the predictor list grows, however, the number of plausible models grows very quickly.
+
+Next week we look at two different responses to that problem. We can automate the search through candidate models, or we can keep a larger model and shrink its coefficients instead of repeatedly adding and removing terms.

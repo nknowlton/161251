@@ -360,9 +360,14 @@ if (file.exists(gitignore_path)) {
 # 18. No absolute local filesystem paths committed
 # ---------------------------------------------------------------------------
 for (dir_name in c("lecture-content", "lectures", "book", "slides", "shared", "scripts")) {
-  dir_path <- file.path(repo_root, dir_name)
-  files <- list.files(dir_path, pattern = "\\.Rmd$|\\.R$|\\.yml$|\\.yaml$|\\.css$|\\.html$",
-                      recursive = TRUE, full.names = TRUE)
+  tracked_files <- tryCatch(
+    system2("git", c("ls-files", "--", dir_name), stdout = TRUE, stderr = FALSE),
+    error = function(e) character()
+  )
+  tracked_files <- tracked_files[
+    grepl("\\.(Rmd|qmd|R|yml|yaml|css|html)$", tracked_files)
+  ]
+  files <- file.path(repo_root, tracked_files)
   for (f in files) {
     # Skip this validation script itself (it contains path-checking patterns)
     if (basename(f) == "validate-course.R") next

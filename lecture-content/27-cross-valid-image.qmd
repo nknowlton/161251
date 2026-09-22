@@ -301,7 +301,7 @@ gif_file <- file.path(resources_dir, "cv_5fold.gif")
 svg_file <- file.path(resources_dir, "cv_basic.svg")
 make_cv_gif(gif_file)
 make_cv_diagram(svg_file)
-c(gif_file, svg_file)
+invisible(c(gif_file, svg_file))
 ```
 
 ```{r, echo=FALSE, out.width="100%"}
