@@ -1,0 +1,394 @@
+---
+title: "Lab 10"
+subtitle: "161.251 Regression Modelling"
+author: "Nick Knowlton nknowlton@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = "", dev = "png")
+library(tidyverse)
+```
+
+# Computer Laboratory: Building and Comparing Linear Models
+
+This week we bring together Lectures 25--27 using a different dataset. The aim is not to repeat the Samara or Climate examples. I want you to use the same modelling logic on a new problem.
+
+> How does vehicle weight relate to fuel economy, does that relationship differ by origin, and when is a more complicated model worth keeping?
+
+The Auto MPG data contain 392 cars from model years 1970--1982. The course copy was prepared from the UCI Auto MPG data, with rows missing horsepower removed. Each row is one car. These are observational data, so the fitted relationships are associations rather than causal effects.
+
+| Variable | Meaning | Units / type |
+|:--|:--|:--|
+| `mpg` | fuel economy | miles per gallon |
+| `weight` | vehicle weight | pounds |
+| `horsepower` | engine power | horsepower |
+| `model_year` | model year | 70--82 |
+| `origin` | region of origin | USA, Europe, Japan |
+
+We will not use `car_name` as a predictor.
+
+```{r import, message=FALSE}
+auto <- readr::read_csv("../data/auto_mpg.csv") |>
+  mutate(origin = factor(origin, levels = c("USA", "Europe", "Japan")))
+
+glimpse(auto)
+```
+
+By the end of the lab you should be able to translate factor-by-covariate formulas into fitted lines, compare nested models with a partial F test, compare a small set of candidate models by hand, and use diagnostics to decide whether the mean structure needs more work.
+
+## What does origin change?
+
+### Demonstration: one line, parallel lines, separate lines
+
+Start with the data rather than the model output.
+
+```{r raw-plot}
+ggplot(auto, aes(x = weight, y = mpg, colour = origin)) +
+  geom_point(alpha = 0.7) +
+  labs(
+    x = "Weight (lb)",
+    y = "Fuel economy (miles per gallon)",
+    colour = "Origin"
+  ) +
+  theme_minimal()
+```
+
+Heavier cars tend to have lower fuel economy, but the three origins occupy different parts of the weight range. That is a good reason not to compare origins without also thinking about weight.
+
+Now fit the three models from Lecture 25.
+
+```{r define-models}
+m1 <- lm(mpg ~ weight, data = auto)
+m2 <- lm(mpg ~ weight + origin, data = auto)
+m3 <- lm(mpg ~ weight * origin, data = auto)
+```
+
+Before looking at the fitted lines, match each formula to its geometry:
+
+- `m1`: one common line;
+- `m2`: parallel lines;
+- `m3`: separate lines.
+
+Remember that
+
+```text
+origin * weight = origin + weight + origin:weight
+```
+
+The interaction allows the weight slope to depend on origin.
+
+The code below draws all three fits against the same observations.
+
+```{r fitted-lines}
+weight_values <- seq(min(auto$weight), max(auto$weight), length.out = 200)
+model_levels <- c("One common line", "Parallel lines", "Separate lines")
+
+common_grid <- tibble(weight = weight_values)
+common_fit <- common_grid |>
+  mutate(
+    fitted = predict(m1, newdata = common_grid),
+    model = factor("One common line", levels = model_levels)
+  )
+
+origin_grid <- crossing(
+  weight = weight_values,
+  origin = levels(auto$origin)
+)
+
+origin_fits <- bind_rows(
+  origin_grid |>
+    mutate(
+      fitted = predict(m2, newdata = origin_grid),
+      model = "Parallel lines"
+    ),
+  origin_grid |>
+    mutate(
+      fitted = predict(m3, newdata = origin_grid),
+      model = "Separate lines"
+    )
+) |>
+  mutate(model = factor(model, levels = model_levels))
+
+plot_data <- crossing(
+  auto,
+  model = factor(model_levels, levels = model_levels)
+)
+
+ggplot(plot_data, aes(x = weight, y = mpg, colour = origin)) +
+  geom_point(alpha = 0.35) +
+  geom_line(
+    data = origin_fits,
+    aes(y = fitted),
+    linewidth = 1
+  ) +
+  geom_line(
+    data = common_fit,
+    aes(x = weight, y = fitted),
+    inherit.aes = FALSE,
+    colour = "black",
+    linewidth = 1
+  ) +
+  facet_wrap(~ model) +
+  labs(
+    x = "Weight (lb)",
+    y = "Fuel economy (miles per gallon)",
+    colour = "Origin"
+  ) +
+  theme_minimal()
+```
+
+What to look for: adding `origin` can move the lines vertically. Adding `origin:weight` can also change their slopes.
+
+Discuss: which visible change corresponds to the `origin` term, and which corresponds to the interaction?
+
+<details>
+<summary>Worked interpretation</summary>
+
+Moving from `m1` to `m2` allows the expected MPG for the three origins to shift up or down while keeping one common weight slope. Moving from `m2` to `m3` also allows the slopes to differ.
+
+</details>
+
+### Your turn: read the separate-lines model
+
+Now look at the standard output for `m3`.
+
+```{r separate-lines-summary}
+summary(m3)
+```
+
+USA is the reference origin. Use the coefficient names to answer:
+
+1. Which coefficient gives the weight slope for USA?
+2. Which coefficients shift the intercept for Europe and Japan relative to USA?
+3. Which coefficients change the weight slope for Europe and Japan?
+4. Why would interpreting the `originEurope` coefficient as an overall Europe-versus-USA difference be misleading in this model?
+
+## Which extra structure is supported?
+
+A partial F test compares a reduced model with a larger model containing all of the reduced model's terms. The question comes first. The test tells us whether the added terms improve the fit enough to justify the extra parameters.
+
+### Demonstration: does origin add information after weight?
+
+The question is:
+
+> After accounting for vehicle weight, is there evidence that expected fuel economy differs by origin if the weight slope is held common?
+
+Here `m1` is the reduced model and `m2` adds the two origin parameters.
+
+```{r compare-common-parallel}
+anova(m1, m2)
+```
+
+What to look for: the P-value tests the two added origin parameters jointly. We are not choosing between the individual coefficient P-values.
+
+Discuss: what does a small P-value mean in terms of the fitted lines?
+
+<details>
+<summary>Worked interpretation</summary>
+
+The P-value is about 0.0024. There is evidence that the parallel-lines model improves on one common line. At least one origin contrast contributes after weight is already in the model.
+
+</details>
+
+### Your turn: do the weight slopes differ?
+
+Now compare the parallel-lines and separate-lines models.
+
+> Is there evidence that the relationship between vehicle weight and expected fuel economy differs among origins?
+
+```{r compare-parallel-separate}
+# Compare m2 with m3 using anova().
+# Your code here
+```
+
+State:
+
+1. which terms are being added;
+2. the P-value;
+3. your conclusion in terms of the fitted slopes.
+
+### Independent comparison: does origin affect either intercepts or slopes?
+
+Compare `m1` with `m3`.
+
+> Does allowing origin to affect either the intercept or the slope improve on one common regression line?
+
+```{r compare-common-separate}
+# Your code here
+```
+
+How many parameters are added? Write one or two sentences interpreting the joint test.
+
+### One wrinkle: sequential ANOVA depends on order
+
+These two models have exactly the same fitted values, but the ANOVA tables allocate sums of squares in a different order.
+
+```{r sequential-anova}
+anova(lm(mpg ~ origin + weight, data = auto))
+anova(lm(mpg ~ weight + origin, data = auto))
+```
+
+Origin and weight overlap in the information they carry. In a sequential ANOVA table, the first term gets credit for variation it can explain before the second term is added.
+
+Why does this make `anova(m1, m2)` the cleaner answer to the question "does origin add information after weight?"
+
+## When does another predictor earn its place?
+
+Now move from one prespecified comparison to a small candidate set. Suppose our goal is a reasonably compact descriptive model for mean fuel economy.
+
+We will compare models using three quantities:
+
+- adjusted R-squared, where larger values indicate more fit after accounting for residual degrees of freedom;
+- residual standard error, which measures the remaining residual variation in MPG;
+- AIC, where smaller values indicate a better fit-complexity trade-off among models fitted to the same response and observations.
+
+These do different jobs, so do not expect one number to make every modelling decision for us.
+
+### Demonstration: add model year
+
+Start from `m3` and add model year.
+
+```{r add-model-year}
+m4 <- lm(mpg ~ weight * origin + model_year, data = auto)
+
+tibble(
+  model = c("m3", "m4"),
+  adjusted_r_squared = c(
+    summary(m3)$adj.r.squared,
+    summary(m4)$adj.r.squared
+  ),
+  residual_standard_error = c(sigma(m3), sigma(m4)),
+  AIC = c(AIC(m3), AIC(m4))
+)
+
+anova(m3, m4)
+```
+
+What to look for: does every measure move in the same direction? How large is the change relative to what we saw when origin was added?
+
+Discuss: what does model year buy us after weight, origin, and their interaction are already in the model?
+
+<details>
+<summary>Worked interpretation</summary>
+
+Model year produces a substantial improvement. Adjusted R-squared rises markedly, residual standard error falls, AIC falls by more than 200, and the partial F test gives very strong evidence that model year adds information.
+
+</details>
+
+### Your turn: does horsepower add anything further?
+
+Fit
+
+```text
+mpg ~ weight * origin + model_year + horsepower
+```
+
+as `m5`. Then repeat the same comparison against `m4`.
+
+```{r add-horsepower}
+m5 <- lm(
+  # Complete the formula.
+  # Your code here
+)
+
+# Build the same three-number comparison for m4 and m5.
+# Then compare m4 and m5 with anova().
+```
+
+Do adjusted R-squared, residual standard error, AIC and the partial F test tell a consistent story?
+
+### Independent decision: choose a working model
+
+Choose between `m4` and `m5` for a compact descriptive model.
+
+Write a short justification using at least three pieces of evidence. Do not say that an excluded predictor has "no effect". Your conclusion is conditional on the other terms in this candidate set.
+
+## What if prediction is the goal?
+
+Everything above was calculated using the data that fitted the model.
+
+Suppose instead that we want to predict `mpg` for cars we have not yet seen.
+
+Why are adjusted R-squared, residual standard error and AIC not direct estimates of prediction error on new cars? What approach from Lecture 27 would let us assess predictions on observations that were not used to fit that version of the model?
+
+Do not implement it here. We will use it next week.
+
+## Does the working model actually fit the pattern?
+
+Model selection is not the end of the analysis. Use the standard diagnostic plots for `m4`.
+
+For each plot use the same routine:
+
+1. say what pattern would be reassuring;
+2. describe what you actually see;
+3. explain why the departure matters.
+
+### Demonstration: diagnose the working model
+
+```{r diagnostics-initial, fig.width=9, fig.height=7}
+par(mfrow = c(2, 2))
+plot(m4)
+par(mfrow = c(1, 1))
+```
+
+What to look for: start with the residuals-versus-fitted plot. Is there structure left in the mean, or just a shapeless cloud around zero?
+
+Discuss the four plots before moving on.
+
+<details>
+<summary>Worked interpretation</summary>
+
+The residuals-versus-fitted plot shows pronounced curvature, so the current linear mean structure is missing systematic structure. The Q-Q plot is reasonably close through much of the distribution but departs in the tails. The scale-location plot suggests some change in residual spread. A few observations deserve investigation for residual size or leverage, but a diagnostic label is not a reason to delete an observation.
+
+</details>
+
+### Your turn: revise and recheck
+
+Polynomial regression was introduced earlier in the course. A quadratic model keeps the linear weight term and adds `weight^2`. In an R formula we can write the squared term as `I(weight^2)`.
+
+Fit
+
+```text
+mpg ~ weight * origin + I(weight^2) + model_year
+```
+
+as `m6`.
+
+```{r revise-mean-structure}
+m6 <- lm(
+  # Complete the formula.
+  # Your code here
+)
+
+# Compare m4 with m6 using anova().
+# Compare adjusted R-squared, residual standard error and AIC.
+```
+
+Now repeat the diagnostic plots for `m6`.
+
+```{r diagnostics-revised, fig.width=9, fig.height=7}
+# Use diagnostics-initial as your template.
+# Your code here
+```
+
+Has the main curvature been reduced? What concerns remain?
+
+The standard diagnostic plots do not give a direct test of independence here. Row order has no scientific meaning, and independence has to be considered from how the cars entered the dataset and whether observations may share unmodelled structure.
+
+## Independent synthesis
+
+Write a short conclusion for the Auto MPG analysis. Include:
+
+1. what the one-line, parallel-line and separate-line models allowed to change;
+2. what the partial F comparisons told you about origin;
+3. which compact candidate model you preferred before diagnostics and why;
+4. what the diagnostics made you change;
+5. why none of the in-sample comparisons establishes prediction performance on new cars.
+
+Keep the conclusion to about six sentences.
+
+With a small candidate set we can still do this by hand. Once the predictor list becomes longer, that gets tedious very quickly. Next week we look at two different responses: automate the search through candidate models, or keep a larger model and shrink its coefficients.
