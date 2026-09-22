@@ -219,42 +219,7 @@ Several of these predictors are clearly telling us partly the same story.
 ## Climate: Latitude/Longitude and North vs South
 
 ```{r climate-map, echo=FALSE}
-nz <- tribble(
-  ~subregion, ~long, ~lat,
-  "North Island", 173.0, -34.4,
-  "North Island", 174.8, -34.3,
-  "North Island", 176.2, -34.5,
-  "North Island", 177.2, -35.4,
-  "North Island", 178.6, -37.2,
-  "North Island", 178.4, -38.4,
-  "North Island", 177.7, -39.2,
-  "North Island", 177.0, -40.3,
-  "North Island", 176.2, -41.4,
-  "North Island", 175.0, -41.7,
-  "North Island", 174.2, -41.3,
-  "North Island", 173.5, -40.6,
-  "North Island", 174.0, -39.4,
-  "North Island", 173.4, -38.4,
-  "North Island", 173.0, -37.2,
-  "North Island", 172.9, -36.2,
-  "North Island", 173.0, -34.4,
-  "South Island", 174.0, -40.6,
-  "South Island", 174.4, -41.7,
-  "South Island", 173.9, -42.6,
-  "South Island", 173.6, -43.4,
-  "South Island", 172.8, -44.1,
-  "South Island", 172.0, -45.2,
-  "South Island", 170.7, -46.6,
-  "South Island", 169.2, -47.2,
-  "South Island", 167.8, -46.9,
-  "South Island", 166.8, -46.1,
-  "South Island", 167.6, -44.8,
-  "South Island", 168.4, -43.5,
-  "South Island", 169.3, -42.1,
-  "South Island", 170.5, -41.0,
-  "South Island", 172.2, -40.5,
-  "South Island", 174.0, -40.6
-)
+nz <- read_csv("../resources/nz_outline.csv", show_col_types = FALSE)
 
 climate_map <- climate |>
   mutate(Island = if_else(NorthIsland == 1, "North Island", "South Island"))
@@ -262,7 +227,7 @@ climate_map <- climate |>
 ggplot() +
   geom_polygon(
     data = nz,
-    aes(x = long, y = lat, group = subregion),
+    aes(x = long, y = lat, group = group),
     fill = "#e9f0f3", colour = "#325d88", linewidth = 0.4
   ) +
   geom_point(
