@@ -23,7 +23,7 @@ These are different jobs, and they can favour different models. A variable might
 
 ## Overfitting and underfitting
 
-So why not just put everything into the model? Because there are two ways to get this wrong.
+So why not just put everything into the model? 
 
 ```{r bias-variance-continuum, echo=FALSE, fig.width=9, fig.height=1.8, out.width="90%", fig.cap="The bias-variance trade-off as model flexibility changes."}
 continuum <- tibble(
@@ -93,6 +93,8 @@ lst(lm1, lm2) |> map_dfr(tidy, .id='model')
 
 Adding the unnecessary variable doesn't introduce bias ($\hat\beta_1 \approx 10$), but the standard error of $\hat\beta_1$ is higher in the misspecified model.
 
+## Under and Overfitting con't
+
 ### Scenario 2: $\beta_0=50$, $\beta_1=5$ and $\beta_2=5$.
 
 Now both predictors genuinely matter:
@@ -137,7 +139,7 @@ $$S = \sqrt{\frac{RSS}{df_{\mathrm{residual}}}}.$$
 
 It measures remaining unexplained variation on the response scale. It is useful for comparing fitted models to the extent that they have the same response and observations.
 
-### Partial *F* tests and AIC
+## Partial *F* tests and AIC
 
 Partial *F* tests are useful when we have a particular nested change in mind. AIC provides another criterion:
 
@@ -149,7 +151,7 @@ Unlike the partial *F* test, AIC can compare models that are not nested. It is s
 
 Individual coefficient *P*-values answer a more specific question about one coefficient under one parameterisation. They should not be treated as a complete model-selection rule.
 
-### Cross-validation: a prediction question
+## Cross-validation: a prediction question
 
 Everything above is based on the data used to fit the model. If prediction is the goal, the more useful question is:
 
@@ -157,24 +159,15 @@ Everything above is based on the data used to fit the model. If prediction is th
 
 The basic cross-validation idea is:
 
-```{r cross-validation-diagram, echo=FALSE, fig.width=8, fig.height=2.2, out.width="90%", fig.cap="The basic cross-validation cycle."}
-cv_steps <- tibble(
-  x = c(1, 3, 5, 7),
-  label = c("Fit on\ntraining data", "Predict\nheld-out data", "Measure\nprediction error", "Repeat\nwith new folds")
-)
-
-ggplot(cv_steps, aes(x = x, y = 0)) +
-  geom_segment(data = tibble(x = c(1.35, 3.35, 5.35), xend = c(2.65, 4.65, 6.65)),
-               aes(x = x, xend = xend, y = 0, yend = 0),
-               arrow = grid::arrow(length = grid::unit(0.12, "inches")),
-               colour = "#325d88", linewidth = 1) +
-  geom_label(aes(label = label), fill = "#f8f5f0", colour = "#3e3f3a", label.size = 0.4,
-             size = 3.5, lineheight = 0.9) +
-  coord_cartesian(xlim = c(0.4, 7.6), ylim = c(-0.7, 0.8), expand = FALSE) +
-  theme_void()
+```{r cross-validation-diagram, echo=FALSE, out.width="90%", fig.cap="The basic cross-validation cycle."}
+knitr::include_graphics("../resources/cv_basic.svg")
 ```
 
-For now, the idea is enough. We will actually use cross-validation in Lecture 28.
+```{r cross-validation-gif, echo=FALSE, out.width="90%", fig.cap="Five-fold cross-validation in action."}
+knitr::include_graphics("../resources/cv_5fold.gif")
+```
+
+Your focus her should be on the idea not the implementation. We will apply it in Lecture 28 when to help us fit *large* models.
 
 ## Select terms, not arbitrary coefficients
 
@@ -200,7 +193,7 @@ climate = read_csv("../data/climate.csv")
 climate
 ```
 
-### Climate Exploratory Data Analysis
+## Climate Exploratory Data Analysis
 
 ```{r, fig.width=10, fig.height=4}
 climate |>
@@ -223,22 +216,53 @@ climate |>
 
 Several of these predictors are clearly telling us partly the same story.
 
-### Climate: Latitude/Longitude and North vs South
+## Climate: Latitude/Longitude and North vs South
 
-```{r}
-ggplot(climate) +
-  geom_point(mapping=aes(x=Long, y=-Lat, shape=as_factor(NorthIsland), col=MnJlyTemp)) +
-  geom_text(mapping=aes(x=Long, y=-Lat, label=Place), size=2, hjust='right', nudge_x=0.1, nudge_y=0.2) +
-  coord_equal()
+```{r climate-map, echo=FALSE}
+nz <- map_data("world", region = "New Zealand") |>
+  filter(subregion %in% c("North Island", "South Island"))
+
+climate_map <- climate |>
+  mutate(Island = if_else(NorthIsland == 1, "North Island", "South Island"))
+
+ggplot() +
+  geom_polygon(
+    data = nz,
+    aes(x = long, y = lat, group = group),
+    fill = "#e9f0f3", colour = "#325d88", linewidth = 0.4
+  ) +
+  geom_point(
+    data = climate_map,
+    aes(x = Long, y = -Lat, fill = MnJlyTemp, shape = Island),
+    colour = "#22313F", size = 3.8, stroke = 0.8
+  ) +
+  geom_text_repel(
+    data = climate_map,
+    aes(x = Long, y = -Lat, label = Place),
+    size = 2.8, min.segment.length = 0, box.padding = 0.35,
+    point.padding = 0.2, seed = 27, max.overlaps = Inf
+  ) +
+  scale_fill_viridis_c(
+    option = "C", name = "Mean July temperature"
+  ) +
+  scale_shape_manual(
+    name = "Island",
+    values = c("North Island" = 21, "South Island" = 24)
+  ) +
+  coord_quickmap(xlim = c(165.5, 180), ylim = c(-48, -33.5), expand = FALSE) +
+  labs(x = NULL, y = NULL) +
+  theme_void() +
+  theme(legend.position = "bottom")
 ```
 
-#### Climate: Latitude/Longitude and North vs South
 
-Ok, so we can see that the temperature is being driven by latitude (further north is warmer) - the longitude effect is possibly just due to orientation. It's clear there's an elevation (height) effect as well, though that is possibly confounded with whether the town is close to the sea (it can't really be both!)
+The map makes the geography easier to see: the North Island towns are generally warmer, while longitude mostly reflects the orientation of the islands. Elevation also appears to matter, although it may be confounded with whether a town is close to the sea (it cannot really be both!).
 
 So we'd expect some collinearity here and figuring out which are the best variables to be used might take a bit of playing!
 
-We'll start with Latitude, then add in Height and Sea:
+## Climate: Latitude/Longitude and North vs South
+
+Let's start with Latitude, then add in Height and Sea:
 
 ```{r}
 lm1 = lm( MnJlyTemp ~ Lat, data=climate)
@@ -246,7 +270,7 @@ lm2 = lm( MnJlyTemp ~ Lat + Height, data=climate)
 lm3 = lm( MnJlyTemp ~ Lat + Height + Sea, data=climate)
 ```
 
-### Building the Climate Model
+## Building the Climate Model
 
 #### Model 1: Lat only
 
@@ -272,7 +296,7 @@ The first three additions agree across the measures we have considered: the adde
 
 The `Height` coefficient also changes noticeably when `Sea` is added. This tells us that the interpretation of `Height` depends on whether `Sea` is adjusted for. The predictors overlap in the information they carry, so the coefficient in a multiple regression is a conditional association, not an isolated effect of height.
 
-#### Model 4: Adding NorthIsland
+## Model 4: Adding NorthIsland
 
 ```{r fourth variable}
 lm4 = lm( MnJlyTemp ~ Lat+ Height + Sea + NorthIsland, data=climate)
@@ -283,7 +307,7 @@ The added-term *P*-value is small, and the fit measures improve. The large chang
 
 **Why do you think adding North vs South island is useful over and above Latitude? Wouldn't Latitude do everything here??**
 
-#### Model 5: Adding Rain
+## Model 5: Adding Rain
 
 ```{r fifth variable}
 lm5 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland + Rain, data=climate)
@@ -293,7 +317,7 @@ lm5 |> summary()
 
 The evidence for `Rain` is mixed. Its coefficient *P*-value is approximately 0.10, while $S$ decreases and adjusted $R^2$ increases. These are all in-sample measures, so they do not establish that `Rain` will improve prediction for new towns. If prediction were the primary goal, this would be a natural case for validation or cross-validation.
 
-#### Model 6: Adding Longitude
+## Model 6: Adding Longitude
 
 ```{r sixth variable, warning=FALSE}
 lm6 = lm( MnJlyTemp ~ Lat+ Height+ Sea + NorthIsland+ Rain + Long, data=climate)
@@ -302,7 +326,7 @@ lm6 |> summary()
 
 The evidence against adding `Long` is consistent: its *P*-value is greater than 0.5, adjusted $R^2$ decreases, and $S$ increases. This candidate addition does not improve the fitted model by these measures.
 
-### Climate model-building progression
+## Climate model-building progression
 
 This is a model-building path, not proof that we have discovered the only correct formula. The table simply puts the evidence from each candidate addition in one place.
 
@@ -322,20 +346,22 @@ knitr::kable(climate_progression, digits = 3,
 
 The table is useful because it shows what each extra term buys us. It still does not replace the modelling goal, subject-matter knowledge, or proper validation if prediction is what we care about.
 
+## Final Model Diagnostic Plots
+
 ### A final model check
 
 Once we have a plausible mean structure, we still need to check whether the fitted model shows obvious problems with the LINE assumptions.
 
 `lm(MnJlyTemp ~ Lat + Height + Sea + NorthIsland + Rain, data = climate)`.
 
-#### Final Model Diagnostic Plots
+
 ```{r diagnostic plots, echo=FALSE}
 # Generate the 4 standard diagnostic plots
 par(mfrow = c(2, 2))
 plot(lm5)
 ```
 
-#### Interpretation of diagnostic plots
+### Interpretation of diagnostic plots
 
 - Residuals vs. Fitted: the points show no strong systematic pattern, so there is not strong evidence of a problem with the linear mean structure.
 - Normal Q-Q: the points are reasonably close to the reference line, with one noticeable departure. This is not proof of normality, but it gives no strong warning at this scale.

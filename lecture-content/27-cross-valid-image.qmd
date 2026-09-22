@@ -1,0 +1,309 @@
+
+---
+title: "5-fold Cross-validation animation"
+format:
+  html:
+    self-contained: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+# install.packages(c("magick", "glue"))
+library(grid)
+library(glue)
+library(ggplot2)
+library(tibble)
+
+# ---------- helper to draw one frame ----------
+
+draw_cv_frame <- function(stage = 1) {
+
+  # colours
+  text_col      <- "#22313F"
+  train_fill    <- "#DCE7ED"
+  train_border  <- "#7A8C9C"
+  test_fill     <- "#F3B562"
+  test_border   <- "#B06E27"
+  inactive_fill <- "#F7F9FB"
+  inactive_border <- "#D6DDE3"
+  line_col      <- "#4B5D73"
+
+  # canvas
+  grid.newpage()
+  pushViewport(viewport(xscale = c(0, 1), yscale = c(0, 1)))
+
+  # title
+  grid.text(
+    "5-fold cross-validation",
+    x = 0.5, y = 0.95,
+    gp = gpar(fontsize = 22, fontface = "bold", col = text_col)
+  )
+
+  grid.text(
+    "Fit the regression on 4 folds, test it on the held-out fold, then average the prediction errors.",
+    x = 0.5, y = 0.90,
+    gp = gpar(fontsize = 12, col = text_col)
+  )
+
+  # layout parameters
+  left <- 0.18
+  top <- 0.78
+  cell_w <- 0.09
+  cell_h <- 0.06
+  col_gap <- 0.018
+  row_gap <- 0.04
+
+  nrow <- 5
+  ncol <- 5
+
+  cell_x <- function(c) left + (c - 1) * (cell_w + col_gap)
+  cell_y <- function(r) top  - (r - 1) * (cell_h + row_gap)
+
+  # column labels
+  for (c in 1:ncol) {
+    grid.text(
+      paste("Fold", c),
+      x = cell_x(c) + cell_w / 2,
+      y = top + 0.045,
+      gp = gpar(fontsize = 12, fontface = "bold", col = text_col)
+    )
+  }
+
+  # row labels
+  for (r in 1:nrow) {
+    grid.text(
+      paste("Sub-Model", r),
+      x = left - 0.02,
+      y = cell_y(r) + cell_h / 2,
+      just = "right",
+      gp = gpar(fontsize = 15, fontface = "bold", col = text_col)
+    )
+  }
+
+  # draw cells
+  for (r in 1:nrow) {
+    active <- r <= min(stage, 5)
+
+    for (c in 1:ncol) {
+      x <- cell_x(c)
+      y <- cell_y(r)
+
+      if (active) {
+        if (c == r) {
+          fill <- test_fill
+          border <- test_border
+          label <- "TEST"
+          face <- "bold"
+        } else {
+          fill <- train_fill
+          border <- train_border
+          label <- "train"
+          face <- "plain"
+        }
+      } else {
+        fill <- inactive_fill
+        border <- inactive_border
+        label <- NULL
+        face <- "plain"
+      }
+
+      grid.roundrect(
+        x = x, y = y,
+        width = cell_w, height = cell_h,
+        just = c("left", "bottom"),
+        r = unit(0.006, "snpc"),
+        gp = gpar(fill = fill, col = border, lwd = 1.5)
+      )
+
+      if (!is.null(label)) {
+        grid.text(
+          label,
+          x = x + cell_w / 2,
+          y = y + cell_h / 2,
+          gp = gpar(fontsize = 13, fontface = face, col = text_col)
+        )
+      }
+    }
+
+    # arrows and RMSE labels
+    if (active) {
+      ymid <- cell_y(r) + cell_h / 2
+      x1 <- cell_x(5) + cell_w + 0.015
+      x2 <- x1 + 0.045
+
+      grid.lines(
+        x = c(x1, x2), y = c(ymid, ymid),
+        gp = gpar(col = line_col, lwd = 2)
+      )
+      grid.polygon(
+        x = c(x2, x2 - 0.008, x2 - 0.008),
+        y = c(ymid, ymid + 0.006, ymid - 0.006),
+        gp = gpar(fill = line_col, col = line_col)
+      )
+      grid.text(
+        paste0("RMSE", r),
+        x = x2 + 0.04, y = ymid,
+        just = "left",
+        gp = gpar(fontsize = 15, col = text_col)
+      )
+    }
+  }
+
+  # bottom explanation
+  if (stage <= 5) {
+    grid.text(
+      glue("Round {stage}: hold out Fold {stage}, fit on the other 4 folds, and compute RMSE{stage}."),
+      x = 0.5, y = 0.16,
+      gp = gpar(fontsize = 15, col = text_col)
+    )
+  } else {
+    # extra line on right, just to suggest averaging
+    grid.lines(
+      x = c(0.77, 0.90), y = c(0.26, 0.26),
+      gp = gpar(col = line_col, lwd = 1.5)
+    )
+
+    grid.text(
+      "CV error = average(RMSE1, RMSE2, RMSE3, RMSE4, RMSE5)",
+      x = 0.5, y = 0.18,
+      gp = gpar(fontsize = 18, fontface = "bold", col = text_col)
+    )
+    grid.text(
+      "Each observation is tested once, but never on a model trained on itself.",
+      x = 0.5, y = 0.12,
+      gp = gpar(fontsize = 15, col = text_col)
+    )
+  }
+
+  # legend
+  legend_y <- 0.05
+
+  grid.roundrect(
+    x = 0.12, y = legend_y,
+    width = 0.02, height = 0.035,
+    just = c("left", "bottom"),
+    r = unit(0.004, "snpc"),
+    gp = gpar(fill = train_fill, col = train_border, lwd = 1.2)
+  )
+  grid.text(
+    "used to fit model",
+    x = 0.145, y = legend_y + 0.0175,
+    just = "left",
+    gp = gpar(fontsize = 13, col = text_col)
+  )
+
+  grid.roundrect(
+    x = 0.35, y = legend_y,
+    width = 0.02, height = 0.035,
+    just = c("left", "bottom"),
+    r = unit(0.004, "snpc"),
+    gp = gpar(fill = test_fill, col = test_border, lwd = 1.2)
+  )
+  grid.text(
+    "held out for validation",
+    x = 0.375, y = legend_y + 0.0175,
+    just = "left",
+    gp = gpar(fontsize = 13, col = text_col)
+  )
+
+  popViewport()
+}
+
+# Replay the completed grid scene before closing the device. This keeps the
+# first frame from being partially flushed by the graphics device.
+render_cv_frame <- function(stage) {
+  draw_cv_frame(stage)
+  frame <- grid.grab()
+  grid.newpage()
+  grid.draw(frame)
+}
+
+# ---------- write temporary PNG frames and build the GIF ----------
+
+make_cv_gif <- function(output_file) {
+  if (!requireNamespace("magick", quietly = TRUE)) {
+    stop("This document needs the 'magick' package. Install it with install.packages('magick').")
+  }
+
+  frame_dir <- tempfile("cv_frames_")
+  dir.create(frame_dir, recursive = TRUE)
+  on.exit(unlink(frame_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  png_files <- file.path(frame_dir, sprintf("cv_frame_%02d.png", 1:6))
+
+  for (i in seq_along(png_files)) {
+    grDevices::png(
+      filename = png_files[i],
+      width = 1200,
+      height = 620,
+      res = 120,
+      bg = "transparent"
+    )
+    tryCatch(
+      render_cv_frame(i),
+      finally = grDevices::dev.off()
+    )
+  }
+
+  frames <- magick::image_read(png_files)
+
+  # Hold the completed diagram for two seconds before looping.
+  frames <- c(frames, frames[6])
+  gif <- magick::image_animate(frames, fps = 1, loop = 0)
+  magick::image_write(gif, path = output_file)
+
+  invisible(output_file)
+}
+
+make_cv_diagram <- function(output_file) {
+  cv_steps <- tibble(
+    x = c(1, 3, 5, 7),
+    label = c("Fit on\ntraining data", "Predict\nheld-out data", "Measure\nprediction error", "Repeat\nwith new folds")
+  )
+
+  diagram <- ggplot(cv_steps, aes(x = x, y = 0)) +
+    geom_segment(
+      data = tibble(x = c(1.70, 3.70, 5.70), xend = c(2.30, 4.30, 6.30)),
+      aes(x = x, xend = xend, y = 0, yend = 0),
+      arrow = grid::arrow(length = grid::unit(0.12, "inches")),
+      colour = "#325d88", linewidth = 1
+    ) +
+    geom_label(
+      aes(label = label),
+      fill = "#f8f5f0", colour = "#3e3f3a", label.size = 0.4,
+      size = 3.5, lineheight = 0.9
+    ) +
+    coord_cartesian(xlim = c(0.4, 7.6), ylim = c(-0.7, 0.8), expand = FALSE) +
+    theme_void() +
+    theme(
+      plot.background = element_rect(fill = "transparent", colour = NA),
+      panel.background = element_rect(fill = "transparent", colour = NA)
+    )
+
+  svglite::svglite(output_file, width = 8, height = 1.2, bg = "transparent")
+  print(diagram)
+  grDevices::dev.off()
+
+  invisible(output_file)
+}
+
+input_file <- knitr::current_input(dir = TRUE)
+document_dir <- if (is.null(input_file) || !nzchar(input_file)) {
+  getwd()
+} else {
+  dirname(input_file)
+}
+resources_dir <- normalizePath(file.path(document_dir, "..", "resources"), mustWork = TRUE)
+gif_file <- file.path(resources_dir, "cv_5fold.gif")
+svg_file <- file.path(resources_dir, "cv_basic.svg")
+make_cv_gif(gif_file)
+make_cv_diagram(svg_file)
+c(gif_file, svg_file)
+```
+
+```{r, echo=FALSE, out.width="100%"}
+knitr::include_graphics(gif_file)
+```
