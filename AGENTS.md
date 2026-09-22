@@ -223,7 +223,7 @@ part of the build. The canonical content has been migrated to `lecture-content/`
 - **Missing data files**: Add the required file to `/data/` and commit it.
 - **Missing R packages**: Install with `install.packages(c("DescTools", "car",
   "emmeans", "nlme", "lmtest", "glmnet", "patchwork", "kableExtra", "gridExtra",
-  "GGally", "broom.mixed", "maps", "ggrepel"))`
+  "GGally", "broom.mixed"))`
 - **Beamer won't compile**: Ensure XeLaTeX is installed and available as
   `xelatex` on `PATH`.
 - **Bookdown won't compile**: Run `Rscript scripts/render-book.R` from the repo

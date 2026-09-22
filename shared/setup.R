@@ -7,8 +7,6 @@ suppressPackageStartupMessages({
   library(tidyverse)
   library(broom)
   library(lubridate)
-  library(maps)
-  library(ggrepel)
 })
 
 options(knitr.kable.NA = "")

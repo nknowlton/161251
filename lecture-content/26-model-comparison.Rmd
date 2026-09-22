@@ -39,9 +39,9 @@ Both `Y ~ A` and `Y ~ x` are nested within `Y ~ A + x`. However, `Y ~ A` and `Y 
 
 The separate-lines model `Y ~ A * x` contains the parallel-lines model `Y ~ A + x`, because setting all `A:x` interaction coefficients to zero produces the parallel-lines model.
 
-## Recall from Lecture 14: the partial *F* test
+## Recall from [Lecture 14: the partial *F* test](https://knowlton.co.nz/161251/notes/14-model-comparison-1.html#f-tests-for-nested-models)
 
-We do not need a new test here. Lecture 14 already gave us nested-model comparisons and the partial *F* test. We now use the same machinery for the factor-and-covariate models from Lecture 25, where one scientific effect can correspond to several coefficients.
+We do not need a new test here. [Lecture 14’s notes](https://knowlton.co.nz/161251/notes/14-model-comparison-1.html#f-tests-for-nested-models) already gave us nested-model comparisons and the partial *F* test. We now use the same machinery for the factor-and-covariate models from Lecture 25, where one scientific effect can correspond to several coefficients.
 
 Adding terms to a linear model cannot increase its residual sum of squares. A larger model has more flexibility, so its RSS will be the same or smaller. The question is whether the decrease in RSS is large enough to justify the additional parameters, relative to the residual variation that remains in the larger model.
 
