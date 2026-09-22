@@ -30,7 +30,7 @@ rmd_files:
   - "23-orthogonal-factorial-models.Rmd"
   - "24-factor-interactions.Rmd"
   - "25-general-linear-model.Rmd"
-  - "26-model-comparison-2.Rmd"
+  - "26-model-comparison.Rmd"
   - "27-variable-selection.Rmd"
   - "28-stepwise-penalised-regression.Rmd"
   - "29-multicollinearity-ridge.Rmd"

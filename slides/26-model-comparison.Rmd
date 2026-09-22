@@ -25,7 +25,7 @@ output:
 ```{r slide-setup, include=FALSE}
 source("../shared/setup.R")
 
-lecture_slug <- "model-comparison-2"
+lecture_slug <- "model-comparison"
 slide_format <- if (knitr::is_latex_output()) "beamer" else "slidy"
 
 knitr::opts_chunk$set(
@@ -45,5 +45,5 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r child-model-comparison-2, child="../lecture-content/26-model-comparison-2.Rmd"}
+```{r child-model-comparison, child="../lecture-content/26-model-comparison.Rmd"}
 ```

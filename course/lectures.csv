@@ -24,7 +24,7 @@ LectureNo,Week,LectureTitle,Slug,Presenter,IncludeInBook,IncludeInSlides
 23,8,Orthogonal Factorial Models,orthogonal-factorial-models,Jonathan Godfrey,yes,no
 24,8,Factors with Interactions,factor-interactions,Jonathan Godfrey,yes,no
 25,9,The General Linear Model,general-linear-model,Nick Knowlton,yes,yes
-26,9,Comparison of General Linear Models,model-comparison-2,Nick Knowlton,yes,yes
+26,9,Comparison of General Linear Models,model-comparison,Nick Knowlton,yes,yes
 27,9,Variable Selection,variable-selection,Nick Knowlton,yes,yes
 28,10,Stepwise and Penalised Regression,stepwise-penalised-regression,Nick Knowlton,yes,yes
 29,10,Multicollinearity and Ridge Regression,multicollinearity-ridge,Nick Knowlton,yes,yes

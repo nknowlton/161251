@@ -3,7 +3,7 @@
 #
 # Usage:
 #   Rscript scripts/render-slides.R 26
-#   Rscript scripts/render-slides.R model-comparison-2 beamer
+#   Rscript scripts/render-slides.R model-comparison beamer
 #   Rscript scripts/render-slides.R 26 all
 #   Rscript scripts/render-slides.R all slidy
 
