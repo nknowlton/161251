@@ -1,0 +1,4 @@
+interface:
+  display_name: "Package Course Materials"
+  short_description: "Zip named lectures, labs, and required source assets"
+  default_prompt: "Use $package-course-materials to package the lectures and labs I specify."
