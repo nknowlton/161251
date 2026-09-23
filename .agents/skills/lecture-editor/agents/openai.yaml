@@ -1,0 +1,12 @@
+interface:
+  display_name: Lecture Editor
+  short_description: Rewrite and critique lectures without silently changing the pedagogy.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true
