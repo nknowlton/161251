@@ -176,6 +176,13 @@ When lectures are stored in `.qmd`, `.Rmd`, `.md`, notebooks, or teaching reposi
 - Do not alter generated outputs when the source file is the intended source of truth unless the project convention clearly requires it.
 - If a section is generated programmatically, identify the source before editing the generated copy.
 
+## Pre-render checks after substantial revisions
+
+After a substantial revision that changes R code or chunk structure, check the edited section for
+matching fences and valid chunk headers, then render the affected lecture. Keep incomplete teaching
+chunks valid and unevaluated where needed so they do not prevent rendering. These checks target fence
+and knit failures; skip style lint unless requested.
+
 ## Conversational behaviour
 
 When talking through a lecture with the user:

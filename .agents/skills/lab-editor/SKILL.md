@@ -242,6 +242,13 @@ Use complete, readable teaching code.
 - Show `summary()` when students are expected to recognise standard model summaries elsewhere, even if tidy output is also used.
 - Use proper mathematical notation rather than decorative Unicode where the course format supports MathJax/LaTeX.
 
+### Fence and knit checks
+
+After substantial lab revisions, check the edited fences and chunk headers, then knit both student
+and solution `.Rmd` files. Keep unfinished student code chunks knit-safe, using `eval=FALSE` or a
+valid runnable stub where appropriate. These checks target malformed fences and likely knit
+failures; skip style lint unless requested.
+
 ## Interpretation standards
 
 Every numerical answer should be tied to context and units.
