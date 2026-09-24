@@ -46,13 +46,24 @@ Do not hide an action inside a discussion prompt.
 
 Immediately repeat the same reasoning on a closely matched example.
 
+The handoff from the worked example to the follow task must be visible. Do not rely on proximity or context to signal that responsibility has changed.
+
+Use a small subheading or equally obvious transition such as:
+
+```markdown
+#### Repeat this for Auto MPG
+
+Now plot mpg against weight, with origin shown by colour.
+```
+
 The follow task should:
 
 - use the same method with a different variable, subgroup, or dataset;
 - state the action explicitly;
 - name the variables and object names when ambiguity is possible;
 - provide a code stub only after the syntax has been shown;
-- ask for interpretation as well as code.
+- ask for interpretation as well as code;
+- make it obvious where the worked example ends and the matched task begins.
 
 Prefer:
 
