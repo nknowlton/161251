@@ -68,9 +68,17 @@ ggplot(wage, aes(x = age, y = wage, colour = education)) +
 
 Discuss: How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
 
-The raw plot suggests that education matters, but it is difficult to separate differences in position from differences in slope just by looking at the points.
-
 Now plot `mpg` against `weight`, with `origin` shown by colour.
+
+```{r auto-raw-plot, eval=FALSE}
+# Plot mpg against weight, with origin shown by colour.
+```
+
+Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
+
+### 2. Fit one line, parallel lines and separate lines
+
+Let's fit three models to the wage data.
 
 ```{r wage-fit-lines}
 w1 <- lm(wage ~ age, data = wage)
@@ -84,11 +92,23 @@ These correspond to one common line, parallel lines, and separate lines.
 education * age = education + age + education:age
 ```
 
-Let's plot the fitted values from each model. Predictions at the observed ages are enough to draw the fitted lines, so there is no need to build a separate prediction grid.
+Now fit the same three structures for Auto MPG.
 
-### 3. Compare the fitted lines
+```text
+a1: mpg ~ weight
+a2: mpg ~ weight + origin
+a3: mpg ~ weight * origin
+```
 
-Let's plot the fitted values from the three wage models.
+```{r auto-fit-lines, eval=FALSE}
+# Fit a1, a2 and a3.
+```
+
+Discuss: What does adding the factor allow to change? What additional change does the interaction allow?
+
+### 3. Plot the fitted models
+
+Let's plot the fitted values from each wage model. Predictions at the observed ages are enough to draw the fitted lines.
 
 ```{r wage-one-line}
 wage |>
@@ -122,41 +142,7 @@ wage |>
 
 Discuss: What changes when `education` is added? What changes when `age:education` is added?
 
-Now repeat the same steps for Auto MPG.
-
-Plot `mpg` against `weight`, with `origin` shown by colour.
-
-```{r auto-raw-plot, eval=FALSE}
-# Plot mpg against weight, with origin shown by colour.
-```
-
-Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
-
-### 2. Fit one line, parallel lines and separate lines
-
-Let's fit the wage models first.
-
-
-
-These correspond to one common line, parallel lines, and separate lines.
-
-```text
-education * age = education + age + education:age
-```
-
-Now fit the same three structures for Auto MPG:
-
-```text
-a1: mpg ~ weight
-a2: mpg ~ weight + origin
-a3: mpg ~ weight * origin
-```
-
-```{r auto-fit-lines, eval=FALSE}
-# Fit a1, a2 and a3.
-```
-
-Make the same three fitted-line plots. Add the fitted values to `auto` with `mutate(fitted = predict(...))`. For the grouped models, arrange by `origin` and `weight` before drawing the lines.
+Now make the same three fitted-line plots for Auto MPG. Add the fitted values with `mutate(fitted = predict(...))`. For the grouped models, arrange by `origin` and `weight` before drawing the lines.
 
 ```{r auto-model-geometry, eval=FALSE}
 # Plot the fitted values from a1.
@@ -168,7 +154,7 @@ Discuss: Which term moves the origin lines up and down? Which term allows the we
 
 ### 4. Read the interaction coefficients
 
-Let's look at the separate-lines wage model once in the usual coefficient table.
+Let's look at the separate-lines wage model in the usual coefficient table.
 
 ```{r wage-read-interaction}
 summary(w3)
