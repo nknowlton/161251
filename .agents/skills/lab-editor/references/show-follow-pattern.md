@@ -186,3 +186,88 @@ Do not force:
 - the same balance of code and discussion across introductory and advanced courses.
 
 Preserve the pedagogy: explicit responsibility, matched transfer, self-contained context, and decreasing scaffolding.
+
+
+## Refinement from 161.251 Lab 10
+
+Keep the Show -> Follow -> Independent structure in the design, but normally hide the scaffolding in the finished lab.
+
+Use this:
+
+```markdown
+Plot wage against age, with education shown by colour.
+
+Discuss: How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
+
+[worked analysis]
+
+Now plot mpg against weight, with origin shown by colour.
+
+Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
+```
+
+Not this:
+
+```markdown
+### Instructor demonstration: education and age
+
+Does the relationship between age and wage look similar at every education level?
+
+[analysis]
+
+### Your turn: origin and vehicle weight
+
+Repeat the same analysis.
+```
+
+The first version says exactly what to do before asking for interpretation and sounds like a lecturer leading a live practical.
+
+### Simple teaching code
+
+When fitted values on the observed rows are enough, use:
+
+```r
+wage |>
+  mutate(fitted = predict(w2)) |>
+  arrange(education, age) |>
+  ggplot(aes(x = age, y = wage, colour = education)) +
+  geom_point(alpha = 0.2) +
+  geom_line(aes(y = fitted, group = education))
+```
+
+Do not use a synthetic grid just to draw straight fitted lines:
+
+```r
+age_values <- seq(min(wage$age), max(wage$age), length.out = 100)
+
+education_grid <- wage |>
+  group_by(education) |>
+  summarise(
+    age = list(seq(min(age), max(age), length.out = 100))
+  ) |>
+  unnest(age)
+```
+
+When `broom` is already available and only model-level quantities are needed, use:
+
+```r
+bind_rows(
+  m1 = broom::glance(m1),
+  m2 = broom::glance(m2),
+  .id = "model"
+) |>
+  select(model, adj.r.squared, sigma, AIC)
+```
+
+rather than manually extracting each quantity:
+
+```r
+tibble(
+  model = c("m1", "m2"),
+  adjusted_R2 = c(summary(m1)$adj.r.squared, summary(m2)$adj.r.squared),
+  residual_SE = c(sigma(m1), sigma(m2)),
+  AIC = c(AIC(m1), AIC(m2))
+)
+```
+
+Keep direct statistical commands such as `lm()`, `anova()`, `summary()`, `predict()`, `residuals()`, and `plot(model)` when they are already the clearest statement of the statistical operation. Tidy style should simplify the surrounding data work, not obscure the statistics.
