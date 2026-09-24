@@ -44,7 +44,15 @@ Do not hide an action inside a discussion prompt.
 
 ### Follow
 
-Immediately repeat the same reasoning on a closely matched example.
+Repeat the same **logical block** on a closely matched example.
+
+Choose the block at the level of the statistical reasoning, not the individual command. Do not alternate worked example and follow task after every plot, model fit, or test when those operations belong to one coherent comparison.
+
+For example, if the teaching idea is comparing one common line, parallel lines, and separate lines, work through all three models on the first dataset, inspect and interpret the set, then repeat the whole three-model comparison on the second dataset.
+
+If the teaching idea is candidate-model building, add and assess the full sequence of candidate predictors on the first dataset, make a model decision, then repeat the whole sequence on the second dataset.
+
+If the teaching idea is diagnostics and repair, diagnose, revise, and re-check the first model as one block, then repeat that workflow on the second dataset.
 
 The handoff from the worked example to the follow task must be visible. Do not rely on proximity or context to signal that responsibility has changed.
 
