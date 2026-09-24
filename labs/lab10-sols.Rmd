@@ -15,16 +15,18 @@ library(tidyverse)
 
 # Computer Laboratory: Building and Comparing Linear Models
 
-I will demonstrate each modelling step using wage data. When you reach a **Your turn** section, repeat that step using Auto MPG before moving on. The two datasets have different variables and different answers, but the modelling questions are the same.
+Let's work through each idea first with wage data, then repeat the same analysis with Auto MPG.
 
-The wage data contain 3,000 male workers, recorded from 2003 to 2009. Each row is one worker. Wage is recorded in thousands of US dollars. The Auto MPG data contain 392 cars from model years 1970 to 1982. Each row is one car. Both datasets are observational, so the fitted relationships describe associations, not causal effects.
+The wage data contain 3,000 male workers recorded from 2003 to 2009. Each row is one worker. Wage is recorded in thousands of US dollars. The Auto MPG data contain 392 cars from model years 1970 to 1982. Each row is one car.
+
+Both datasets are observational, so the fitted relationships describe associations rather than causal effects.
 
 | Wage variable | Meaning |
 |:--|:--|
 | `wage` | recorded wage, thousands of US dollars |
-| `age` | worker's age, in years |
-| `education` | education level, from less than high school to advanced degree |
-| `year` | year the wage was recorded, 2003--2009 |
+| `age` | age, years |
+| `education` | education level |
+| `year` | year the wage was recorded |
 | `jobclass` | industrial or information work |
 
 | Auto MPG variable | Meaning |
@@ -32,12 +34,10 @@ The wage data contain 3,000 male workers, recorded from 2003 to 2009. Each row i
 | `mpg` | fuel economy, miles per gallon |
 | `weight` | vehicle weight, pounds |
 | `origin` | USA, Europe or Japan |
-| `model_year` | vehicle model year, 70--82 |
+| `model_year` | model year, 70--82 |
 | `horsepower` | engine power, horsepower |
 
-We will not use `car_name` as a predictor.
-
-By the end of the lab, you should be able to read factor-by-covariate models as fitted lines, test nested models, compare a small set of candidate models, and use residual plots to identify a missing feature of the mean structure.
+Let's leave `car_name` out of the modelling.
 
 ```{r import-data, message=FALSE}
 wage <- readr::read_csv("../data/wage.csv") |>
@@ -52,9 +52,7 @@ glimpse(auto)
 
 ## What changes across groups?
 
-### Instructor demonstration: education and age
-
-Start with the wage data. Does the relationship between age and wage look similar at every education level?
+Let's start by plotting wage against age, with education shown by colour.
 
 ```{r wage-raw-plot}
 ggplot(wage, aes(x = age, y = wage, colour = education)) +
@@ -66,7 +64,11 @@ ggplot(wage, aes(x = age, y = wage, colour = education)) +
   )
 ```
 
-Fit three models. The first has one line for everyone, the second allows education groups to have different intercepts but a common age slope, and the third allows both intercepts and slopes to differ.
+Discuss: How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
+
+Wage generally rises with age before flattening or falling later, and the education groups sit at different wage levels. The raw points also suggest that the age pattern may not be identical across education groups.
+
+Let's fit three models.
 
 ```{r wage-fit-lines}
 w1 <- lm(wage ~ age, data = wage)
@@ -74,95 +76,53 @@ w2 <- lm(wage ~ age + education, data = wage)
 w3 <- lm(wage ~ age * education, data = wage)
 ```
 
-```{.text}
+These correspond to one common line, parallel lines, and separate lines.
+
+```text
 education * age = education + age + education:age
 ```
 
-The interaction lets the age slope vary with education. The next plot shows the fitted lines for all three models. Lines for each education group stop at that group's observed age range.
+Let's plot the fitted values from each model.
 
-```{r wage-model-geometry}
-age_values <- seq(min(wage$age), max(wage$age), length.out = 100)
-
-education_grid <- wage |>
-  group_by(education) |>
-  summarise(
-    age = list(seq(min(age), max(age), length.out = 100)),
-    .groups = "drop"
-  ) |>
-  unnest(age)
-
-common_lines <- tibble(age = age_values) |>
-  mutate(
-    fitted = predict(w1, newdata = tibble(age = age_values)),
-    education = factor(NA_character_, levels = levels(wage$education)),
-    model = "One common line"
-  )
-
-parallel_lines <- education_grid |>
-  mutate(
-    fitted = predict(w2, newdata = education_grid),
-    model = "Parallel lines"
-  )
-
-separate_lines <- education_grid |>
-  mutate(
-    fitted = predict(w3, newdata = education_grid),
-    model = "Separate lines"
-  )
-
-model_levels <- c("One common line", "Parallel lines", "Separate lines")
-line_data <- bind_rows(common_lines, parallel_lines, separate_lines) |>
-  mutate(model = factor(model, levels = model_levels))
-
-point_data <- crossing(
-  wage,
-  model = factor(model_levels, levels = model_levels)
-)
-
-ggplot(point_data, aes(x = age, y = wage, colour = education)) +
-  geom_point(alpha = 0.18) +
-  geom_line(
-    data = filter(line_data, model != "One common line"),
-    aes(y = fitted, group = interaction(education, model))
-  ) +
-  geom_line(
-    data = filter(line_data, model == "One common line"),
-    aes(x = age, y = fitted),
-    inherit.aes = FALSE,
-    colour = "black"
-  ) +
-  facet_wrap(~ model) +
-  labs(
-    x = "Age (years)",
-    y = "Wage (US$1,000s)",
-    colour = "Education"
-  )
+```{r wage-one-line}
+wage |>
+  mutate(fitted = predict(w1)) |>
+  arrange(age) |>
+  ggplot(aes(x = age, y = wage)) +
+  geom_point(aes(colour = education), alpha = 0.2) +
+  geom_line(aes(y = fitted), colour = "black", linewidth = 1) +
+  labs(x = "Age (years)", y = "Wage (US$1,000s)")
 ```
 
-Read the coefficient table for the separate-lines model.
-
-```{r wage-read-interaction}
-summary(w3)
+```{r wage-parallel-lines}
+wage |>
+  mutate(fitted = predict(w2)) |>
+  arrange(education, age) |>
+  ggplot(aes(x = age, y = wage, colour = education)) +
+  geom_point(alpha = 0.2) +
+  geom_line(aes(y = fitted, group = education), linewidth = 1) +
+  labs(x = "Age (years)", y = "Wage (US$1,000s)")
 ```
 
-The reference group is workers with less than a high-school education. Its age slope is the `age` coefficient. The education coefficients give intercept differences at age zero, and the interaction coefficients give slope differences from the reference group. Age zero is outside the data, so those intercept differences are not useful overall wage comparisons.
+```{r wage-separate-lines}
+wage |>
+  mutate(fitted = predict(w3)) |>
+  arrange(education, age) |>
+  ggplot(aes(x = age, y = wage, colour = education)) +
+  geom_point(alpha = 0.2) +
+  geom_line(aes(y = fitted, group = education), linewidth = 1) +
+  labs(x = "Age (years)", y = "Wage (US$1,000s)")
+```
 
-### Your turn: origin and vehicle weight
+Discuss: What changes when `education` is added? What changes when `age:education` is added?
+
+Adding education shifts the fitted lines vertically while keeping a common age slope. Adding the interaction also allows the age slopes to differ.
 
 Now repeat the same steps for Auto MPG.
 
-1. Plot `mpg` against `weight`, using `origin` for colour.
-2. Fit `a1`, `a2` and `a3` with the formulas below.
-3. Draw the one-line, parallel-lines and separate-lines fits. Use the wage geometry code as your template and keep each origin's fitted lines within its observed weight range.
-4. Run `summary(a3)`. Identify the USA weight slope, the Europe and Japan intercept adjustments, and the slope adjustments. Explain why the intercept adjustments are not overall origin differences.
+Plot `mpg` against `weight`, with `origin` shown by colour.
 
-```{.text}
-a1: mpg ~ weight
-a2: mpg ~ weight + origin
-a3: mpg ~ weight * origin
-```
-
-```{r auto-plot-and-models}
+```{r auto-raw-plot}
 ggplot(auto, aes(x = weight, y = mpg, colour = origin)) +
   geom_point(alpha = 0.5) +
   labs(
@@ -170,250 +130,254 @@ ggplot(auto, aes(x = weight, y = mpg, colour = origin)) +
     y = "Fuel economy (miles per gallon)",
     colour = "Origin"
   )
+```
 
+Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
+
+Fuel economy falls as weight increases. The origins occupy different parts of the weight range, and the fitted relationship may differ in both position and slope.
+
+Now fit:
+
+```text
+a1: mpg ~ weight
+a2: mpg ~ weight + origin
+a3: mpg ~ weight * origin
+```
+
+```{r auto-fit-lines}
 a1 <- lm(mpg ~ weight, data = auto)
 a2 <- lm(mpg ~ weight + origin, data = auto)
 a3 <- lm(mpg ~ weight * origin, data = auto)
-
-weight_values <- seq(min(auto$weight), max(auto$weight), length.out = 100)
-
-origin_grid <- auto |>
-  group_by(origin) |>
-  summarise(
-    weight = list(seq(min(weight), max(weight), length.out = 100)),
-    .groups = "drop"
-  ) |>
-  unnest(weight)
-
-common_lines <- tibble(weight = weight_values) |>
-  mutate(
-    fitted = predict(a1, newdata = tibble(weight = weight_values)),
-    origin = factor(NA_character_, levels = levels(auto$origin)),
-    model = "One common line"
-  )
-
-parallel_lines <- origin_grid |>
-  mutate(
-    fitted = predict(a2, newdata = origin_grid),
-    model = "Parallel lines"
-  )
-
-separate_lines <- origin_grid |>
-  mutate(
-    fitted = predict(a3, newdata = origin_grid),
-    model = "Separate lines"
-  )
-
-model_levels <- c("One common line", "Parallel lines", "Separate lines")
-line_data <- bind_rows(common_lines, parallel_lines, separate_lines) |>
-  mutate(model = factor(model, levels = model_levels))
-
-point_data <- crossing(
-  auto,
-  model = factor(model_levels, levels = model_levels)
-)
-
-ggplot(point_data, aes(x = weight, y = mpg, colour = origin)) +
-  geom_point(alpha = 0.3) +
-  geom_line(
-    data = filter(line_data, model != "One common line"),
-    aes(y = fitted, group = interaction(origin, model))
-  ) +
-  geom_line(
-    data = filter(line_data, model == "One common line"),
-    aes(x = weight, y = fitted),
-    inherit.aes = FALSE,
-    colour = "black"
-  ) +
-  facet_wrap(~ model) +
-  labs(
-    x = "Weight (lb)",
-    y = "Fuel economy (miles per gallon)",
-    colour = "Origin"
-  )
 ```
+
+Make the same three fitted-line plots.
+
+```{r auto-one-line}
+auto |>
+  mutate(fitted = predict(a1)) |>
+  arrange(weight) |>
+  ggplot(aes(x = weight, y = mpg)) +
+  geom_point(aes(colour = origin), alpha = 0.3) +
+  geom_line(aes(y = fitted), colour = "black", linewidth = 1) +
+  labs(x = "Weight (lb)", y = "Fuel economy (miles per gallon)")
+```
+
+```{r auto-parallel-lines}
+auto |>
+  mutate(fitted = predict(a2)) |>
+  arrange(origin, weight) |>
+  ggplot(aes(x = weight, y = mpg, colour = origin)) +
+  geom_point(alpha = 0.3) +
+  geom_line(aes(y = fitted, group = origin), linewidth = 1) +
+  labs(x = "Weight (lb)", y = "Fuel economy (miles per gallon)")
+```
+
+```{r auto-separate-lines}
+auto |>
+  mutate(fitted = predict(a3)) |>
+  arrange(origin, weight) |>
+  ggplot(aes(x = weight, y = mpg, colour = origin)) +
+  geom_point(alpha = 0.3) +
+  geom_line(aes(y = fitted, group = origin), linewidth = 1) +
+  labs(x = "Weight (lb)", y = "Fuel economy (miles per gallon)")
+```
+
+Discuss: Which term moves the origin lines up and down? Which term allows the weight slopes to differ?
+
+The `origin` term shifts the lines vertically. The `weight:origin` interaction allows the slopes to differ.
+
+Let's look at the separate-lines wage model once in the usual coefficient table.
+
+```{r wage-read-interaction}
+summary(w3)
+```
+
+The `age` coefficient is the age slope for the reference education group. The education coefficients change the intercept, and the age-by-education coefficients change the slope. Age zero is outside these data, so the intercept differences are not useful overall wage comparisons.
+
+Now run `summary(a3)`.
 
 ```{r auto-read-interaction}
 summary(a3)
 ```
 
-USA is the reference origin. The `weight` coefficient is its slope. The `originEurope` and `originJapan` terms shift the intercepts, while `weight:originEurope` and `weight:originJapan` adjust the slopes. Because the interactions are in the model, the origin coefficients describe differences at zero pounds, not overall origin differences. Zero pounds is outside the data.
+Discuss: Which coefficient is the USA weight slope? Which coefficients change the intercepts for Europe and Japan? Which coefficients change their slopes? Why are the origin main-effect coefficients not overall origin differences?
+
+USA is the reference origin, so `weight` is the USA slope. `originEurope` and `originJapan` change the intercepts, while `weight:originEurope` and `weight:originJapan` change the slopes. Because the interaction is present, the main-effect origin coefficients describe differences at zero pounds, which is outside the data.
 
 ## Do the groups improve the model?
 
-A partial F test compares a reduced model with a larger model that contains all the reduced model's terms. It tests the added terms together, not one coefficient at a time.
+A partial F test compares a reduced model with a larger model containing all of the reduced model's terms. It tests the added terms together.
 
-### Instructor demonstration: does education add information after age?
-
-The question is whether education improves the model after age is already included. Compare `w1` with `w2`.
+Let's ask whether education adds information after age.
 
 ```{r compare-wage-education}
 anova(w1, w2)
 ```
 
-The test adds four education parameters. The P-value is below 0.001, so the parallel-lines model improves on one common line. This is evidence that at least one education group differs after age is accounted for.
+Discuss: How many parameters were added? What does the P-value say about moving from one common line to parallel education lines?
 
-### Your turn: does origin add information after weight?
+Four education parameters are added. The P-value is below 0.001, so there is evidence that education improves the model after age is already included.
 
-Compare `a1` with `a2`. State how many parameters are added, report the P-value, and describe what changes in the fitted lines.
+Now ask the same question for the cars: after accounting for weight, does origin improve the model?
 
 ```{r compare-auto-origin}
 anova(a1, a2)
 ```
 
-The test adds two origin contrasts. The P-value is 0.0024, so there is evidence that the parallel-lines model improves on one common line. At least one origin differs after weight is accounted for.
+Discuss: How many parameters were added? What does the P-value say about moving from one common line to parallel origin lines?
 
-### Instructor demonstration: do the age slopes differ?
+Two origin contrasts are added. The P-value is about 0.0024, so there is evidence that origin improves the model after weight is included.
 
-Compare `w2` with `w3`. The question is whether the age slope varies across education groups.
+Next, let's ask whether the slopes differ. For the wage data:
 
 ```{r compare-wage-slopes}
 anova(w2, w3)
 ```
 
-The test adds four age-by-education interaction coefficients. The P-value is about 0.013, which is evidence that at least some age slopes differ by education.
+Discuss: Which terms were added? What does the P-value say about whether the age slope varies across education groups?
 
-### Your turn: do the weight slopes differ?
+Four interaction coefficients are added. The P-value is about 0.013, giving evidence that at least some age slopes differ by education.
 
-Compare `a2` with `a3`. Report the added terms and the P-value. What does the test say about the weight slopes across origins?
+Now make the same comparison for Auto MPG.
 
 ```{r compare-auto-slopes}
 anova(a2, a3)
 ```
 
-The added terms are the two origin-by-weight interactions. The P-value is about 0.044. There is modest evidence that the weight slopes differ among origins.
+Discuss: Which terms were added? What does the P-value say about whether the weight slope varies across origins?
 
-### Compare the simplest and fullest models
+Two interaction coefficients are added. The P-value is about 0.044, giving modest evidence that the weight slopes differ among origins.
 
-The earlier tests changed one part of the model at a time. Now compare `w1` directly with `w3`, then make the same comparison for Auto MPG. State the number of added parameters and interpret the joint test.
+Finally, compare the simplest and fullest models directly.
 
 ```{r compare-full-lines}
 anova(w1, w3)
 anova(a1, a3)
 ```
 
-The wage comparison adds eight parameters and strongly favours the separate-lines model (P < 0.001). The Auto MPG comparison adds four parameters and also favours separate lines over one common line (F = 4.68, P = 0.0011). Neither joint test says that every individual coefficient is useful.
+Discuss: How many parameters are added in each comparison? What does each joint test establish?
 
-### Why does sequential ANOVA depend on order?
+The wage comparison adds eight parameters and strongly favours the separate-lines model. The Auto MPG comparison adds four parameters and also favours separate lines over one common line, with P about 0.0011. These are joint tests and do not say that every added coefficient is individually useful.
 
-A sequential ANOVA table gives each term credit for the variation it explains when it enters the model. When predictors overlap, changing the order can change the sums of squares.
+There is one complication worth seeing before moving on. A sequential ANOVA table gives each term credit for variation it explains when it enters the model. If predictors overlap, term order matters.
 
 ```{r wage-sequential-anova}
 anova(lm(wage ~ education + age, data = wage))
 anova(lm(wage ~ age + education, data = wage))
 ```
 
-When education enters first, its sum of squares is about 1,226,364; when age enters first, age gets about 199,870 and education gets about 1,154,224. The full model and its residual sum of squares are unchanged. The terms share information, and the first term gets credit for the part they share.
+Discuss: The fitted model is identical in both cases. Why do the sums of squares change?
 
-Repeat this check for `mpg ~ origin + weight` and `mpg ~ weight + origin`. Why is comparing `a1` with `a2` a clearer answer to “does origin add information after weight?”
+Education and age share some information. The first term gets credit for the shared part before the second term is added.
+
+Now repeat this with `origin` and `weight`.
 
 ```{r auto-sequential-anova}
 anova(lm(mpg ~ origin + weight, data = auto))
 anova(lm(mpg ~ weight + origin, data = auto))
 ```
 
-The same issue appears for the cars. If origin enters first, it gets a sum of squares of about 7,904; if weight enters first, origin gets about 224. The sequential table answers a different question depending on the order. `anova(a1, a2)` directly compares models that differ only by adding origin after weight.
+Discuss: Why is `anova(a1, a2)` the clearer answer to the question "does origin add information after weight?"
+
+The direct comparison writes the question into the models: `a1` already contains weight, and `a2` adds origin. The answer therefore does not depend on whichever term happened to appear first in a sequential table.
 
 ## When does another predictor earn its place?
 
-Adjusted R-squared, residual standard error and AIC compare fit while accounting for model complexity in different ways. Larger adjusted R-squared and smaller residual standard error or AIC are preferred when the models use the same response and observations. A partial F test answers a specific nested-model question.
+A smaller RSS is guaranteed when another predictor is added, so RSS alone cannot decide whether a larger model is worth keeping.
 
-### Instructor demonstration: add year
+Let's use adjusted R-squared, residual standard error and AIC alongside the partial F test. `broom::glance()` puts these model summaries into one tidy row.
 
-Add the year the wage was recorded to `w3`, and call the result `w4`.
+Add year to the wage model.
 
 ```{r wage-add-year}
 w4 <- lm(wage ~ age * education + year, data = wage)
 
-tibble(
-  model = c("w3", "w4"),
-  adjusted_R2 = c(summary(w3)$adj.r.squared, summary(w4)$adj.r.squared),
-  residual_SE = c(sigma(w3), sigma(w4)),
-  AIC = c(AIC(w3), AIC(w4))
-)
+bind_rows(
+  w3 = broom::glance(w3),
+  w4 = broom::glance(w4),
+  .id = "model"
+) |>
+  select(model, adj.r.squared, sigma, AIC)
 
 anova(w3, w4)
 ```
 
-Year improves all three measures, although the changes are modest: adjusted R-squared rises from 0.260 to 0.263, residual standard error falls from 35.89 to 35.83, and AIC falls by about 9.5. The partial F test gives F = 11.50 and P = 0.0007. There is evidence that recorded wage differs by year after accounting for age and education.
+Discuss: Do the four pieces of evidence all favour adding year? How large is the improvement?
 
-### Your turn: add model year
+All four favour `w4`, although the changes in the fit measures are modest. Adjusted R-squared rises from about 0.260 to 0.263, residual standard error falls slightly, AIC falls by about 9.5, and the partial F test gives P about 0.0007.
 
-Fit `a4` by adding `model_year` to `a3`. Recreate the same comparison table for `a3` and `a4`, then run `anova(a3, a4)`. State which measures improve and what the partial F test says.
+Now add `model_year` to the Auto MPG model and call it `a4`.
 
 ```{r auto-add-model-year}
 a4 <- lm(mpg ~ weight * origin + model_year, data = auto)
 
-tibble(
-  model = c("a3", "a4"),
-  adjusted_R2 = c(summary(a3)$adj.r.squared, summary(a4)$adj.r.squared),
-  residual_SE = c(sigma(a3), sigma(a4)),
-  AIC = c(AIC(a3), AIC(a4))
-)
+bind_rows(
+  a3 = broom::glance(a3),
+  a4 = broom::glance(a4),
+  .id = "model"
+) |>
+  select(model, adj.r.squared, sigma, AIC)
 
 anova(a3, a4)
 ```
 
-All three measures improve substantially: adjusted R-squared rises from 0.703 to 0.830, residual standard error falls from 4.25 to 3.22 MPG, and AIC falls by about 217.5. The partial F test gives F = 289.0 and P < 0.001. Model year adds substantial information after weight, origin and their interaction are included.
+Discuss: Does model year earn its place?
 
-### Instructor demonstration: add job class
+Yes. Adjusted R-squared rises from about 0.703 to 0.830, residual standard error falls from about 4.25 to 3.22 MPG, AIC falls by more than 200, and the partial F test gives P below 0.001.
 
-Add `jobclass` to `w4` and call the result `w5`.
+Let's make one more addition to each model.
+
+For wage, add `jobclass`.
 
 ```{r wage-add-jobclass}
 w5 <- lm(wage ~ age * education + year + jobclass, data = wage)
 
-tibble(
-  model = c("w4", "w5"),
-  adjusted_R2 = c(summary(w4)$adj.r.squared, summary(w5)$adj.r.squared),
-  residual_SE = c(sigma(w4), sigma(w5)),
-  AIC = c(AIC(w4), AIC(w5))
-)
+bind_rows(
+  w4 = broom::glance(w4),
+  w5 = broom::glance(w5),
+  .id = "model"
+) |>
+  select(model, adj.r.squared, sigma, AIC)
 
 anova(w4, w5)
 ```
 
-The changes are small but all three fit measures favour `w5`: adjusted R-squared rises from 0.263 to 0.265, residual standard error falls from 35.83 to 35.77, and AIC falls by about 8.8. The partial F test gives F = 10.80 and P = 0.0010. Within this small candidate set, keeping job class is reasonable for a descriptive model.
+Discuss: The improvement is much smaller than it was for year. Is `jobclass` still worth keeping in this descriptive model?
 
-### Your turn: add horsepower
+The changes are small but point in the same direction. Adjusted R-squared rises slightly, residual standard error falls slightly, AIC falls by about 8.8, and the partial F test gives P about 0.001. Keeping job class is reasonable within this candidate set.
 
-Fit `a5` by adding `horsepower` to `a4`. Recreate the same comparison table and run `anova(a4, a5)`. Do the four measures tell a consistent story?
+For Auto MPG, add `horsepower` to `a4` and call the model `a5`.
 
 ```{r auto-add-horsepower}
-a5 <- lm(
-  mpg ~ weight * origin + model_year + horsepower,
-  data = auto
-)
+a5 <- lm(mpg ~ weight * origin + model_year + horsepower, data = auto)
 
-tibble(
-  model = c("a4", "a5"),
-  adjusted_R2 = c(summary(a4)$adj.r.squared, summary(a5)$adj.r.squared),
-  residual_SE = c(sigma(a4), sigma(a5)),
-  AIC = c(AIC(a4), AIC(a5))
-)
+bind_rows(
+  a4 = broom::glance(a4),
+  a5 = broom::glance(a5),
+  .id = "model"
+) |>
+  select(model, adj.r.squared, sigma, AIC)
 
 anova(a4, a5)
 ```
 
-They tell a consistent story against keeping horsepower in this candidate model. Adjusted R-squared changes from 0.830 to 0.830 (a slight decrease), residual standard error changes from 3.219 to 3.220 MPG, and AIC rises from 2037.9 to 2039.1. The partial F test gives F = 0.79 and P = 0.376. The fit does not improve enough to justify the extra term here.
+Discuss: Do adjusted R-squared, residual standard error, AIC and the partial F test tell the same story? Which model, `a4` or `a5`, is the better compact descriptive model?
 
-Choose between `a4` and `a5` as a compact descriptive model. Support your choice with at least three pieces of evidence. Do not conclude that an excluded predictor has no association in every possible model.
-
-`a4` is a reasonable choice. Adding model year produced a large improvement, but adding horsepower after that slightly lowers adjusted R-squared, barely changes residual standard error, raises AIC and gives a partial F-test P-value of 0.376. This conclusion applies to these candidate models and these data.
+They all point towards `a4`. Adding horsepower slightly reduces adjusted R-squared, barely changes residual standard error, raises AIC, and gives a partial F-test P-value of about 0.38.
 
 ## What if prediction is the goal?
 
-The measures above are calculated on the observations used to fit each model. They are not direct estimates of prediction error for new observations.
+Everything so far has been calculated on the same observations used to fit the models.
 
-For the Auto MPG analysis, what could you do to assess how well a model predicts cars that were not used to fit it? Why would the answer to that question matter if prediction, rather than describing these data, were the goal?
+Discuss: What could be done to assess prediction for cars that were not used to fit the model? Why are adjusted R-squared, residual standard error and AIC not direct estimates of that prediction error?
 
-Use a validation set or cross-validation so that predictions are assessed on observations that did not fit the model. The in-sample comparisons above do not estimate that prediction error.
+Use validation data or cross-validation so predictions are assessed on observations that did not fit the model. The in-sample measures above are not direct estimates of prediction error for new cars.
 
 ## Does the working model fit the pattern?
 
-Use the standard diagnostic plots for `w5`. For each plot, describe what you see and explain why it matters. Also plot residuals against age: that makes it easier to see whether a straight-line age effect leaves a pattern in the mean.
+Let's check the wage model before treating it as finished.
 
-### Instructor demonstration: diagnose and revise the wage model
+Run the standard diagnostic plots for `w5`.
 
 ```{r wage-diagnostics, fig.width=9, fig.height=7}
 par(mfrow = c(2, 2))
@@ -421,17 +385,23 @@ plot(w5)
 par(mfrow = c(1, 1))
 ```
 
+Now plot the residuals against age.
+
 ```{r wage-residuals-by-age}
 wage |>
   mutate(residual = residuals(w5)) |>
   ggplot(aes(x = age, y = residual)) +
   geom_point(alpha = 0.25) +
-  geom_smooth() +
+  geom_smooth(se = FALSE) +
   geom_hline(yintercept = 0) +
   labs(x = "Age (years)", y = "Residual (US$1,000s)")
 ```
 
-The residuals against age show a broad curve, so the straight-line age term misses structure in the mean. Add a quadratic age term to `w5`, giving `w6`. In an R formula, write the squared term as `I(age^2)`.
+Discuss: What pattern should be visible if the straight-line age effect is adequate? What pattern is actually present?
+
+The residuals should have no systematic relationship with age. Instead, there is a broad curve, so the straight-line age term is missing structure in the mean.
+
+Quadratic regression was introduced earlier in the course, so let's add `age^2` while keeping the linear age term.
 
 ```{r wage-revise-mean}
 w6 <- lm(
@@ -439,67 +409,63 @@ w6 <- lm(
   data = wage
 )
 
-anova(w5, w6)
+bind_rows(
+  w5 = broom::glance(w5),
+  w6 = broom::glance(w6),
+  .id = "model"
+) |>
+  select(model, adj.r.squared, sigma, AIC)
 
-tibble(
-  model = c("w5", "w6"),
-  adjusted_R2 = c(summary(w5)$adj.r.squared, summary(w6)$adj.r.squared),
-  residual_SE = c(sigma(w5), sigma(w6)),
-  AIC = c(AIC(w5), AIC(w6))
-)
+anova(w5, w6)
 ```
 
-The quadratic term improves the model: adjusted R-squared rises from 0.265 to 0.292, residual standard error falls from 35.77 to 35.11, and AIC falls from 29,990.3 to 29,879.7. The partial F test gives F = 114.2 and P < 0.001.
-
-Repeat both diagnostic checks for `w6`. Has the broad age pattern in the residuals changed? What concerns remain?
+Repeat the diagnostic plots and the residual-versus-age plot for `w6`.
 
 ```{r wage-revised-diagnostics, fig.width=9, fig.height=7}
 par(mfrow = c(2, 2))
 plot(w6)
 par(mfrow = c(1, 1))
-```
 
-```{r wage-revised-residuals-by-age}
 wage |>
   mutate(residual = residuals(w6)) |>
   ggplot(aes(x = age, y = residual)) +
   geom_point(alpha = 0.25) +
-  geom_smooth() +
+  geom_smooth(se = FALSE) +
   geom_hline(yintercept = 0) +
   labs(x = "Age (years)", y = "Residual (US$1,000s)")
 ```
 
-The broad age curve is reduced, though the diagnostic plots still show departures that deserve attention. The plots do not establish independence. Consider how the workers entered the data and whether observations may share unmodelled structure.
+Discuss: Has the broad age pattern been reduced? What concerns remain?
 
-### Your turn: diagnose and revise the Auto MPG model
+The broad age curve is reduced, although other departures remain. The plots do not establish independence.
 
-Use the same checks on your chosen model, `a4`. First inspect the standard diagnostic panels.
+Now make the same diagnostic check for `a4`.
+
+Run the standard diagnostic plots, then plot the residuals against `weight`.
 
 ```{r auto-diagnostics, fig.width=9, fig.height=7}
 par(mfrow = c(2, 2))
 plot(a4)
 par(mfrow = c(1, 1))
-```
 
-Now plot residuals against `weight`.
-
-```{r auto-residuals-by-weight}
 auto |>
   mutate(residual = residuals(a4)) |>
   ggplot(aes(x = weight, y = residual)) +
   geom_point(alpha = 0.4) +
-  geom_smooth() +
+  geom_smooth(se = FALSE) +
   geom_hline(yintercept = 0) +
   labs(x = "Weight (lb)", y = "Residual (mpg)")
 ```
 
-The residuals against weight show strong curvature. Now fit `a6`:
+Discuss: Is there a systematic pattern left in the mean?
 
-```{.text}
-mpg ~ weight * origin + I(weight^2) + model_year
+There is clear curvature in the residuals against weight, so the mean structure still needs work.
+
+Now fit:
+
+```text
+a6: mpg ~ weight * origin + I(weight^2) + model_year
 ```
-
-Compare `a4` and `a6` with a partial F test and the same three fit measures. Repeat both diagnostic checks. State what improved and what still needs attention.
 
 ```{r auto-revise-mean}
 a6 <- lm(
@@ -507,19 +473,15 @@ a6 <- lm(
   data = auto
 )
 
+bind_rows(
+  a4 = broom::glance(a4),
+  a6 = broom::glance(a6),
+  .id = "model"
+) |>
+  select(model, adj.r.squared, sigma, AIC)
+
 anova(a4, a6)
 
-tibble(
-  model = c("a4", "a6"),
-  adjusted_R2 = c(summary(a4)$adj.r.squared, summary(a6)$adj.r.squared),
-  residual_SE = c(sigma(a4), sigma(a6)),
-  AIC = c(AIC(a4), AIC(a6))
-)
-```
-
-The partial F test gives F = 57.68 and P < 0.001. Adjusted R-squared rises from 0.830 to 0.852, residual standard error falls from 3.219 to 3.005 MPG, and AIC falls from 2037.9 to 1985.0.
-
-```{r auto-revised-diagnostics, fig.width=9, fig.height=7}
 par(mfrow = c(2, 2))
 plot(a6)
 par(mfrow = c(1, 1))
@@ -528,17 +490,19 @@ auto |>
   mutate(residual = residuals(a6)) |>
   ggplot(aes(x = weight, y = residual)) +
   geom_point(alpha = 0.4) +
-  geom_smooth() +
+  geom_smooth(se = FALSE) +
   geom_hline(yintercept = 0) +
   labs(x = "Weight (lb)", y = "Residual (mpg)")
 ```
 
-The broad U-shaped residual pattern is substantially reduced. Some tail and spread concerns remain. We cannot diagnose independence from these plots alone. Consider how the cars entered the data and whether groups of observations might share unmodelled structure. Do not treat an influential-point label as an automatic reason to delete a car.
+Discuss: What improved? What still needs attention?
 
-## Independent synthesis
+The broad U-shaped pattern is substantially reduced. Some tail and spread concerns remain. The standard diagnostic plots do not establish independence; that has to be considered from the way the observations were collected and whether groups of observations might share unmodelled structure.
+
+## Pulling it together
 
 A reasonable Auto MPG conclusion is:
 
-Fuel economy decreases as weight increases, and allowing origin to change the fitted lines improves on one common line. There is modest evidence that the weight slopes differ among origins. Adding model year produces a large improvement, while horsepower adds little after weight, origin and model year are already included, so `a4` is a reasonable compact model before diagnostics. The residual plot for `a4` shows clear curvature, so adding `weight^2` improves the mean structure. The revised model still has tail and spread concerns, so the diagnostics do not establish that it is fully adequate. Finally, these are in-sample comparisons; validation or cross-validation is needed to assess prediction for new cars.
+Fuel economy decreases as weight increases, and allowing origin to change the fitted lines improves on one common line. There is modest evidence that the weight slopes differ among origins. Adding model year produces a large improvement, while horsepower adds little after weight, origin and model year are already included, so `a4` is a reasonable compact model before diagnostics. The residual plot for `a4` shows clear curvature, and adding `weight^2` improves the mean structure. The revised model still has tail and spread concerns, so the diagnostics do not establish that it is fully adequate. Finally, these are in-sample comparisons; validation or cross-validation is needed to assess prediction for new cars.
 
-Lab 11 returns to Auto MPG with a larger candidate set.
+With a small candidate set, these decisions can still be made by hand. Once the predictor list gets longer, that becomes tedious very quickly. Lab 11 returns to Auto MPG and looks at automated search and shrinkage.
