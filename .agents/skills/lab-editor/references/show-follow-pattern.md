@@ -271,3 +271,57 @@ tibble(
 ```
 
 Keep direct statistical commands such as `lm()`, `anova()`, `summary()`, `predict()`, `residuals()`, and `plot(model)` when they are already the clearest statement of the statistical operation. Tidy style should simplify the surrounding data work, not obscure the statistics.
+
+
+## Logical blocks, not micro-steps
+
+The Show -> Follow handoff should happen after a coherent reasoning block, not after every individual command.
+
+Use this structure:
+
+```markdown
+### Wage example: compare the three model structures
+
+[plot the raw data]
+
+#### One common line
+[fit/plot/interpret]
+
+#### Parallel lines
+[fit/plot/interpret]
+
+#### Separate lines
+[fit/plot/interpret]
+
+[read the interaction coefficients and make the overall comparison]
+
+### Auto MPG: repeat the complete analysis
+
+[repeat the whole three-model workflow]
+```
+
+Do not structure the same idea as:
+
+```markdown
+Plot wage.
+Plot Auto MPG.
+
+Fit the wage models.
+Fit the Auto MPG models.
+
+Plot the wage fits.
+Plot the Auto MPG fits.
+
+Read the wage coefficients.
+Read the Auto MPG coefficients.
+```
+
+The second pattern creates constant handoffs and breaks the statistical reasoning into micro-steps.
+
+Apply the same principle elsewhere:
+
+- nested model tests: complete the full comparison set on one dataset, then repeat the set;
+- candidate model building: add and assess the candidate predictors on one dataset, choose a working model, then repeat;
+- diagnostics: diagnose, revise, and re-check one model as a complete workflow, then repeat.
+
+A handoff should occur at a natural interpretation or decision point.
