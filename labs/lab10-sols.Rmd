@@ -15,7 +15,7 @@ library(tidyverse)
 
 # Computer Laboratory: Building and Comparing Linear Models
 
-Let's work through each idea first with wage data, then repeat the same analysis with Auto MPG.
+Let's work through each complete analysis with the wage data first, then repeat the whole workflow with Auto MPG.
 
 The wage data contain 3,000 male workers recorded from 2003 to 2009. Each row is one worker. Wage is recorded in thousands of US dollars. The Auto MPG data contain 392 cars from model years 1970 to 1982. Each row is one car.
 
