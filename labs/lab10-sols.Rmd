@@ -330,11 +330,9 @@ A smaller RSS is guaranteed when another predictor is added, so RSS alone cannot
 
 Let's use adjusted R-squared, residual standard error and AIC alongside the partial F test. `broom::glance()` puts these model summaries into one tidy row.
 
-### 1. Add a clearly useful predictor
+### Wage example: build a compact model
 
-#### Wage example
-
-Let's add year to the wage model.
+Start from `w3` and add year.
 
 ```{r wage-add-year}
 w4 <- lm(wage ~ age * education + year, data = wage)
@@ -349,13 +347,36 @@ bind_rows(
 anova(w3, w4)
 ```
 
-Discuss: Do the four pieces of evidence all favour adding year? How large is the improvement?
+Discuss: Do adjusted R-squared, residual standard error, AIC and the partial F test all favour adding year? How large is the improvement?
 
 All four favour `w4`, although the changes in the fit measures are modest. Adjusted R-squared rises from about 0.260 to 0.263, residual standard error falls slightly, AIC falls by about 9.5, and the partial F test gives P about 0.0007.
 
-#### Repeat this for Auto MPG
+Now add `jobclass`.
 
-Now add `model_year` to the Auto MPG model and call it `a4`.
+```{r wage-add-jobclass}
+w5 <- lm(wage ~ age * education + year + jobclass, data = wage)
+
+bind_rows(
+  w4 = broom::glance(w4),
+  w5 = broom::glance(w5),
+  .id = "model"
+) |>
+  select(model, adj.r.squared, sigma, AIC)
+
+anova(w4, w5)
+```
+
+Discuss: Does job class still earn its place after year has been added?
+
+The changes are small but point in the same direction. Adjusted R-squared rises slightly, residual standard error falls slightly, AIC falls by about 8.8, and the partial F test gives P about 0.001. Within this candidate set, keeping job class is reasonable.
+
+So `w5` is the wage model to carry forward to diagnostics.
+
+### Auto MPG: repeat the model-building sequence
+
+Now repeat the whole process with Auto MPG.
+
+Start from `a3`. Add `model_year` and call the model `a4`.
 
 ```{r auto-add-model-year}
 a4 <- lm(mpg ~ weight * origin + model_year, data = auto)
@@ -374,31 +395,6 @@ Discuss: Does model year earn its place?
 
 Yes. Adjusted R-squared rises from about 0.703 to 0.830, residual standard error falls from about 4.25 to 3.22 MPG, AIC falls by more than 200, and the partial F test gives P below 0.001.
 
-### 2. Add a predictor with a smaller contribution
-
-#### Wage example
-
-Let's add `jobclass` to the wage model.
-
-```{r wage-add-jobclass}
-w5 <- lm(wage ~ age * education + year + jobclass, data = wage)
-
-bind_rows(
-  w4 = broom::glance(w4),
-  w5 = broom::glance(w5),
-  .id = "model"
-) |>
-  select(model, adj.r.squared, sigma, AIC)
-
-anova(w4, w5)
-```
-
-Discuss: The improvement is much smaller than it was for year. Is `jobclass` still worth keeping in this descriptive model?
-
-The changes are small but point in the same direction. Adjusted R-squared rises slightly, residual standard error falls slightly, AIC falls by about 8.8, and the partial F test gives P about 0.001. Keeping job class is reasonable within this candidate set.
-
-#### Repeat this for Auto MPG
-
 Now add `horsepower` to `a4` and call the model `a5`.
 
 ```{r auto-add-horsepower}
@@ -414,9 +410,11 @@ bind_rows(
 anova(a4, a5)
 ```
 
-Discuss: Do adjusted R-squared, residual standard error, AIC and the partial F test tell the same story? Which model, `a4` or `a5`, is the better compact descriptive model?
+Discuss: Does horsepower earn its place after model year has been added?
 
-They all point towards `a4`. Adding horsepower slightly reduces adjusted R-squared, barely changes residual standard error, raises AIC, and gives a partial F-test P-value of about 0.38.
+No. Adding horsepower slightly reduces adjusted R-squared, barely changes residual standard error, raises AIC, and gives a partial F-test P-value of about 0.38.
+
+So `a4` is the compact Auto MPG model to carry forward to diagnostics.
 
 ## What if prediction is the goal?
 
@@ -430,13 +428,11 @@ Use validation data or cross-validation so predictions are assessed on observati
 
 ## Does the working model fit the pattern?
 
-### 1. Check the working model
+### Wage example: diagnose and revise the model
 
-#### Wage example
+Let's check `w5` before treating it as finished.
 
-Let's check the wage model before treating it as finished.
-
-Run the standard diagnostic plots for `w5`.
+Run the standard diagnostic plots.
 
 ```{r wage-diagnostics, fig.width=9, fig.height=7}
 par(mfrow = c(2, 2))
@@ -460,10 +456,6 @@ Discuss: What pattern should be visible if the straight-line age effect is adequ
 
 The residuals should have no systematic relationship with age. Instead, there is a broad curve, so the straight-line age term is missing structure in the mean.
 
-### 2. Revise the mean structure
-
-#### Wage example
-
 Quadratic regression was introduced earlier in the course, so let's add `age^2` while keeping the linear age term.
 
 ```{r wage-revise-mean}
@@ -482,7 +474,7 @@ bind_rows(
 anova(w5, w6)
 ```
 
-Repeat the diagnostic plots and the residual-versus-age plot for `w6`.
+Repeat the standard diagnostic plots and the residual-versus-age plot for `w6`.
 
 ```{r wage-revised-diagnostics, fig.width=9, fig.height=7}
 par(mfrow = c(2, 2))
@@ -502,13 +494,11 @@ Discuss: Has the broad age pattern been reduced? What concerns remain?
 
 The broad age curve is reduced, although other departures remain. The plots do not establish independence.
 
-### 3. Check the Auto MPG working model
+### Auto MPG: repeat the diagnose-and-revise workflow
 
-#### Repeat the diagnostic check for Auto MPG
+Now repeat the complete workflow for `a4`.
 
-Now make the same diagnostic check for `a4`.
-
-Run the standard diagnostic plots, then plot the residuals against `weight`.
+First run the standard diagnostic plots and plot the residuals against `weight`.
 
 ```{r auto-diagnostics, fig.width=9, fig.height=7}
 par(mfrow = c(2, 2))
@@ -528,11 +518,7 @@ Discuss: Is there a systematic pattern left in the mean?
 
 There is clear curvature in the residuals against weight, so the mean structure still needs work.
 
-### 4. Revise the Auto MPG mean structure
-
-#### Repeat the model-revision step for Auto MPG
-
-Now fit:
+Fit:
 
 ```text
 a6: mpg ~ weight * origin + I(weight^2) + model_year
