@@ -52,11 +52,11 @@ glimpse(auto)
 
 ## What changes across groups?
 
-### 1. Plot the relationships
+### Wage example
 
-#### Wage example
+Let's work through the complete three-model comparison using wage and age.
 
-Let's start by plotting wage against age, with education shown by colour.
+First plot wage against age, with education shown by colour.
 
 ```{r wage-raw-plot}
 ggplot(wage, aes(x = age, y = wage, colour = education)) +
@@ -70,11 +70,87 @@ ggplot(wage, aes(x = age, y = wage, colour = education)) +
 
 Discuss: How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
 
-Wage generally rises with age before flattening or falling later, and the education groups sit at different wage levels. The age pattern may also differ across education groups.
+Now fit the three models.
 
-#### Repeat this for Auto MPG
+```{r wage-fit-lines}
+w1 <- lm(wage ~ age, data = wage)
+w2 <- lm(wage ~ age + education, data = wage)
+w3 <- lm(wage ~ age * education, data = wage)
+```
 
-Now plot `mpg` against `weight`, with `origin` shown by colour.
+#### One common line
+
+Plot the fitted values from `w1`.
+
+```{r wage-one-line}
+wage |>
+  mutate(fitted = predict(w1)) |>
+  arrange(age) |>
+  ggplot(aes(x = age, y = wage)) +
+  geom_point(aes(colour = education), alpha = 0.2) +
+  geom_line(aes(y = fitted), colour = "black", linewidth = 1) +
+  labs(x = "Age (years)", y = "Wage (US$1,000s)")
+```
+
+Discuss: What is this model assuming about the education groups?
+
+It assumes one common age-wage relationship for all education groups. Education is not in the model.
+
+#### Parallel lines
+
+Now plot the fitted values from `w2`.
+
+```{r wage-parallel-lines}
+wage |>
+  mutate(fitted = predict(w2)) |>
+  arrange(education, age) |>
+  ggplot(aes(x = age, y = wage, colour = education)) +
+  geom_point(alpha = 0.2) +
+  geom_line(aes(y = fitted, group = education), linewidth = 1) +
+  labs(x = "Age (years)", y = "Wage (US$1,000s)")
+```
+
+Discuss: What changed from the one-line model? What is still being held the same across education groups?
+
+Education can shift the fitted lines vertically, but the age slope is common across groups.
+
+#### Separate lines
+
+Finally, plot the fitted values from `w3`.
+
+```{r wage-separate-lines}
+wage |>
+  mutate(fitted = predict(w3)) |>
+  arrange(education, age) |>
+  ggplot(aes(x = age, y = wage, colour = education)) +
+  geom_point(alpha = 0.2) +
+  geom_line(aes(y = fitted, group = education), linewidth = 1) +
+  labs(x = "Age (years)", y = "Wage (US$1,000s)")
+```
+
+Discuss: What changed from the parallel-lines model? Which term in the formula allows that change?
+
+The interaction allows the age slopes to differ across education groups.
+
+```text
+education * age = education + age + education:age
+```
+
+#### Read the separate-lines coefficients
+
+Run the usual model summary.
+
+```{r wage-read-interaction}
+summary(w3)
+```
+
+The `age` coefficient is the age slope for the reference education group. The education coefficients change the intercept, and the age-by-education coefficients change the slope. Age zero is outside these data, so the intercept differences are not useful overall wage comparisons.
+
+### Auto MPG: repeat the complete analysis
+
+Now repeat the whole comparison using fuel economy, weight and origin.
+
+First plot `mpg` against `weight`, with `origin` shown by colour.
 
 ```{r auto-raw-plot}
 ggplot(auto, aes(x = weight, y = mpg, colour = origin)) +
@@ -90,27 +166,13 @@ Discuss: How does fuel economy vary with weight? Do the origin groups appear to 
 
 Fuel economy falls as weight increases. The origins occupy different parts of the weight range, and the fitted relationship may differ in both position and slope.
 
-### 2. Fit one line, parallel lines and separate lines
-
-#### Wage example
-
-Let's fit three models to the wage data.
-
-```{r wage-fit-lines}
-w1 <- lm(wage ~ age, data = wage)
-w2 <- lm(wage ~ age + education, data = wage)
-w3 <- lm(wage ~ age * education, data = wage)
-```
-
-These correspond to one common line, parallel lines, and separate lines.
+Fit the three models below.
 
 ```text
-education * age = education + age + education:age
+a1: mpg ~ weight
+a2: mpg ~ weight + origin
+a3: mpg ~ weight * origin
 ```
-
-#### Repeat this for Auto MPG
-
-Now fit the same three structures for Auto MPG.
 
 ```{r auto-fit-lines}
 a1 <- lm(mpg ~ weight, data = auto)
@@ -118,53 +180,9 @@ a2 <- lm(mpg ~ weight + origin, data = auto)
 a3 <- lm(mpg ~ weight * origin, data = auto)
 ```
 
-Discuss: What does adding the factor allow to change? What additional change does the interaction allow?
+#### One common line
 
-Adding the factor allows the fitted lines to have different intercepts while keeping a common slope. Adding the interaction also allows the slopes to differ.
-
-### 3. Plot the fitted models
-
-#### Wage example
-
-Let's plot the fitted values from each wage model.
-
-```{r wage-one-line}
-wage |>
-  mutate(fitted = predict(w1)) |>
-  arrange(age) |>
-  ggplot(aes(x = age, y = wage)) +
-  geom_point(aes(colour = education), alpha = 0.2) +
-  geom_line(aes(y = fitted), colour = "black", linewidth = 1) +
-  labs(x = "Age (years)", y = "Wage (US$1,000s)")
-```
-
-```{r wage-parallel-lines}
-wage |>
-  mutate(fitted = predict(w2)) |>
-  arrange(education, age) |>
-  ggplot(aes(x = age, y = wage, colour = education)) +
-  geom_point(alpha = 0.2) +
-  geom_line(aes(y = fitted, group = education), linewidth = 1) +
-  labs(x = "Age (years)", y = "Wage (US$1,000s)")
-```
-
-```{r wage-separate-lines}
-wage |>
-  mutate(fitted = predict(w3)) |>
-  arrange(education, age) |>
-  ggplot(aes(x = age, y = wage, colour = education)) +
-  geom_point(alpha = 0.2) +
-  geom_line(aes(y = fitted, group = education), linewidth = 1) +
-  labs(x = "Age (years)", y = "Wage (US$1,000s)")
-```
-
-Discuss: What changes when `education` is added? What changes when `age:education` is added?
-
-Adding education shifts the fitted lines vertically while keeping a common age slope. Adding the interaction also allows the age slopes to differ.
-
-#### Repeat this for Auto MPG
-
-Now make the same three fitted-line plots for Auto MPG.
+Plot the fitted values from `a1`.
 
 ```{r auto-one-line}
 auto |>
@@ -176,6 +194,14 @@ auto |>
   labs(x = "Weight (lb)", y = "Fuel economy (miles per gallon)")
 ```
 
+Discuss: What is this model assuming about the origin groups?
+
+It assumes one common weight-MPG relationship across all origins.
+
+#### Parallel lines
+
+Plot the fitted values from `a2`.
+
 ```{r auto-parallel-lines}
 auto |>
   mutate(fitted = predict(a2)) |>
@@ -185,6 +211,14 @@ auto |>
   geom_line(aes(y = fitted, group = origin), linewidth = 1) +
   labs(x = "Weight (lb)", y = "Fuel economy (miles per gallon)")
 ```
+
+Discuss: What changed from `a1`? What is still being held the same across origins?
+
+Origin can shift the fitted lines vertically, but the weight slope is common.
+
+#### Separate lines
+
+Plot the fitted values from `a3`.
 
 ```{r auto-separate-lines}
 auto |>
@@ -196,31 +230,17 @@ auto |>
   labs(x = "Weight (lb)", y = "Fuel economy (miles per gallon)")
 ```
 
-Discuss: Which term moves the origin lines up and down? Which term allows the weight slopes to differ?
+Discuss: What changed from `a2`? Which term allows the weight slopes to differ?
 
-The `origin` term shifts the lines vertically. The `weight:origin` interaction allows the slopes to differ.
+The `weight:origin` interaction allows the slopes to differ.
 
-### 4. Read the interaction coefficients
+#### Read the separate-lines coefficients
 
-#### Wage example
-
-Let's look at the separate-lines wage model in the usual coefficient table.
-
-```{r wage-read-interaction}
-summary(w3)
-```
-
-The `age` coefficient is the age slope for the reference education group. The education coefficients change the intercept, and the age-by-education coefficients change the slope. Age zero is outside these data, so the intercept differences are not useful overall wage comparisons.
-
-#### Repeat this for Auto MPG
-
-Now run `summary(a3)`.
+Run `summary(a3)`.
 
 ```{r auto-read-interaction}
 summary(a3)
 ```
-
-Discuss: Which coefficient is the USA weight slope? Which coefficients change the intercepts for Europe and Japan? Which coefficients change their slopes? Why are the origin main-effect coefficients not overall origin differences?
 
 USA is the reference origin, so `weight` is the USA slope. `originEurope` and `originJapan` change the intercepts, while `weight:originEurope` and `weight:originJapan` change the slopes. Because the interaction is present, the main-effect origin coefficients describe differences at zero pounds, which is outside the data.
 
@@ -228,111 +248,81 @@ USA is the reference origin, so `weight` is the USA slope. `originEurope` and `o
 
 A partial F test compares a reduced model with a larger model containing all of the reduced model's terms. It tests the added terms together.
 
-### 1. Do the groups add information after the covariate?
+### Wage example
 
-#### Wage example
+Let's complete the set of nested comparisons before changing datasets.
 
-Let's ask whether education adds information after age.
+#### Does education add information after age?
 
 ```{r compare-wage-education}
 anova(w1, w2)
 ```
 
-Discuss: How many parameters were added? What does the P-value say about moving from one common line to parallel education lines?
-
 Four education parameters are added. The P-value is below 0.001, so there is evidence that education improves the model after age is already included.
 
-#### Repeat this for Auto MPG
-
-Now ask the same question for the cars: after accounting for weight, does origin improve the model?
-
-```{r compare-auto-origin}
-anova(a1, a2)
-```
-
-Discuss: How many parameters were added? What does the P-value say about moving from one common line to parallel origin lines?
-
-Two origin contrasts are added. The P-value is about 0.0024, so there is evidence that origin improves the model after weight is included.
-
-### 2. Do the slopes differ?
-
-#### Wage example
-
-Next, let's ask whether the slopes differ. For the wage data:
+#### Do the age slopes differ by education?
 
 ```{r compare-wage-slopes}
 anova(w2, w3)
 ```
 
-Discuss: Which terms were added? What does the P-value say about whether the age slope varies across education groups?
-
 Four interaction coefficients are added. The P-value is about 0.013, giving evidence that at least some age slopes differ by education.
 
-#### Repeat this for Auto MPG
-
-Now make the same comparison for Auto MPG.
-
-```{r compare-auto-slopes}
-anova(a2, a3)
-```
-
-Discuss: Which terms were added? What does the P-value say about whether the weight slope varies across origins?
-
-Two interaction coefficients are added. The P-value is about 0.044, giving modest evidence that the weight slopes differ among origins.
-
-### 3. Compare the simplest and fullest models
-
-#### Wage example
-
-Let's compare the simplest and fullest wage models directly.
+#### What does the full comparison test?
 
 ```{r compare-full-wage}
 anova(w1, w3)
 ```
 
-Discuss: How many parameters are added? What does this joint test establish?
+The wage comparison adds eight parameters and strongly favours the separate-lines model. This is a joint test and does not say that every added coefficient is individually useful.
 
-The comparison adds eight parameters and strongly favours the separate-lines model. This is a joint test and does not say that every added coefficient is individually useful.
+#### Does term order matter?
 
-#### Repeat this for Auto MPG
-
-Now compare `a1` with `a3`.
-
-```{r compare-full-auto}
-anova(a1, a3)
-```
-
-Discuss: How many parameters are added? What does this joint test establish?
-
-The comparison adds four parameters and favours separate lines over one common line, with P about 0.0011.
-
-### 4. Check what happens when term order changes
-
-#### Wage example
-
-There is one complication worth seeing before moving on. A sequential ANOVA table gives each term credit for variation it explains when it enters the model. If predictors overlap, term order matters.
+A sequential ANOVA table gives each term credit for variation it explains when it enters the model.
 
 ```{r wage-sequential-anova}
 anova(lm(wage ~ education + age, data = wage))
 anova(lm(wage ~ age + education, data = wage))
 ```
 
-Discuss: The fitted model is identical in both cases. Why do the sums of squares change?
-
 Education and age share some information. The first term gets credit for the shared part before the second term is added.
 
-#### Repeat this for Auto MPG
+### Auto MPG: repeat the complete comparison set
 
-Now repeat this with `origin` and `weight`.
+Now answer the same four questions using `a1`, `a2` and `a3`.
+
+#### Does origin add information after weight?
+
+```{r compare-auto-origin}
+anova(a1, a2)
+```
+
+Two origin contrasts are added. The P-value is about 0.0024, so there is evidence that origin improves the model after weight is included.
+
+#### Do the weight slopes differ by origin?
+
+```{r compare-auto-slopes}
+anova(a2, a3)
+```
+
+Two interaction coefficients are added. The P-value is about 0.044, giving modest evidence that the weight slopes differ among origins.
+
+#### What does the full comparison test?
+
+```{r compare-full-auto}
+anova(a1, a3)
+```
+
+The Auto MPG comparison adds four parameters and favours separate lines over one common line, with P about 0.0011.
+
+#### Does term order matter?
 
 ```{r auto-sequential-anova}
 anova(lm(mpg ~ origin + weight, data = auto))
 anova(lm(mpg ~ weight + origin, data = auto))
 ```
 
-Discuss: Why is `anova(a1, a2)` the clearer answer to the question "does origin add information after weight?"
-
-The direct comparison writes the question into the models: `a1` already contains weight, and `a2` adds origin. The answer therefore does not depend on whichever term happened to appear first in a sequential table.
+The direct comparison `anova(a1, a2)` writes the question into the models: `a1` already contains weight, and `a2` adds origin. The answer therefore does not depend on whichever term happened to appear first in a sequential table.
 
 ## When does another predictor earn its place?
 
