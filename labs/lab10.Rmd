@@ -13,11 +13,19 @@ knitr::opts_chunk$set(comment = "", dev = "png")
 library(tidyverse)
 ```
 
-# Computer Laboratory: Building and Comparing Linear Models
+# Computer Laboratory 10: Building and Comparing Linear Models
 
-Let's work through each complete analysis with the wage data first, then repeat the whole workflow with Auto MPG.
+This week we extended linear models to include both factors and numerical variables. This lets us fit models in which different groups can have:
 
-The wage data contain 3,000 male workers recorded from 2003 to 2009. Each row is one worker. Wage is recorded in thousands of US dollars. The Auto MPG data contain 392 cars from model years 1970 to 1982. Each row is one car.
+- different intercepts but a common slope
+- different slopes as well as different intercepts
+- no meaningful group-specific structure at all
+
+We also learned how to compare these models. In particular, we used partial F tests to ask whether adding extra terms gives us enough information to justify the more complicated model.
+
+In this lab, we will practise that process on two datasets. For each one, we will build a set of plausible linear models, compare their structure, and decide how much complexity the data support.
+
+The first dataset contains wage data from 3,000 male workers recorded from 2003 to 2009. Each row is one worker. Wage is recorded in thousands of US dollars. The second dataset, Auto MPG, contains 392 cars from model years 1970 to 1982. Each row is one car.
 
 Both datasets are observational, so the fitted relationships describe associations rather than causal effects.
 
@@ -37,8 +45,6 @@ Both datasets are observational, so the fitted relationships describe associatio
 | `model_year` | model year, 70--82 |
 | `horsepower` | engine power, horsepower |
 
-Let's leave `car_name` out of the modelling.
-
 ```{r import-data, message=FALSE}
 wage <- readr::read_csv("../data/wage.csv") |>
   mutate(education = factor(education))
@@ -56,7 +62,7 @@ glimpse(auto)
 
 Let's work through the complete three-model comparison using wage and age.
 
-First plot wage against age, with education shown by colour.
+First plot wage against age, with education shown by colour. Always plot your data before fitting a model.
 
 ```{r wage-raw-plot}
 ggplot(wage, aes(x = age, y = wage, colour = education)) +
@@ -130,9 +136,7 @@ Discuss: What changed from the parallel-lines model? Which term in the formula a
 education * age = education + age + education:age
 ```
 
-#### Read the separate-lines coefficients
-
-Run the usual model summary.
+#### Let's look at the separate-lines coefficients
 
 ```{r wage-read-interaction}
 summary(w3)
@@ -154,7 +158,7 @@ Discuss: How does fuel economy vary with weight? Do the origin groups appear to 
 
 Fit the three models below.
 
-```text
+```
 a1: mpg ~ weight
 a2: mpg ~ weight + origin
 a3: mpg ~ weight * origin
@@ -182,7 +186,7 @@ Plot the fitted values from `a2`.
 # Add predict(a2) as fitted values and plot one line for each origin.
 ```
 
-Discuss: What changed from `a1`? What is still being held the same across origins?
+Discuss: What changed from `a1`? What is still being held the same across origins? Do the lines have the same length?
 
 #### Separate lines
 
@@ -194,9 +198,7 @@ Plot the fitted values from `a3`.
 
 Discuss: What changed from `a2`? Which term allows the weight slopes to differ?
 
-#### Read the separate-lines coefficients
-
-Run `summary(a3)`.
+#### Let's look at the separate-lines coefficients
 
 ```{r auto-read-interaction, eval=FALSE}
 # Run summary(a3).
@@ -210,7 +212,7 @@ A partial F test compares a reduced model with a larger model containing all of 
 
 ### Wage example
 
-Let's complete the set of nested comparisons before changing datasets.
+Let's complete the set of nested comparisons to see what structure is justified in the data.
 
 #### Does education add information after age?
 
@@ -236,20 +238,9 @@ anova(w1, w3)
 
 Discuss: How many parameters are added? What does this joint test establish?
 
-#### Does term order matter?
-
-A sequential ANOVA table gives each term credit for variation it explains when it enters the model.
-
-```{r wage-sequential-anova}
-anova(lm(wage ~ education + age, data = wage))
-anova(lm(wage ~ age + education, data = wage))
-```
-
-Discuss: The fitted model is identical in both cases. Why do the sums of squares change?
-
 ### Auto MPG: repeat the complete comparison set
 
-Now answer the same four questions using `a1`, `a2` and `a3`.
+Now answer the same three questions using `a1`, `a2` and `a3`.
 
 #### Does origin add information after weight?
 
@@ -275,21 +266,11 @@ Discuss: Which terms were added? What does the P-value say about whether the wei
 
 Discuss: How many parameters are added? What does this joint test establish?
 
-#### Does term order matter?
+## Adding more terms
 
-```{r auto-sequential-anova, eval=FALSE}
-# Compare:
-# anova(lm(mpg ~ origin + weight, data = auto))
-# anova(lm(mpg ~ weight + origin, data = auto))
-```
+When does another predictor earn its place? So far we have compared three ways groups might differ. Now we will build more complex models, checking whether the data support each new term.
 
-Discuss: Why is `anova(a1, a2)` the clearer answer to the question "does origin add information after weight?"
-
-## When does another predictor earn its place?
-
-A smaller RSS is guaranteed when another predictor is added, so RSS alone cannot decide whether a larger model is worth keeping.
-
-Let's use adjusted R-squared, residual standard error and AIC alongside the partial F test. `broom::glance()` puts these model summaries into one tidy row.
+A smaller RSS is guaranteed when another predictor is added, so RSS alone cannot decide whether a larger model is worth keeping. We will use adjusted R-squared, residual standard error and AIC alongside the partial F test. `broom::glance()` puts these model summaries into one tidy row.
 
 ### Wage example: build a compact model
 
@@ -331,7 +312,7 @@ Before moving on, make a decision: which wage model would you carry forward to d
 
 ### Auto MPG: repeat the model-building sequence
 
-Now repeat the whole process with Auto MPG.
+Now repeat a similar process with Auto MPG.
 
 Start from `a3`. Add `model_year` and call the model `a4`.
 
@@ -355,9 +336,9 @@ Discuss: Does horsepower earn its place after model year has been added?
 
 Before moving on, choose the compact Auto MPG model you would carry forward to diagnostics and justify the choice using adjusted R-squared, residual standard error, AIC and the partial F test.
 
-## What if prediction is the goal?
+## Note: What if prediction is the goal?
 
-### 1. Separate model fit from prediction
+### Separate model fit from prediction
 
 Everything so far has been calculated on the same observations used to fit the models.
 
@@ -365,7 +346,9 @@ Discuss: What could be done to assess prediction for cars that were not used to 
 
 Do not implement cross-validation here. That comes next week.
 
-## Does the working model fit the pattern?
+## Diagnostics
+
+Once we have chosen a reasonable model from the candidates, we need to check its diagnostics. Additional terms can change the diagnostic patterns, so we will examine the models we have chosen to carry forward.
 
 ### Wage example: diagnose and revise the model
 
@@ -379,7 +362,7 @@ plot(w5)
 par(mfrow = c(1, 1))
 ```
 
-Now plot the residuals against age.
+Now let's plot the residuals against age.
 
 ```{r wage-residuals-by-age}
 wage |>
@@ -393,7 +376,7 @@ wage |>
 
 Discuss: What pattern should be visible if the straight-line age effect is adequate? What pattern is actually present?
 
-The curve suggests that the mean structure still needs work. Quadratic regression was introduced earlier in the course, so let's add `age^2` while keeping the linear age term.
+The curve suggests that the mean structure still needs work. Quadratic regression was introduced earlier in the course, so let's add `I(age^2)` while keeping the linear age term. Keeping the existing terms means the models remain nested, so we can compare them as before.
 
 ```{r wage-revise-mean}
 w6 <- lm(
@@ -442,11 +425,7 @@ First run the standard diagnostic plots and plot the residuals against `weight`.
 
 Discuss: Is there a systematic pattern left in the mean?
 
-If there is, fit:
-
-```text
-a6: mpg ~ weight * origin + I(weight^2) + model_year
-```
+If there is, try fitting a squared weight term. Hint: use `I(weight^2)` in the formula for `a6`.
 
 Compare `a4` with `a6`, then repeat the standard diagnostic plots and the residual-versus-weight plot.
 
@@ -459,9 +438,7 @@ Compare `a4` with `a6`, then repeat the standard diagnostic plots and the residu
 
 Discuss: What improved? What still needs attention?
 
-The standard diagnostic plots do not establish independence. That has to be considered from the way the observations were collected and whether groups of observations might share unmodelled structure.
-
-## Pulling it together
+## Wrapping up
 
 ### Final question
 
