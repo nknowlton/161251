@@ -54,6 +54,8 @@ glimpse(auto)
 
 ### 1. Plot the relationships
 
+#### Wage example
+
 Let's start by plotting wage against age, with education shown by colour.
 
 ```{r wage-raw-plot}
@@ -68,6 +70,8 @@ ggplot(wage, aes(x = age, y = wage, colour = education)) +
 
 Discuss: How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
 
+#### Repeat this for Auto MPG
+
 Now plot `mpg` against `weight`, with `origin` shown by colour.
 
 ```{r auto-raw-plot, eval=FALSE}
@@ -77,6 +81,8 @@ Now plot `mpg` against `weight`, with `origin` shown by colour.
 Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
 
 ### 2. Fit one line, parallel lines and separate lines
+
+#### Wage example
 
 Let's fit three models to the wage data.
 
@@ -91,6 +97,8 @@ These correspond to one common line, parallel lines, and separate lines.
 ```text
 education * age = education + age + education:age
 ```
+
+#### Repeat this for Auto MPG
 
 Now fit the same three structures for Auto MPG.
 
@@ -107,6 +115,8 @@ a3: mpg ~ weight * origin
 Discuss: What does adding the factor allow to change? What additional change does the interaction allow?
 
 ### 3. Plot the fitted models
+
+#### Wage example
 
 Let's plot the fitted values from each wage model. Predictions at the observed ages are enough to draw the fitted lines.
 
@@ -142,6 +152,8 @@ wage |>
 
 Discuss: What changes when `education` is added? What changes when `age:education` is added?
 
+#### Repeat this for Auto MPG
+
 Now make the same three fitted-line plots for Auto MPG. Add the fitted values with `mutate(fitted = predict(...))`. For the grouped models, arrange by `origin` and `weight` before drawing the lines.
 
 ```{r auto-model-geometry, eval=FALSE}
@@ -154,6 +166,8 @@ Discuss: Which term moves the origin lines up and down? Which term allows the we
 
 ### 4. Read the interaction coefficients
 
+#### Wage example
+
 Let's look at the separate-lines wage model in the usual coefficient table.
 
 ```{r wage-read-interaction}
@@ -161,6 +175,8 @@ summary(w3)
 ```
 
 The `age` coefficient is the age slope for the reference education group. The education coefficients change the intercept, and the age-by-education coefficients change the slope. Age zero is outside these data, so the intercept differences are not useful overall wage comparisons.
+
+#### Repeat this for Auto MPG
 
 Now run `summary(a3)`.
 
@@ -176,6 +192,8 @@ A partial F test compares a reduced model with a larger model containing all of 
 
 ### 1. Do the groups add information after the covariate?
 
+#### Wage example
+
 Let's ask whether education adds information after age.
 
 ```{r compare-wage-education}
@@ -185,6 +203,8 @@ anova(w1, w2)
 Discuss: How many parameters were added? What does the P-value say about moving from one common line to parallel education lines?
 
 The P-value is below 0.001, so there is evidence that education improves the model after age is already included.
+
+#### Repeat this for Auto MPG
 
 Now ask the same question for the cars: after accounting for weight, does origin improve the model?
 
@@ -196,6 +216,8 @@ Discuss: How many parameters were added? What does the P-value say about moving 
 
 ### 2. Do the slopes differ?
 
+#### Wage example
+
 Next, let's ask whether the slopes differ. For the wage data:
 
 ```{r compare-wage-slopes}
@@ -203,6 +225,8 @@ anova(w2, w3)
 ```
 
 Discuss: Which terms were added? What does the P-value say about whether the age slope varies across education groups?
+
+#### Repeat this for Auto MPG
 
 Now make the same comparison for Auto MPG.
 
@@ -214,16 +238,29 @@ Discuss: Which terms were added? What does the P-value say about whether the wei
 
 ### 3. Compare the simplest and fullest models
 
-Finally, compare the simplest and fullest models directly.
+#### Wage example
 
-```{r compare-full-lines, eval=FALSE}
-# Compare w1 with w3.
-# Compare a1 with a3.
+Let's compare the simplest and fullest wage models directly.
+
+```{r compare-full-wage}
+anova(w1, w3)
 ```
 
-Discuss: How many parameters are added in each comparison? What does each joint test establish?
+Discuss: How many parameters are added? What does this joint test establish?
+
+#### Repeat this for Auto MPG
+
+Now compare `a1` with `a3`.
+
+```{r compare-full-auto, eval=FALSE}
+# Compare a1 with a3 using anova().
+```
+
+Discuss: How many parameters are added? What does this joint test establish?
 
 ### 4. Check what happens when term order changes
+
+#### Wage example
 
 There is one complication worth seeing before moving on. A sequential ANOVA table gives each term credit for variation it explains when it enters the model. If predictors overlap, term order matters.
 
@@ -233,6 +270,8 @@ anova(lm(wage ~ age + education, data = wage))
 ```
 
 Discuss: The fitted model is identical in both cases. Why do the sums of squares change?
+
+#### Repeat this for Auto MPG
 
 Now repeat this with `origin` and `weight`.
 
@@ -252,7 +291,9 @@ Let's use adjusted R-squared, residual standard error and AIC alongside the part
 
 ### 1. Add a clearly useful predictor
 
-Add year to the wage model.
+#### Wage example
+
+Let's add year to the wage model.
 
 ```{r wage-add-year}
 w4 <- lm(wage ~ age * education + year, data = wage)
@@ -269,6 +310,8 @@ anova(w3, w4)
 
 Discuss: Do the four pieces of evidence all favour adding year? How large is the improvement?
 
+#### Repeat this for Auto MPG
+
 Now add `model_year` to the Auto MPG model and call it `a4`.
 
 ```{r auto-add-model-year, eval=FALSE}
@@ -281,9 +324,9 @@ Discuss: Does model year earn its place?
 
 ### 2. Add a predictor with a smaller contribution
 
-Let's make one more addition to each model.
+#### Wage example
 
-For wage, add `jobclass`.
+Let's add `jobclass` to the wage model.
 
 ```{r wage-add-jobclass}
 w5 <- lm(wage ~ age * education + year + jobclass, data = wage)
@@ -300,7 +343,9 @@ anova(w4, w5)
 
 Discuss: The improvement is much smaller than it was for year. Is `jobclass` still worth keeping in this descriptive model?
 
-For Auto MPG, add `horsepower` to `a4` and call the model `a5`.
+#### Repeat this for Auto MPG
+
+Now add `horsepower` to `a4` and call the model `a5`.
 
 ```{r auto-add-horsepower, eval=FALSE}
 # Fit a5: mpg ~ weight * origin + model_year + horsepower.
@@ -323,6 +368,8 @@ Do not implement cross-validation here. That comes next week.
 ## Does the working model fit the pattern?
 
 ### 1. Check the working model
+
+#### Wage example
 
 Let's check the wage model before treating it as finished.
 
@@ -349,6 +396,8 @@ wage |>
 Discuss: What pattern should be visible if the straight-line age effect is adequate? What pattern is actually present?
 
 ### 2. Revise the mean structure
+
+#### Wage example
 
 The curve suggests that the mean structure still needs work. Quadratic regression was introduced earlier in the course, so let's add `age^2` while keeping the linear age term.
 
@@ -386,7 +435,9 @@ wage |>
 
 Discuss: Has the broad age pattern been reduced? What concerns remain?
 
-### 3. Apply the same diagnostic reasoning to Auto MPG
+### 3. Check the Auto MPG working model
+
+#### Repeat the diagnostic check for Auto MPG
 
 Now make the same diagnostic check for `a4`.
 
@@ -398,6 +449,10 @@ Run the standard diagnostic plots, then plot the residuals against `weight`.
 ```
 
 Discuss: Is there a systematic pattern left in the mean?
+
+### 4. Revise the Auto MPG mean structure
+
+#### Repeat the model-revision step for Auto MPG
 
 Now fit:
 
