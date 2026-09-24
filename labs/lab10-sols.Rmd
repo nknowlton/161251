@@ -52,6 +52,8 @@ glimpse(auto)
 
 ## What changes across groups?
 
+### 1. Plot the relationships
+
 Let's start by plotting wage against age, with education shown by colour.
 
 ```{r wage-raw-plot}
@@ -68,21 +70,11 @@ Discuss: How does wage vary with age? Do the education groups appear to have sim
 
 Wage generally rises with age before flattening or falling later, and the education groups sit at different wage levels. The raw points also suggest that the age pattern may not be identical across education groups.
 
-Let's fit three models.
+Now plot `mpg` against `weight`, with `origin` shown by colour.
 
-```{r wage-fit-lines}
-w1 <- lm(wage ~ age, data = wage)
-w2 <- lm(wage ~ age + education, data = wage)
-w3 <- lm(wage ~ age * education, data = wage)
-```
+### 3. Compare the fitted lines
 
-These correspond to one common line, parallel lines, and separate lines.
-
-```text
-education * age = education + age + education:age
-```
-
-Let's plot the fitted values from each model.
+Let's plot the fitted values from the three wage models.
 
 ```{r wage-one-line}
 wage |>
@@ -133,6 +125,23 @@ ggplot(auto, aes(x = weight, y = mpg, colour = origin)) +
 ```
 
 Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
+
+### 2. Fit one line, parallel lines and separate lines
+
+Let's fit the wage models first.
+
+```{r wage-fit-lines}
+w1 <- lm(wage ~ age, data = wage)
+w2 <- lm(wage ~ age + education, data = wage)
+w3 <- lm(wage ~ age * education, data = wage)
+```
+
+These correspond to one common line, parallel lines, and separate lines.
+
+```text
+education * age = education + age + education:age
+```
+
 
 Fuel economy falls as weight increases. The origins occupy different parts of the weight range, and the fitted relationship may differ in both position and slope.
 
@@ -186,6 +195,8 @@ Discuss: Which term moves the origin lines up and down? Which term allows the we
 
 The `origin` term shifts the lines vertically. The `weight:origin` interaction allows the slopes to differ.
 
+### 4. Read the interaction coefficients
+
 Let's look at the separate-lines wage model once in the usual coefficient table.
 
 ```{r wage-read-interaction}
@@ -208,6 +219,8 @@ USA is the reference origin, so `weight` is the USA slope. `originEurope` and `o
 
 A partial F test compares a reduced model with a larger model containing all of the reduced model's terms. It tests the added terms together.
 
+### 1. Do the groups add information after the covariate?
+
 Let's ask whether education adds information after age.
 
 ```{r compare-wage-education}
@@ -227,6 +240,8 @@ anova(a1, a2)
 Discuss: How many parameters were added? What does the P-value say about moving from one common line to parallel origin lines?
 
 Two origin contrasts are added. The P-value is about 0.0024, so there is evidence that origin improves the model after weight is included.
+
+### 2. Do the slopes differ?
 
 Next, let's ask whether the slopes differ. For the wage data:
 
@@ -248,6 +263,8 @@ Discuss: Which terms were added? What does the P-value say about whether the wei
 
 Two interaction coefficients are added. The P-value is about 0.044, giving modest evidence that the weight slopes differ among origins.
 
+### 3. Compare the simplest and fullest models
+
 Finally, compare the simplest and fullest models directly.
 
 ```{r compare-full-lines}
@@ -258,6 +275,8 @@ anova(a1, a3)
 Discuss: How many parameters are added in each comparison? What does each joint test establish?
 
 The wage comparison adds eight parameters and strongly favours the separate-lines model. The Auto MPG comparison adds four parameters and also favours separate lines over one common line, with P about 0.0011. These are joint tests and do not say that every added coefficient is individually useful.
+
+### 4. Check what happens when term order changes
 
 There is one complication worth seeing before moving on. A sequential ANOVA table gives each term credit for variation it explains when it enters the model. If predictors overlap, term order matters.
 
@@ -286,6 +305,8 @@ The direct comparison writes the question into the models: `a1` already contains
 A smaller RSS is guaranteed when another predictor is added, so RSS alone cannot decide whether a larger model is worth keeping.
 
 Let's use adjusted R-squared, residual standard error and AIC alongside the partial F test. `broom::glance()` puts these model summaries into one tidy row.
+
+### 1. Add a clearly useful predictor
 
 Add year to the wage model.
 
@@ -324,6 +345,8 @@ anova(a3, a4)
 Discuss: Does model year earn its place?
 
 Yes. Adjusted R-squared rises from about 0.703 to 0.830, residual standard error falls from about 4.25 to 3.22 MPG, AIC falls by more than 200, and the partial F test gives P below 0.001.
+
+### 2. Add a predictor with a smaller contribution
 
 Let's make one more addition to each model.
 
@@ -367,6 +390,8 @@ They all point towards `a4`. Adding horsepower slightly reduces adjusted R-squar
 
 ## What if prediction is the goal?
 
+### 1. Separate model fit from prediction
+
 Everything so far has been calculated on the same observations used to fit the models.
 
 Discuss: What could be done to assess prediction for cars that were not used to fit the model? Why are adjusted R-squared, residual standard error and AIC not direct estimates of that prediction error?
@@ -374,6 +399,8 @@ Discuss: What could be done to assess prediction for cars that were not used to 
 Use validation data or cross-validation so predictions are assessed on observations that did not fit the model. The in-sample measures above are not direct estimates of prediction error for new cars.
 
 ## Does the working model fit the pattern?
+
+### 1. Check the working model
 
 Let's check the wage model before treating it as finished.
 
@@ -438,6 +465,8 @@ wage |>
 Discuss: Has the broad age pattern been reduced? What concerns remain?
 
 The broad age curve is reduced, although other departures remain. The plots do not establish independence.
+
+### 3. Apply the same diagnostic reasoning to Auto MPG
 
 Now make the same diagnostic check for `a4`.
 
