@@ -291,11 +291,9 @@ A smaller RSS is guaranteed when another predictor is added, so RSS alone cannot
 
 Let's use adjusted R-squared, residual standard error and AIC alongside the partial F test. `broom::glance()` puts these model summaries into one tidy row.
 
-### 1. Add a clearly useful predictor
+### Wage example: build a compact model
 
-#### Wage example
-
-Let's add year to the wage model.
+Start from `w3` and add year.
 
 ```{r wage-add-year}
 w4 <- lm(wage ~ age * education + year, data = wage)
@@ -310,25 +308,9 @@ bind_rows(
 anova(w3, w4)
 ```
 
-Discuss: Do the four pieces of evidence all favour adding year? How large is the improvement?
+Discuss: Do adjusted R-squared, residual standard error, AIC and the partial F test all favour adding year? How large is the improvement?
 
-#### Repeat this for Auto MPG
-
-Now add `model_year` to the Auto MPG model and call it `a4`.
-
-```{r auto-add-model-year, eval=FALSE}
-# Fit a4: mpg ~ weight * origin + model_year.
-# Use broom::glance() to compare a3 and a4.
-# Compare a3 with a4 using anova().
-```
-
-Discuss: Does model year earn its place?
-
-### 2. Add a predictor with a smaller contribution
-
-#### Wage example
-
-Let's add `jobclass` to the wage model.
+Now add `jobclass`.
 
 ```{r wage-add-jobclass}
 w5 <- lm(wage ~ age * education + year + jobclass, data = wage)
@@ -343,19 +325,35 @@ bind_rows(
 anova(w4, w5)
 ```
 
-Discuss: The improvement is much smaller than it was for year. Is `jobclass` still worth keeping in this descriptive model?
+Discuss: Does job class still earn its place after year has been added?
 
-#### Repeat this for Auto MPG
+Before moving on, make a decision: which wage model would you carry forward to diagnostics, and why?
+
+### Auto MPG: repeat the model-building sequence
+
+Now repeat the whole process with Auto MPG.
+
+Start from `a3`. Add `model_year` and call the model `a4`.
+
+```{r auto-add-model-year, eval=FALSE}
+# Fit a4: mpg ~ weight * origin + model_year.
+# Compare a3 and a4 using broom::glance().
+# Compare a3 with a4 using anova().
+```
+
+Discuss: Does model year earn its place?
 
 Now add `horsepower` to `a4` and call the model `a5`.
 
 ```{r auto-add-horsepower, eval=FALSE}
 # Fit a5: mpg ~ weight * origin + model_year + horsepower.
-# Use broom::glance() to compare a4 and a5.
+# Compare a4 and a5 using broom::glance().
 # Compare a4 with a5 using anova().
 ```
 
-Discuss: Do adjusted R-squared, residual standard error, AIC and the partial F test tell the same story? Which model, `a4` or `a5`, is the better compact descriptive model?
+Discuss: Does horsepower earn its place after model year has been added?
+
+Before moving on, choose the compact Auto MPG model you would carry forward to diagnostics and justify the choice using adjusted R-squared, residual standard error, AIC and the partial F test.
 
 ## What if prediction is the goal?
 
@@ -369,13 +367,11 @@ Do not implement cross-validation here. That comes next week.
 
 ## Does the working model fit the pattern?
 
-### 1. Check the working model
+### Wage example: diagnose and revise the model
 
-#### Wage example
+Let's check `w5` before treating it as finished.
 
-Let's check the wage model before treating it as finished.
-
-Run the standard diagnostic plots for `w5`.
+Run the standard diagnostic plots.
 
 ```{r wage-diagnostics, fig.width=9, fig.height=7}
 par(mfrow = c(2, 2))
@@ -397,10 +393,6 @@ wage |>
 
 Discuss: What pattern should be visible if the straight-line age effect is adequate? What pattern is actually present?
 
-### 2. Revise the mean structure
-
-#### Wage example
-
 The curve suggests that the mean structure still needs work. Quadratic regression was introduced earlier in the course, so let's add `age^2` while keeping the linear age term.
 
 ```{r wage-revise-mean}
@@ -419,7 +411,7 @@ bind_rows(
 anova(w5, w6)
 ```
 
-Repeat the diagnostic plots and the residual-versus-age plot for `w6`.
+Repeat the standard diagnostic plots and the residual-versus-age plot for `w6`.
 
 ```{r wage-revised-diagnostics, fig.width=9, fig.height=7}
 par(mfrow = c(2, 2))
@@ -437,37 +429,31 @@ wage |>
 
 Discuss: Has the broad age pattern been reduced? What concerns remain?
 
-### 3. Check the Auto MPG working model
+### Auto MPG: repeat the diagnose-and-revise workflow
 
-#### Repeat the diagnostic check for Auto MPG
+Now repeat the complete workflow for `a4`.
 
-Now make the same diagnostic check for `a4`.
-
-Run the standard diagnostic plots, then plot the residuals against `weight`.
+First run the standard diagnostic plots and plot the residuals against `weight`.
 
 ```{r auto-diagnostics, eval=FALSE}
 # Plot the standard diagnostic panels for a4.
-# Then plot residuals(a4) against weight using the wage plot above as the pattern.
+# Plot residuals(a4) against weight.
 ```
 
 Discuss: Is there a systematic pattern left in the mean?
 
-### 4. Revise the Auto MPG mean structure
-
-#### Repeat the model-revision step for Auto MPG
-
-Now fit:
+If there is, fit:
 
 ```text
 a6: mpg ~ weight * origin + I(weight^2) + model_year
 ```
 
-Compare `a4` with `a6`, then repeat both diagnostic checks.
+Compare `a4` with `a6`, then repeat the standard diagnostic plots and the residual-versus-weight plot.
 
 ```{r auto-revise-mean, eval=FALSE}
 # Fit a6.
 # Compare a4 and a6 using broom::glance() and anova().
-# Repeat the standard diagnostics.
+# Repeat the standard diagnostic plots.
 # Plot residuals(a6) against weight.
 ```
 
