@@ -453,3 +453,5 @@ Write a short conclusion for Auto MPG covering:
 Keep this to about six sentences.
 
 With a small candidate set, these decisions can still be made by hand. Once the predictor list gets longer, that becomes tedious very quickly. Lab 11 returns to Auto MPG and looks at automated search and shrinkage.
+
+[View the worked solutions online](https://knowlton.co.nz/161251/labs/lab10-sols.html).
