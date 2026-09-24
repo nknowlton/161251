@@ -68,13 +68,55 @@ ggplot(wage, aes(x = age, y = wage, colour = education)) +
 
 Discuss: How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
 
-Wage generally rises with age before flattening or falling later, and the education groups sit at different wage levels. The raw points also suggest that the age pattern may not be identical across education groups.
+Wage generally rises with age before flattening or falling later, and the education groups sit at different wage levels. The age pattern may also differ across education groups.
 
 Now plot `mpg` against `weight`, with `origin` shown by colour.
 
-### 3. Compare the fitted lines
+```{r auto-raw-plot}
+ggplot(auto, aes(x = weight, y = mpg, colour = origin)) +
+  geom_point(alpha = 0.5) +
+  labs(
+    x = "Weight (lb)",
+    y = "Fuel economy (miles per gallon)",
+    colour = "Origin"
+  )
+```
 
-Let's plot the fitted values from the three wage models.
+Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
+
+Fuel economy falls as weight increases. The origins occupy different parts of the weight range, and the fitted relationship may differ in both position and slope.
+
+### 2. Fit one line, parallel lines and separate lines
+
+Let's fit three models to the wage data.
+
+```{r wage-fit-lines}
+w1 <- lm(wage ~ age, data = wage)
+w2 <- lm(wage ~ age + education, data = wage)
+w3 <- lm(wage ~ age * education, data = wage)
+```
+
+These correspond to one common line, parallel lines, and separate lines.
+
+```text
+education * age = education + age + education:age
+```
+
+Now fit the same three structures for Auto MPG.
+
+```{r auto-fit-lines}
+a1 <- lm(mpg ~ weight, data = auto)
+a2 <- lm(mpg ~ weight + origin, data = auto)
+a3 <- lm(mpg ~ weight * origin, data = auto)
+```
+
+Discuss: What does adding the factor allow to change? What additional change does the interaction allow?
+
+Adding the factor allows the fitted lines to have different intercepts while keeping a common slope. Adding the interaction also allows the slopes to differ.
+
+### 3. Plot the fitted models
+
+Let's plot the fitted values from each wage model.
 
 ```{r wage-one-line}
 wage |>
@@ -110,56 +152,7 @@ Discuss: What changes when `education` is added? What changes when `age:educatio
 
 Adding education shifts the fitted lines vertically while keeping a common age slope. Adding the interaction also allows the age slopes to differ.
 
-Now repeat the same steps for Auto MPG.
-
-Plot `mpg` against `weight`, with `origin` shown by colour.
-
-```{r auto-raw-plot}
-ggplot(auto, aes(x = weight, y = mpg, colour = origin)) +
-  geom_point(alpha = 0.5) +
-  labs(
-    x = "Weight (lb)",
-    y = "Fuel economy (miles per gallon)",
-    colour = "Origin"
-  )
-```
-
-Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
-
-### 2. Fit one line, parallel lines and separate lines
-
-Let's fit the wage models first.
-
-```{r wage-fit-lines}
-w1 <- lm(wage ~ age, data = wage)
-w2 <- lm(wage ~ age + education, data = wage)
-w3 <- lm(wage ~ age * education, data = wage)
-```
-
-These correspond to one common line, parallel lines, and separate lines.
-
-```text
-education * age = education + age + education:age
-```
-
-
-Fuel economy falls as weight increases. The origins occupy different parts of the weight range, and the fitted relationship may differ in both position and slope.
-
-Now fit:
-
-```text
-a1: mpg ~ weight
-a2: mpg ~ weight + origin
-a3: mpg ~ weight * origin
-```
-
-```{r auto-fit-lines}
-a1 <- lm(mpg ~ weight, data = auto)
-a2 <- lm(mpg ~ weight + origin, data = auto)
-a3 <- lm(mpg ~ weight * origin, data = auto)
-```
-
-Make the same three fitted-line plots.
+Now make the same three fitted-line plots for Auto MPG.
 
 ```{r auto-one-line}
 auto |>
@@ -197,7 +190,7 @@ The `origin` term shifts the lines vertically. The `weight:origin` interaction a
 
 ### 4. Read the interaction coefficients
 
-Let's look at the separate-lines wage model once in the usual coefficient table.
+Let's look at the separate-lines wage model in the usual coefficient table.
 
 ```{r wage-read-interaction}
 summary(w3)
@@ -427,6 +420,8 @@ wage |>
 Discuss: What pattern should be visible if the straight-line age effect is adequate? What pattern is actually present?
 
 The residuals should have no systematic relationship with age. Instead, there is a broad curve, so the straight-line age term is missing structure in the mean.
+
+### 2. Revise the mean structure
 
 Quadratic regression was introduced earlier in the course, so let's add `age^2` while keeping the linear age term.
 
