@@ -175,13 +175,17 @@ Use the Markdown heading hierarchy to make the lab navigable:
 - use `####` sparingly, only when a task genuinely needs a further visible subdivision;
 - let Quarto or R Markdown build the table of contents from those headings rather than adding a manual contents list.
 
-Task headings should describe the work, for example `### 1. Plot the relationships`, `### 2. Fit one line, parallel lines and separate lines`, and `### 3. Compare the fitted models`. Do not use headings such as `Your turn` or `Instructor demonstration`.
+Headings should reflect coherent reasoning blocks rather than every command. Prefer headings such as `### Wage example: compare the three model structures`, `### Auto MPG: repeat the complete analysis`, `### Wage example: build a compact model`, and `### Auto MPG: repeat the model-building sequence`. Use `####` headings inside a block only when they clarify meaningful sub-comparisons such as `One common line`, `Parallel lines`, and `Separate lines`.
 
-Within each task, use:
+Do not use headings such as `Your turn` or `Instructor demonstration`.
 
-**explicit action -> output -> Discuss question -> short interpretation -> matched action on the parallel example**
+Within a section, use:
 
-The heading tells students where they are; the prose tells them exactly what to do. Introduce the question when the relevant output is on screen. Do not leave a long sequence of plots or code blocks without a task heading, and do not place a stack of interpretive questions after a long sequence of code.
+**worked logical block -> interpretation or decision -> matched logical block on the parallel example**
+
+A logical block may contain several actions, outputs, and discussion questions. Keep the class on one dataset until the block reaches a natural interpretation or decision point. Then hand over the whole matched block.
+
+The heading tells students where they are; the prose tells them exactly what to do. Introduce each question when the relevant output is on screen. Do not alternate datasets after every individual plot, fit, test, or summary merely to preserve symmetry.
 
 After several sections, reduce the scaffolding and finish with an integrated conclusion.
 
