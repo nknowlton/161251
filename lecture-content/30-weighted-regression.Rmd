@@ -1,33 +1,22 @@
 
 ## Introduction
 
-The key idea in this topic is that not all datapoints in the dataset need have the same information value.  Some data rows may contain very precise data, while data in the other rows may be less precise.
+So far we have changed the mean model: which predictors enter and how they enter. Weighted least squares changes the error model. Some responses are measured more precisely than others, so their deviations from the fitted mean need not contribute equally.
 
-We therefore adjust our regression analysis to give more "weight" to those datapoints which are more reliable or informative. 
-
-- Weighting by sample size.
-- Interpretation of output.
-- Weighting to counter heteroscedasticity.
-
-
-
+If observation \(i\) has error variance \(\sigma_i^2\), the usual precision weight is proportional to \(1/\sigma_i^2\). A more precise observation receives a larger weight. We will start with means based on different numbers of people, then use the same rule when individual error variances change across the predictor range.
 
 
 ## Weighting by Sample Size 
 
-The CPS5 dataset is famous in econometrics, referred to often in the book "Introductory Econometrics" by Goldberger. 
+The CPS5 data contain individual wages and characteristics for 528 employees. Here we focus on education (`ED`) and hourly wage (`WG`). Goldberger first averages wages within each education level, from 6 to 18 years, then regresses those group means on education. Most employees had 12, 14 or 16 years of education.
 
-The dataset has individual-level data on 528 employees `ED`ucation level, whether or not they are in the `SO`uth of the United States, `BL`=whether the person was non-white and non-Hispanic 1, otherwise 0, `HP`= whether or not the person was Hispanic, whether or not the employee was `FE`male,  years of work `EX`perience, `MS`= marital status (1=married, 0 not),  whether or not they are members of a `UN`ion, and `WG`=hourly wage.
-
-Goldberger begins his text by calculating the average `WG` value for individuals at the various levels of education.  (6 years to 18 years of education).  Note that most people had 12, 14 or 16 years of education, corresponding to high-school graduates, college graduates and university graduates respectively.
-
-Goldberger then regresses the average `WG` on `ED`. 
+Each row here is a mean hourly wage for one education level, not one person. Suppose individual wages within the education groups have a common variance \(\sigma^2\) and are independent. A mean based on \(n_j\) people then has variance \(\sigma^2/n_j\), so inverse-variance weighting gives \(w_j \propto n_j\). This explains why the group containing three people should have less influence than a group containing many more.
 
 ### CPS5 grouped data
 
 `r xfun::embed_file("../data/CPS5grouped.csv")`
 
-```{r read CPS5grouped, eval=-1, echo=-2}
+```{r read-CPS5grouped, eval=-1, echo=-2}
 CPS5grouped =read.csv("CPS5grouped.csv",header=TRUE)
 CPS5grouped =read.csv("../data/CPS5grouped.csv")
 CPS5grouped
@@ -40,33 +29,29 @@ ggplot(data=CPS5grouped,
        mapping=aes(x=EDgroup, y=AvWage)) +
   geom_point(mapping = aes(size = N)) +
   geom_smooth(method='lm') +
-  labs(x="Education (hours)", y = "Average wage ($)")
+  labs(x="Education (years)", y = "Average wage ($)")
 ```
 
 ### Grouped regression summary
 
-The data appears to be quite close to the line, which often happens when we have data which have been averaged. The regression suggests we have a high $R^2 >0.9$.   
+The group means lie close to a line, and their unweighted regression has an \(R^2\) above 0.9. This describes variation among 13 group means. The individual-level \(R^2\) also includes variation among people within each education group, so the two values are not directly comparable.
 
-```{r grouped summary}
+```{r grouped-summary}
 grouped.lm <- lm(AvWage ~ EDgroup, data=CPS5grouped)
 summary(grouped.lm)
 ```
 
 ### The problem with equal weighting
 
-However note that the left-hand points represent only a few individuals compared to some of the right-hand points, represented by the size of the circles scaling with the number of individuals $N$ contributing to the average. 
-We would like the regression line to be closer to those points that represent far more people.
+The first point represents only three people, yet the unweighted fit gives it the same influence as the much larger 12-, 14- and 16-year education groups. If we want each employee to contribute equally, we need to weight those group means by their sizes.
 
-The line is close to the first category (which has only three people in it) and far from the 12, 14, 16-year categories which have the most people. 
-This doesn't really make sense. 
-
-If we use the ungrouped data the relationship between Wage and Education is much weaker in terms of goodness of fit of the model.
+The individual data show more variation because they retain the differences between people within each education group. The grouped and ungrouped fits therefore describe different response variation; we should not read their \(R^2\) values as a direct comparison of predictive quality.
 
 ### Ungrouped CPS5 data
 
 `r xfun::embed_file("../data/CPS5.csv")`
 
-```{r read CPS5, eval=-1, echo=-2}
+```{r read-CPS5, eval=-1, echo=-2}
 CPS5 = read.csv("CPS5.csv", header=TRUE)
 CPS5 = read.csv("../data/CPS5.csv", header=TRUE)
 head(CPS5);
@@ -95,7 +80,7 @@ We see there is an outlier, which could be a typo (decimal point in the wrong pl
 
 *Formulas not examinable but conclusion is important.*
 
-To explain the difference between these two regressions, we consider the regression of $Y$ vs $X$  ($n$ data)  and $\bar Y$ versus $\bar X$   (where the data have been divided into  $m$ groups  - a much smaller number than $n$.)
+To explain the difference between these two regressions, consider the regression of $Y$ on $X$ for all individuals, and the regression of group means $\bar Y$ on $\bar X$. In the CPS5 example, everyone within an education group has the same `ED` value, so $x_{ij}=\bar x_j$. The equivalence below depends on that condition.
 In Least Squares we choose $\beta_0$ and $\beta_1$  to minimise          
 $$SS_{error} =  \sum^n_{i=1}(y_i - \beta_0- \beta_1 x_i)^2 ~~~~   (1)  $$
 However the regression for the averages treats all $m$ groups as being of equal worth:
@@ -107,7 +92,7 @@ That is,  the computations will try just as hard to fit a value that arises from
 If we take the sum in (1) and re-order it into Education level groups we get
 $$SS_{error} =  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} - \beta_0- \beta_1 x_{ij})^2 ~~~~   (3)  $$
  
-Now suppose for a moment we pretend that all the $y_{ij}$ values are the same as the group mean $\bar y_j$   (and note that already $x_{ij} = \bar x_j$ ).  Then the sum on the right-hand side reduces to 
+Now suppose for a moment we pretend that all the $y_{ij}$ values are the same as the group mean $\bar y_j$. The sum on the right-hand side reduces to
 $$SS_{error} =  \sum^m_{j=1}  n_j(\bar y_{ j} - \beta_0 - \beta_1 \bar x_j)^2 ~~~~   (4)  $$
 
 
@@ -127,13 +112,10 @@ $$\begin{aligned}SS_{error} &=  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j + 
 The key fact is that the error SS splits into two parts: 
 
 $$SS_{error} =  \sum^m_{j=1}\sum^{n_j}_{i=1}(y_{ij} -\bar y_j)^2  + \sum^m_{j=1} n_j~(\bar y_j - \beta_0- \beta_1 \bar x_j)^2$$
--	The first term is the "pure error" SS for $y_{ij}$ and relates to the variation in the $y_{ij}$s around the group means $\bar y_j$, and 
+- The first term is the "pure error" sum of squares. It records how much individual wages vary around their education-group means $\bar y_j$.
+- The second term is the weighted sum of squares for fitting the group means, with each squared residual multiplied by the group size $n_j$.
 
--	the second term is the weighted SS that one gets from pretending all the $y_{ij}$s   occur at $\bar y_j$ .
-
-Note that estimation of $\beta_0$ and $\beta_1$ *depends only on the second term*.   Therefore  the regression coefficients you get from weighted regression should be *exactly the same* as those from handling the whole data.
-
-However the estimate of goodness of fit ($R^2$) would be entirely wrong as the variance is underestimated (missing the first term).
+Because everyone in an education group has the same `ED` value, the within-group sum of squares does not depend on the regression coefficients. Minimising the individual-level sum of squares therefore gives the same intercept and slope as a regression of the group means weighted by group size. This equality of coefficient estimates depends on the predictor being constant within each group. It does not say that the two analyses have the same residual degrees of freedom, standard errors or R-squared: the grouped analysis has lost the within-group variation.
 
 ## Weighted regression in R
 
@@ -150,13 +132,13 @@ summary(cps.wls)
 summary(cps5.lm)
 ```
 
-We see that the coefficient estimates are the same, but the standard errors and the $R^2$ are different. 
+The weighted group-mean fit gives the same intercept and slope as the individual-level fit, apart from rounding in the supplied means. Education is constant within each group. The standard errors and $R^2$ need not match: the grouped fit has only 13 rows and does not include the within-group variation in wages.
 
 The following plot shows the averaged data with the unweighted (dashed) and weighted (solid red) lines. The weighted line is closer to where more data are. 
 
 #### WLS vs OLS plot
 
-```{r WLS vs OLS, message=FALSE}
+```{r WLS-vs-OLS, message=FALSE}
 ggplot(data=CPS5grouped,
        mapping=aes(x=EDgroup, y=AvWage)) +
   geom_point(mapping=aes(size=N)) +
@@ -169,7 +151,7 @@ ggplot(data=CPS5grouped,
 
 Clearly a plot of ordinary residuals could be misleading in the context of weighted least squares.  The low weight points on the left are badly fitted and this could make them look like influential outliers. 
  
-```{r residuals from WLS, fig.height=4}
+```{r residuals-from-WLS, fig.height=4}
 augment(cps.wls, CPS5grouped) |>
   ggplot(mapping = aes(x=EDgroup, y=.resid)) +
   geom_point() +
@@ -179,9 +161,9 @@ augment(cps.wls, CPS5grouped) |>
 
 #### Pearson residuals
 
-Instead we use "weighted" or  Pearson" Residuals $r_j = \sqrt{w_j}\varepsilon_j$.
+Instead we use weighted, or Pearson, residuals $r_j = \sqrt{w_j}(y_j - \hat y_j)$.
  
-```{r weighted residuals, fig.height=4.5}
+```{r weighted-residuals, fig.height=4.5}
 augment(cps.wls, CPS5grouped) |>
   mutate(pearson = .resid*sqrt(N)) |>
   ggplot(mapping = aes(x=EDgroup, y=pearson)) +
@@ -191,9 +173,7 @@ augment(cps.wls, CPS5grouped) |>
 ```
 
 
-This has given a proper sense of importance to each residual. We see that the low-weight points on the left are not particularly important. 
-
-Unfortunately the $Y$ axis scale is now meaningless so all we can look at is the *shape* and the *relative* importance or lack of fit for each point. 
+The weighted residuals are measured on the scale used by the weighted fit. A small weighted residual means the observation is close to its fitted value relative to the assumed variance; it is not a complete influence analysis and does not make a point scientifically unimportant. The ordinary and weighted residual panels have different scales, so compare their patterns rather than their vertical magnitudes.
 
 ## Weighting For Non-Constant Variance
 
@@ -209,7 +189,7 @@ The data are from the book by Chatterjee and Price "Regression Analysis by Examp
 
 `r xfun::embed_file("../data/supervisors.csv")`
 
-```{r read Supervisors, eval=-1, echo=-2}
+```{r read-Supervisors, eval=-1, echo=-2}
 supervisors = read.csv("supervisors.csv")
 supervisors = read.csv("../data/supervisors.csv")
 supervisors
@@ -231,7 +211,7 @@ Note that the line is overshooting the cluster of points on the left.
 The residual plots show curvature and heteroscedasticity.  
 The fourth graph shows a simple linear model is highly influenced by the points at the right, which have very large residuals.
 
-```{r Supervisor residuals, fig.height=4}
+```{r Supervisor-residuals, fig.height=4}
 sup.lm <- lm(Y ~ X, data=supervisors)
 par(mfrow=c(1,2))
 plot(sup.lm, which=c(1,5))
@@ -239,9 +219,7 @@ plot(sup.lm, which=c(1,5))
 
 #### Heteroscedasticity pattern
 
-Considering the heteroscedasticity, look at the amount of vertical spread of residuals when $x$= 400, 800 and 1600. 
-As $X$ doubles, the spread roughly doubles.  
-This suggests that $\mbox{sd}(\varepsilon) \propto x$,  or in other words $\sigma = k x$ for some constant $k$.
+Compare the vertical spread of residuals around $x=400$, 800 and 1600. As $x$ doubles, the spread roughly doubles. That suggests $\mbox{sd}(\varepsilon) \propto x$, or $\sigma=kx$ for some constant $k$.
 
 Now let us suppose we want to fit a straight-line model $$y_i = \beta_0 + \beta_1 x_i  + \varepsilon_i ~   $$
 We would ordinarily solve this by minimising the 
@@ -267,7 +245,7 @@ which is a weighted regression with $w_i = 1/ x_i^2$.  So the task with this tra
 
 #### WLS for supervisors
 
-```{r wls for supervisors}
+```{r wls-for-supervisors}
 sup.wls = lm(Y ~ X  , data=supervisors, weights = 1/X^2 )
 summary(sup.wls)
 ```
@@ -285,11 +263,11 @@ ggplot(data=supervisors,
 
 #### Weighted residuals plot
 
-The plot shows that weighted line (red, solid) is now going closer to the data at the left, where the random error is smallest, whereas the OLS line (dotted) overshot the data at left.
+The weighted line sits closer to the low-$X$ observations, where the assumed error variance is smaller and the weights are larger. The OLS line gives these points the same per-observation weight as the higher-$X$ observations, despite their greater residual spread.
 
-The plot of weighted residuals below shows constant variance (with perhaps a little curvature). 
+Let's check the weighted residuals below. Their spread is more similar across the range of $X$, although a little curvature may remain. This is more consistent with the proposed variance model; the plot cannot establish that the variance is exactly constant.
 
-```{r Wt Res for Sup.wls, fig.height=4}
+```{r Wt-Res-for-Sup.wls, fig.height=4}
 augment(sup.wls) |>
   mutate(pearson = .resid/X) |>
   ggplot(mapping = aes(x=X, y=pearson)) +
@@ -300,21 +278,19 @@ augment(sup.wls) |>
 
 ## Basic rule for Weighting
 
-Assume weights  $$w_i = \frac{n_i}{\mbox{variance}_i} ~~~~~ (6) $$
-
-where, if $n$ doesn't vary between data rows then just replace by $n=1$,  and if the precision of data (1/variance) does not differ between data rows then just drop that term.
+The rule is inverse variance: \(w_i \propto 1/\operatorname{Var}(Y_i \mid X_i)\). If a row is an independent group mean based on \(n_i\) people with individual variance \(\sigma_i^2\), then \(\operatorname{Var}(\bar Y_i) = \sigma_i^2/n_i\) and \(w_i \propto n_i/\sigma_i^2\). Sample size alone is enough only when the individual variances are approximately common. These are precision weights, not a general measure of whether a point is scientifically important.
 
 ### Application: Meta Analysis
 
 You may have heard of the  field of **meta-analysis**, which  is concerned with combining the results of many small studies in order to get an overall result.  
 
-Meta-analysis uses weights of the form (6) to represent the differing amounts and quality of data from the different studies.
+Meta-analysis also uses inverse-variance weights: estimates with smaller standard errors contribute more to the combined estimate.
 
 ## Revisiting the CPS5grouped data
 
 For these data, there was a column of  standard deviations (`StDev`) as well as sample sizes `N`.  So we could use weights $W_i = N_i/ \mbox{StDev}_i^2$
 
-```{r CPS5 re-weighted, tidy=FALSE}
+```{r CPS5-re-weighted, tidy=FALSE}
 CPS5weighted <- CPS5grouped |> mutate(Wt = N/ StDev^2)
 cps.wls2 <- lm(AvWage ~ EDgroup, weights=Wt, data=CPS5weighted)
 summary(cps.wls2)
@@ -337,11 +313,11 @@ The standard deviations are much higher for the highly-educated groups, so that 
 
 The Seoul bike data also show why grouped summaries need care. If we average demand within temperature bands, some groups represent many more hourly observations than others.
 
-```{r seoul weighted read, message=FALSE}
+```{r seoul-weighted-read, message=FALSE}
 seoul_hourly = read_csv("../data/seoul_bike_hourly.csv")
 ```
 
-```{r seoul grouped}
+```{r seoul-grouped}
 seoul_grouped = seoul_hourly |>
   mutate(
     temp_band = cut(
@@ -361,7 +337,7 @@ seoul_grouped = seoul_hourly |>
 seoul_grouped
 ```
 
-```{r seoul grouped plot, message=FALSE}
+```{r seoul-grouped-plot, message=FALSE}
 ggplot(seoul_grouped, aes(x = avg_temperature, y = avg_bike_count)) +
   geom_point(aes(size = N)) +
   geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
@@ -373,4 +349,4 @@ ggplot(seoul_grouped, aes(x = avg_temperature, y = avg_bike_count)) +
   )
 ```
 
-In this grouped view, weights represent how much information each summary point carries. That is a different issue from the time dependence we study later, but it is another reminder that the same applied dataset can raise several distinct regression questions.
+These temperature bands summarise unequal numbers of hours. Weighting a band's mean by its count changes how much that summary influences the line. Here temperature also varies *within* each band, so the line through weighted band means need not be identical to a line fitted to all the hourly observations. The exact equality in the education example relied on everybody in a group having the same predictor value.

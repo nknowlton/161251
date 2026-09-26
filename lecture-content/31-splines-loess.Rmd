@@ -9,13 +9,13 @@ By the end of this lecture, students should be able to:
 2. Use LOESS to explore nonlinear structure.
 3. Fit regression splines using basis functions.
 4. Explain the difference between ordinary and natural splines.
-5. Recognise how added flexibility creates the need for regularisation.
+5. Explain how degrees of freedom control the flexibility of a regression spline.
 
 ### Running Example: Hourly Bike Demand
 
 `r xfun::embed_file("../data/seoul_bike_hourly.csv")`
 
-```{r read seoul hourly, message=FALSE}
+```{r read-seoul-hourly, message=FALSE}
 seoul_hourly = read_csv("../data/seoul_bike_hourly.csv")
 seoul_hourly
 ```
@@ -28,7 +28,7 @@ The core question for this lecture is:
 
 A straight-line model can underfit. A highly flexible curve can overfit. Our aim is to describe the mean relationship without losing the regression framing.
 
-```{r seoul temperature scatter, warning=FALSE, message=FALSE}
+```{r seoul-temperature-scatter, warning=FALSE, message=FALSE}
 seoul_hourly |>
   ggplot(aes(x = temperature, y = rented_bike_count)) +
   geom_point(alpha = 0.06) +
@@ -50,6 +50,8 @@ LOESS fits many small local regressions instead of one global line.
 3. Fit a weighted local regression.
 
 ### LOESS with the Seoul Bike Data
+
+We have already fitted polynomials and piecewise regression models. A polynomial uses one global curve, so changing its coefficients can alter the fit across the entire range. A piecewise model lets the shape change at selected predictor values. LOESS takes a more local approach: at each temperature, it fits a small regression using nearby observations, with closer observations contributing more. It is a way to inspect the shape before committing to a particular regression formula.
 
 ```{r loess-seoul, warning=FALSE, message=FALSE}
 seoul_hourly |>
@@ -88,7 +90,7 @@ seoul_hourly |>
 - Small span gives a more flexible but noisier curve.
 - Large span gives a smoother and more stable curve.
 
-LOESS is especially useful for seeing the empirical shape of the data before we decide on a formal regression model.
+The smaller span follows local changes more closely, including random fluctuations. The larger span smooths those fluctuations but may miss a sharp change in the mean. Let's check which features persist across both curves before choosing a regression formula.
 
 ## Example 2: Splines
 
@@ -102,6 +104,8 @@ It is nonlinear in the original predictor, but linear in the unknown coefficient
 
 ### Linear, Spline, and Natural Spline Fits
 
+A regression spline joins polynomial pieces at *knots*, with constraints that keep the fitted curve smooth. R constructs basis functions for those pieces and `lm()` estimates their coefficients. The result is curved as a function of temperature, but still linear in the unknown coefficients. The `df = 5` argument controls the size of the basis and therefore the permitted flexibility; it does not mean a fifth-degree polynomial. We should compare curves at the same predictor values before judging whether that flexibility helps.
+
 ```{r spline-seoul-models, warning=FALSE, message=FALSE}
 library(splines)
 
@@ -112,6 +116,7 @@ seoul_temp = seoul_hourly |>
 lm_linear = lm(rented_bike_count ~ temperature, data = seoul_temp)
 lm_bs = lm(rented_bike_count ~ bs(temperature, df = 5), data = seoul_temp)
 lm_ns = lm(rented_bike_count ~ ns(temperature, df = 5), data = seoul_temp)
+spline_knots <- attr(bs(seoul_temp$temperature, df = 5), "knots")
 
 temp_grid = tibble(
   temperature = seq(min(seoul_temp$temperature), max(seoul_temp$temperature), length.out = 250)
@@ -132,6 +137,12 @@ predictions = temp_grid |>
 seoul_temp |>
   ggplot(aes(x = temperature, y = rented_bike_count)) +
   geom_point(alpha = 0.05) +
+  geom_vline(
+    xintercept = spline_knots,
+    colour = "grey45",
+    linetype = "dashed",
+    linewidth = 0.5
+  ) +
   geom_line(
     data = predictions,
     aes(x = temperature, y = fitted_bikes,
@@ -153,7 +164,8 @@ seoul_temp |>
     colour = "Model",
     linetype = "Model",
     alpha = "Model",
-    title = "Splines allow flexible but still regression-based fits"
+    title = "Spline pieces join smoothly at the marked knots",
+    caption = "Dashed guides mark the internal B-spline knots. All fitted curves use the same observations and temperature range."
   )
 ```
 
@@ -172,13 +184,15 @@ predictions |>
   )
 ```
 
-Natural splines are often a sensible default because we tend to trust the extremes of the predictor range less than the middle.
+An ordinary cubic regression spline can continue curving at the edges. A natural cubic spline imposes a boundary restriction: its fitted function is linear beyond the boundary knots. This limits one form of unstable tail behaviour, but it does not guarantee reliable extrapolation. We have few observations at extreme temperatures, so uncertainty there still matters.
+
+A flexible curve will usually fit the observations used to build it more closely. That alone is not a reason to prefer it. We should ask whether the departure from a line is systematic, whether the shape is stable where there are fewer observations, and whether the extra flexibility serves the description or prediction we are trying to make.
 
 ## A Second Nonlinear Signal
 
 Temperature is not the only candidate for nonlinear modelling. Solar radiation may also have a curved relationship with demand.
 
-```{r seoul solar loess, warning=FALSE, message=FALSE}
+```{r seoul-solar-loess, warning=FALSE, message=FALSE}
 seoul_hourly |>
   ggplot(aes(x = solar_radiation, y = rented_bike_count)) +
   geom_point(alpha = 0.05) +

@@ -13,29 +13,23 @@ By the end of this lecture, students should be able to:
 1. Write down a regression model with AR(1) errors.
 2. Explain why autocorrelated errors distort ordinary standard errors.
 3. Fit a regression model with `gls()` and `corAR1()`.
-4. Check whether normalized residuals look closer to white noise.
+4. Check whether normalised residuals look closer to white noise.
 
 ## Why Ordinary Least Squares Is Not Enough
 
-If the residuals are autocorrelated, the ordinary least-squares coefficient estimates are often still unbiased, but their reported standard errors are usually too small. The main practical consequences are:
-
-- test statistics are too large,
-- p-values are too small,
-- confidence intervals are too narrow.
-
-So we keep the regression mean structure, but replace the independence assumption with a more realistic error process.
+If the mean model is correctly specified and the errors average to zero given the predictors, correlated errors do not by themselves force the OLS slope to be biased. They do make the usual independent-error standard errors unreliable; the direction of the error is not fixed. We now keep the trend and seasonal predictors and model the dependence among the remaining errors.
 
 ## The AR(1) Error Model
 
 A first-order autoregressive error model is
 $$\varepsilon_t = \phi \varepsilon_{t-1} + \eta_t,$$
-where $\eta_t$ is white noise.
+where $\eta_t$ is independent white noise with mean zero and constant variance.
 
 - If $\phi > 0$, nearby errors tend to move in the same direction.
 - If $\phi < 0$, nearby errors tend to alternate.
 - If $\phi = 0$, we are back to independent errors.
 
-More generally, the lag-$k$ autocorrelation is $\phi^k$, so the effect gradually dies away through time.
+For the process to be stationary, we require $|\phi| < 1$. Its lag-$k$ correlation is $\phi^k$, so dependence weakens as the time gap grows. These correlations describe the errors after we have accounted for the mean predictors.
 
 ## Main Worked Example: Tourism in Victoria
 
@@ -51,6 +45,8 @@ tourism <- read_csv("../data/motel.csv", show_col_types = FALSE) |>
     Month = factor(month(Date, label = TRUE), ordered = FALSE),
     Year = year(Date)
   )
+
+stopifnot(all(diff(tourism$Time) == 1))
 
 tourism |> head() |> kable()
 ```
@@ -101,7 +97,7 @@ Subtracting $\phi$ times the previous equation from the current one gives
 $$y_t - \phi y_{t-1}
 = \beta_0(1 - \phi) + \beta_1(x_t - \phi x_{t-1}) + \eta_t.$$
 
-The transformed equation has independent white-noise errors, so it can be handled by least-squares ideas after accounting for the covariance structure. That is the basic idea behind **generalized least squares**.
+The transformation removes the AR(1) dependence, leaving the independent errors $\eta_t$. **Generalised least squares** uses this covariance structure when estimating the regression coefficients.
 
 ## Fitting the AR(1) Model in R
 
@@ -117,7 +113,9 @@ anova(tourism_gls)
 summary(tourism_gls)
 ```
 
-The argument `correlation = corAR1(form = ~ Time)` says that adjacent observations in time follow an AR(1) error process.
+`Time` is the integer covariate that defines correlation distance in `correlation = corAR1(form = ~ Time)`.
+
+`Time` counts months, so observations one month apart have correlation $\phi$ and observations two months apart have correlation $\phi^2$ under this model. The regression formula still describes mean room nights. The `corAR1()` term describes the pattern left in the errors.
 
 ### Comparing OLS and GLS Standard Errors
 
@@ -131,7 +129,7 @@ list(
   select(model, term, estimate, std.error)
 ```
 
-The coefficient estimate for the trend is usually similar, but the standard error can change appreciably once autocorrelation is acknowledged. That is the main reason for fitting the more appropriate model.
+Compare the trend estimates *and* their standard errors. GLS may change the estimated trend as well as its precision because observations are no longer treated as providing independent information. The direction and size of the change are properties of these data and this fitted correlation model, not a universal correction factor.
 
 ### Checking the Normalized Residuals
 
@@ -142,7 +140,7 @@ acf(
 )
 ```
 
-If the AR(1) model has done a reasonable job, the normalized residuals should show much less autocorrelation than the original `lm()` residuals.
+We want much less remaining structure in the normalised residuals than in the OLS residuals. A quieter ACF makes AR(1) a more plausible working error model; it does not prove independence or rule out a missing part of the mean.
 
 ## A Short Comparison: Seoul Bike with AR(1) Errors
 
@@ -152,6 +150,9 @@ The same modelling pattern can be used for the daily Seoul bike data once we hav
 
 ```{r read-seoul-daily-gls, message=FALSE}
 seoul_daily <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE) |>
+  mutate(date = as.Date(date)) |>
+  arrange(date) |>
+  filter(functioning_day_all == "yes") |>
   mutate(
     S1 = sin(2 * pi * day_index / 365),
     C1 = cos(2 * pi * day_index / 365),
@@ -171,6 +172,20 @@ seoul_gls <- gls(
   correlation = corAR1(form = ~ day_index),
   data = seoul_daily
 )
+
+seoul_normalized_residuals <- residuals(seoul_gls, type = "normalized")
+seoul_diagnostics <- seoul_daily |>
+  mutate(normalized_residual = seoul_normalized_residuals)
+```
+
+The Seoul models use all 352 functioning days, and `day_index` retains its original values after the 13 outage days are removed. `corAR1(form = ~ day_index)` uses the integer distance between days, so a gap of several days is not treated as one step.
+
+```{r seoul-full-series-plot}
+augment(seoul_lm, seoul_daily) |>
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = rented_bike_count), colour = "grey55") +
+  geom_line(aes(y = .fitted), colour = "red") +
+  labs(x = "Actual date", y = "Daily rented bike count", title = "Seoul demand and fitted mean on functioning days")
 ```
 
 ```{r seoul-gls-comparison}
@@ -184,14 +199,17 @@ list(
 ```
 
 ```{r seoul-normalized-residual-acf}
-acf(
-  residuals(seoul_gls, type = "normalized"),
-  main = "ACF of normalized Seoul bike residuals"
-)
+seoul_run_normalized <- seoul_diagnostics |>
+  filter(date >= as.Date("2017-12-01"), date <= as.Date("2018-04-10")) |>
+  pull(normalized_residual)
+
+acf(seoul_run_normalized, main = "ACF of normalised Seoul residuals: consecutive days")
 ```
 
-The tourism example shows the method in a classical monthly setting, while the Seoul bike example shows that the same `gls(..., correlation = corAR1())` idea carries over directly to a modern daily dataset.
+We want much less remaining structure in the normalised residuals than in the OLS residuals. A quieter ACF makes AR(1) a more plausible working error model; it does not prove independence or rule out a missing part of the mean.
+
+The daily Seoul example uses the same distinction between a model for expected demand and a model for residual dependence. We retain the actual day index after removing system outages so a gap of several days is not treated as one AR(1) step. We should not read an ordinary ACF of the shortened residual vector as though every retained row were exactly one day apart.
 
 ## Final Comment
 
-AR(1) models are a useful first step, not the end of the story. More complicated correlation structures are possible, but the key lesson here is that once independence fails, the error model must become part of the regression model itself.
+AR(1) gives us a first model for the dependence. If the normalised residuals still show a pattern, we need to reconsider the mean or the error model. Fitting a trend and seasonal terms does not finish the job; we also need to check what remains in the residuals.

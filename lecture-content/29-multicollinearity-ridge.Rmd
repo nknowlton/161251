@@ -14,7 +14,9 @@ Consider the model \[Y  =  \beta_0 + \beta_1 X_1 + \beta_2X_2 + \varepsilon.\] W
 
 If \(X_1\) and \(X_2\) have no linear relationship, they are called **orthogonal**. Orthogonality makes regression easier to interpret because each predictor is contributing separate information. In practice, explanatory variables are rarely perfectly orthogonal unless the data come from a carefully designed experiment. A little non-orthogonality is usually not a problem.
 
-The problem occurs when predictors are so strongly related that the regression coefficients become unstable. Including or excluding one predictor can substantially change the estimated coefficient of another predictor. Multicollinearity can lead to: large standard errors; coefficients that change a lot when the model is changed slightly; coefficients with unexpected signs; and a model that is useful overall, but with individual coefficients that are hard to interpret. In this lecture, we will look at how multicollinearity affects regression models, how to detect it, and what we might do when it appears.
+When predictors overlap strongly, small changes to the model can shift their separate coefficients. We may see large standard errors or unexpected signs, even when the model as a whole is useful. We will use these examples to see when that instability matters, how to detect it, and what we can do about it.
+
+Two cases need to be kept separate. With exact linear dependence, one predictor is an exact combination of the others. The model cannot identify every coefficient separately, although it may still identify fitted values or particular combinations of coefficients. With near dependence, the coefficients are identifiable, but their separate estimates can be very imprecise and can change markedly when the sample or formula changes. Neither case says, by itself, that the predictors are scientifically unnecessary or that the model cannot predict.
 
 ## A Numerical Example
 
@@ -22,7 +24,7 @@ We will consider the effects of multicollinearity using a simple artificial exam
 
 `r xfun::embed_file("../data/simulation1.csv")` 
 
-```{r read Simulation1, eval=-1, echo=-2, message=FALSE}
+```{r read-Simulation1, eval=-1, echo=-2, message=FALSE}
 sim = read_csv("simulation1.csv")
 sim = read_csv("../data/simulation1.csv")
 
@@ -38,7 +40,7 @@ ggplot(sim_final) +
 
 ### Model with correlated predictors
 
-```{r lm Simulation1}
+```{r lm-Simulation1}
 lm.cor = lm( Y ~ A + B, data=sim_final)
 summary(lm.cor)
 ```
@@ -49,7 +51,7 @@ The model fits very well overall, but the standard errors for the individual coe
 
 Now suppose we keep the same values of \(A\), \(B\), and \(\epsilon\), but break the correlation between \(A\) and \(B\). One simple way to do this is to randomly reorder the values in column \(B\).
 
-```{r Sim randomized}
+```{r Sim-randomized}
 set.seed(42)
 
 sim_rand <- sim_final |>
@@ -77,19 +79,7 @@ The standard errors of the coefficients are now much smaller. The important poin
 
 Consider the model	$$Y  =  \beta_0 + \beta_1 X  + \beta_2 Z + \varepsilon$$  
 
-Recall that if $X$  and  $Z$ are uncorrelated, they are called orthogonal.  Then  
-
-*	the least squares estimates $\hat\beta_1$ and $\hat\beta_2$  are independent of each other
-
-*	the order of adding the variables does not affect the sums of squares in the ANOVA table.
-
-In other words  it doesn't matter whether we talk about the effect of  $X$ by itself or  "$X$ after $Z$".  The effect is the same.    
-
-*	Interpretation of parameters a lot easier.
-
-*	But it usually only happens in designed experiments with balanced numbers.
-
-In summary, orthogonality of the explanatory variables  allows easier interpretation of the results of an experiment and is an important goal in the design of experiments.
+If $X$ and $Z$ are orthogonal in the observed data, adding $Z$ does not change the estimated slope for $X$ or the sum of squares attributed to $X$. Under independent, constant-variance errors, the two slope estimates are uncorrelated; under normal errors they are independent. That makes the separate coefficients easier to interpret. We often see this in balanced designed experiments, but should not expect it automatically in observational data.
 
 ### Collinear data
 
@@ -98,35 +88,31 @@ $$Y = \beta_0 +\beta_1 X  + \beta_2 Z +\varepsilon$$
 
 but that, unknown to us,
 $$Z = \alpha_0 + \alpha_1 X$$
-at least equal up to some level of rounding error.
+exactly. We will consider near dependence separately.
 
-Then the regression model could be rewritten in terms of any arbitrary combination of the X and Z figures, as we can always add on $k$ lots of $\alpha_0 + \alpha_1 X$ and then take off $k$ lots of $Z$ (as they're the same thing):
+We can rewrite the model with different coefficients: add $k$ copies of $\alpha_0 + \alpha_1 X$ and subtract $kZ$. Since the two are equal, this does not change the fitted value:
 
 $$\begin{aligned}Y &= \beta_0 +\beta_1 X + \beta_2 Z + k(\alpha_0 + \alpha_1 X) - k Z  +\varepsilon\\ & = (\beta_0 + k\alpha_0) + (\beta_1 + k\alpha_1)X + (\beta_2 - k)Z + \varepsilon\end{aligned}$$
 
 for any real number $k$.
 
-There are an infinite number of possible solutions, and if we do get a numerical answer for the regression coefficients, the particular answer may even just depend on rounding, with different amounts of rounding could give very different answers.
+There are infinitely many sets of coefficients with the same fitted values. With near dependence, a unique solution exists, but even a small change in the data can move the separate coefficients substantially.
 
 #### Not estimable
 
-We describe this situation by saying the regression model is *not estimable*.  
-
-A consequence of such high correlation between the predictor variables is that the regression coefficients may become totally uninterpretable  (for example something you  *know* has a positive relationship with the response ends up with a negative coefficient)  and  the regression coefficients may have very  high standard errors.
-
-This is the problem of **Multicollinearity**.
+Here the dependence is exact. Many sets of intercept and slope coefficients produce the same fitted values, so we cannot estimate the individual coefficients uniquely from these data. In less extreme examples the dependence is only approximate: the model can be fitted, but separating the coefficients requires information that the observed predictors contain very little of.
 
 How do we assess whether it is a real problem in our data?
 
 ## Correlations among the predictors
 
-We could look at the correlations between the explanatory variables. Since correlation is a measure of linear relationship, then if two variables are highly correlated then it doesn't make sense to keep them both in the model.
+Pairwise correlations are a useful first check. A strong correlation tells us that two predictors tend to move together, so their separate conditional coefficients may be hard to estimate. It does not tell us to discard either variable. The scientific question may require both, and a predictor can also be nearly explained by several others even when no single pairwise correlation is striking. We will look at both the correlation matrix and what the fitted model says about coefficient precision.
 
-Example. Consider the data below on household electricity bills with explanatory variables: the income of the household; the number of persons in the house; and the area of the house. Each of these explanatory variables would be expected to be related to the Bill, and yet they are also related to each other, so we may not be able to have them all in the same model.
+Consider household electricity bills with income, number of people and floor area as predictors. These variables can all be included when the question calls for them, but income and area move closely together in these data. We will check whether that overlap makes their separate conditional coefficients difficult to estimate.
 
 `r xfun::embed_file("../data/electric.csv")` 
 
-```{r read electric, eval=-1, echo=-2, message=FALSE}
+```{r read-electric, eval=-1, echo=-2, message=FALSE}
 electric = read_csv("electric.csv")
 electric = read_csv("../data/electric.csv")
 electric
@@ -136,15 +122,15 @@ electric
 
 We could check all pair-wise correlations with the `cor()` function:
 
-```{r electric cor}
+```{r electric-cor}
 cor(electric)
 ```
 
-This indicates that the `Area` of the house is very strongly correlated to the `Income` of the occupants ($r= 0.961$), and so both may say much the same thing about the electricity bill. We may not be able to have both these in the model. By contrast the number of persons in the house is almost unrelated (r = 0.143) to the `Income` and only weakly related to the `Area` (r = 0.366) so persons provides more-or-less independent information. A pairs plot can be useful in these circumstances.
+This indicates that the `Area` of the house is very strongly correlated with the `Income` of the occupants ($r=0.961$). By contrast, the number of persons in the house is less strongly related to `Income` ($r=0.143$) and `Area` ($r=0.366$), so it may provide additional information. A pairs plot can help us see these relationships.
 
 ### Pairs plot
 
-```{r  electric pairs}
+```{r electric-pairs}
 pairs(electric)
 ```
 
@@ -157,7 +143,7 @@ electric.lm0 = lm(Bill~ Area+ Persons + Income, data=electric)
 summary(electric.lm0)
 ```
 
-The regression as a whole is highly significant, yet none of the regression coefficents are significant. This suggests multicollinearity.
+The overall F test gives evidence that the predictors jointly explain variation in bills, while the individual coefficient tests are much less precise. With the strong `Area`–`Income` correlation we saw above, overlap is a plausible reason. Let's look at what happens when we fit these predictors separately and together.
 
 ### Contradictory regression coefficients
 
@@ -169,20 +155,18 @@ But let's see what happens if we put them together:
 
 #### Area and Income together
 
-```{r correlated variables}
+```{r correlated-variables}
 elec.lm3 <- lm(Bill ~ Area + Income, data=electric)
 summary(elec.lm3)
 ```
 
-When put together, one predictor has changed its sign and the Std Errors are much larger. 
-
-This illustrates how multicollinearity can render the regression coefficients quite misleading, as presumably income IS related to higher electricity bills (as folk on higher incomes can afford to have more stuff that consumes energy).
+Once `Area` and `Income` enter together, the income coefficient changes sign and both coefficients have larger standard errors. We should not read that sign change as evidence that a higher income reduces a household's bill. These data provide little independent variation in income after holding area fixed.
 
 #### Area + Persons model
 
-One solution to multicollinearity is to delete one of the variables.  However it can be difficult to decide which one to delete.   For example suppose we particularly want to quantify the effect of *Persons* on the electricity bill after adjusting for one of the others:
+We could fit a smaller model, but the choice of predictor changes the question. Suppose we want to estimate the association between household size and the bill after adjusting for either area or income:
 
-```{r pair of variables}
+```{r pair-of-variables}
 elec.lm4 = lm(Bill ~ Area + Persons, data=electric)
 elec.lm5= lm(Bill ~ Income + Persons, data=electric)
 summary(elec.lm4)
@@ -194,17 +178,19 @@ summary(elec.lm4)
 summary(elec.lm5)
 ```
 
-Should we estimate that each extra person adds 42 to the electric bill, or 83 to  the bill?  Of course the interpretation of these regression models differs slightly (in the first model it is the effect of each additional person among families of the same income, while in the second it is the effect of person among families of with homes of the same area). But it still makes one uneasy to see such a big difference.  
+The estimated increase per additional person is about \$42 when we hold house area fixed, but about \$85 when we hold income fixed. These models compare different households: the first holds area constant, and the second holds income constant. That is a sizeable change, so we need to be clear about which comparison answers our question.
 
 ## Regressing the predictors among themselves
 
-More generally (more than just looking at individual correlations) we could look at whether any of the variables are strongly predicted by a combination of the other regressors. i.e. Whether the $R^2$ for regressing variable $X_i$ on the other regressors $X_1, X_2,..., X_{i-1}, X_{i+1},...,X_{p}$ is large. We call this $R^2_i$. If it is large then we probably don't need $X_i$ (or some other variables) in the model. This is more general than just looking at simple correlations between variables, since the regression model picks up on combinations of variables. A "rule of thumb" is that multicollinearity is a big problem if $R_i^2 > 0.9$, i.e. the $i$th variable is more than 90% explained by the other predictors. We can get $R_i^2$ by doing the regressions ourselves, but it is easier to consider the concept of variance inflation instead.
+More generally, we can ask how well each predictor is explained by a combination of the other regressors. Let $R_i^2$ be the $R^2$ from regressing $X_i$ on $X_1, X_2, \ldots, X_{i-1}, X_{i+1}, \ldots, X_p$. A large value means that little variation in $X_i$ is left to estimate its separate conditional coefficient. It is more general than checking pairwise correlations, but no single cutoff decides whether that matters for the question at hand. This leads to the concept of variance inflation.
 
 ## Variance inflation factors, VIFs
 
 A major impact of multicollinearity is found in the variances (and hence standard errors) of the regression coefficients. If $X_i$ is alone in the model $Y =\beta_0 +\beta_1 X_i +\varepsilon$, then $\hat{\mbox{var}}(\hat\beta_1) = \frac{s^2}{(n-1)\mbox{var}(X_i)}$. If $X_i$ is in a model with other predictors then $\hat{\mbox{var}}(\hat\beta_i) =  s^2   \left(X^T X\right)^{-1}_{ii}$ where the last term is the corresponding diagonal entry of the $(X^T X )^{-1}$ matrix, the *variance-covariance* matrix.
 
-It turns out that we can rewrite this as: $\hat{\mbox{var}}(\hat\beta_i) = \frac{s^2}{(n-1)\mbox{var}(X_i)}\cdot \frac{1}{1 - R_i^2}$ where $R_i^2$ is the multiple $R^2$ of the regression of $X_i$ on the other predictors. Thus, when going from a model with just $X_i$ to a full model, the variance of the coefficent of $X_i$ **inflates** by a factor of $\mbox{VIF}_i = \frac{1}{1 - R_i^2}$. Variable inflation factors that are large (e.g. $\mbox{VIF}_i > 10$) indicates multicollinearity problems. On the other hand if the VIF is around 1, then the variable $X_i$ is pretty much orthogonal to the other variables.
+It turns out that we can rewrite this as: $\hat{\mbox{var}}(\hat\beta_i) = \frac{s^2}{(n-1)\mbox{var}(X_i)}\cdot \frac{1}{1 - R_i^2}$ where $R_i^2$ is the multiple $R^2$ of the regression of $X_i$ on the other predictors. Thus, when going from a model with just $X_i$ to a full model, the variance of the coefficient of $X_i$ is multiplied by $\mbox{VIF}_i = \frac{1}{1 - R_i^2}$.
+
+VIF describes how much the variance of one coefficient is enlarged by linear overlap with the other predictors, with the error variance and the spread of that predictor held fixed. A high VIF flags limited information for that *separate conditional effect*. It is a diagnostic, not an instruction to delete the predictor. Whether we change the model depends on whether we need that coefficient, the available data and the modelling goal.
 
 ### Computing VIFs
 
@@ -218,20 +204,21 @@ library(car)
 vif( electric.lm0)
 ```
 
-Clearly we need to do something to reduce the multicollinearity.
+The VIFs flag overlap in the information carried by `Area` and `Income`. Whether to change the formula depends on the question: we may need both predictors, or we may decide that their separate coefficients are not the target of this analysis.
 
-What we do is application-specific! We might choose to remove a variable, or we might choose to do something else (e.g. find a better measure or somehow combine the variables into some average?)
+What we do depends on the question. We might retain both predictors, choose one with a stronger scientific justification, or construct a meaningful combined measure.
 
 ## Example: SAP data
 
-The following example illustrates multicollinearity in a context where it is not immediately visible.  Chatterjee and Price  discuss a dataset relating  Sales `S` to  `A` (advertising expenditure),  `A1` (last year's advertising),  `P` (promotion expenditure), `P1` (last year’s promotions expenditure) and `SE` (sales expenses).  The analyst eventually found out that an approximate budgetary constraint 
+The SAP example from Chatterjee and Price relates sales (`S`) to current and previous advertising (`A`, `A1`), current and previous promotion spending (`P`, `P1`), and sales expenses (`SE`). The four advertising and promotion variables were subject to an approximate budget constraint:
 
 $$ A + A1 + P + P1  =  5  $$
-was hidden in the data.  The constraint was known to the advertising executives who had commissioned the study but it had not been mentioned to the statistical consultant who was given the data to analyze.  
+
+The advertising executives knew this, but the analyst did not. The constraint makes it difficult to separate the conditional coefficients for those four predictors.
 
 `r xfun::embed_file("../data/SAP.csv")` 
 
-```{r  read SAP, eval=-1, echo=-2, message=FALSE}
+```{r read-SAP, eval=-1, echo=-2, message=FALSE}
 SAP = read_csv("SAP.csv")
 SAP = read_csv("../data/SAP.csv")
 SAP
@@ -241,7 +228,7 @@ SAP
 
 We start with a linear model for sales in terms of all other variables:
 
-```{r sap full}
+```{r sap-full}
 SAP.lm = lm( S ~ A + P + SE + A1 + P1, data=SAP)
 summary(SAP.lm)
 ```
@@ -251,7 +238,7 @@ summary(SAP.lm)
 We see that, apart from Sales Expenses, there is only weak
 evidence of a relationship between advertising, promotions and sales. 
 
-```{r  vif SAP}
+```{r vif-SAP}
 vif(SAP.lm)
 ```
 
@@ -272,7 +259,7 @@ SAP.lm3 |> tidy()
 
 Suppose we look at the relationships among the predictor variables: 
 
-```{r looking in}
+```{r looking-in}
 SAPA.lm = lm( A ~ P + SE + A1 + P1, data=SAP)
 SAPA.lm |> tidy()
 ```
@@ -281,7 +268,7 @@ This is approximately A = 5 - P -A1 - P1 as in the hidden constraint.
 
 ## What do we do about multicollinearity?
 
-As far as 161.251 is concerned, we have few options. 
+In this course, we will focus on three practical responses to multicollinearity.
 
 1. We can remove one (or more) of the correlated variables from the regression. Our aim is to fix the problem, but sometimes we have a bit of choice which variable to remove, in which case we would like the model to be as interpretable as possible. Sometimes the choice is between a variable with many missing values and one with few, and so we choose the latter if it allows us a bigger effective sample size $n$.
 
@@ -295,13 +282,13 @@ In the previous lecture, we introduced ridge and lasso regression. Both methods 
 
 ## Running example revisited: Seoul bike predictors
 
-In the previous lecture, we used the Seoul bike data to compare stepwise regression, ridge regression, and lasso regression. The conclusion was not that one method clearly won. The training MSE values were very similar. The main difference was how the methods controlled model complexity. Here we return to the same example for a different reason. Instead of asking which method predicts best, we ask: why might the ordinary regression coefficients be unstable? The answer is that some of the predictors overlap in the information they carry. For example, weather variables such as temperature, humidity, dew point, and solar radiation are not independent pieces of information.
+Last lecture we used ridge and lasso to control model complexity. We now return to the Seoul weather predictors to ask a different question: how much information do they provide about each separate coefficient? Temperature, humidity and dew point overlap, so the model may describe demand reasonably well while being uncertain about which one carries a particular conditional association.
 
-```{r seoul multi read, message=FALSE}
+```{r seoul-multi-read, message=FALSE}
 seoul_hourly = read_csv("../data/seoul_bike_hourly.csv")
 ```
 
-```{r seoul selected correlations, include=FALSE}
+```{r seoul-selected-correlations, include=FALSE}
 seoul_weather = seoul_hourly |>
   select(
     temperature,
@@ -315,7 +302,7 @@ seoul_weather = seoul_hourly |>
   )
 ```
 
-```{r seoul cor display, echo=FALSE}
+```{r seoul-cor-display, echo=FALSE}
 round(cor(seoul_weather), 2)
 ```
 
@@ -323,7 +310,7 @@ The correlation matrix shows that some weather predictors are strongly related. 
 
 A pairs plot gives the same idea visually.
 
-```{r seoul pairs, fig.height=7, fig.width=8, message=FALSE, warning=FALSE}
+```{r seoul-pairs, fig.height=7, fig.width=8, message=FALSE, warning=FALSE}
 library(GGally)
 
 seoul_pairs_data = seoul_hourly |>
@@ -366,7 +353,7 @@ ggpairs(
 
 Now fit an ordinary linear model using only the weather predictors.
 
-```{r seoul multi model}
+```{r seoul-multi-model}
 seoul_weather.lm = lm(
   rented_bike_count ~ temperature + humidity + dew_point_temperature +
     solar_radiation + rainfall + snowfall,
@@ -379,7 +366,7 @@ This model may still be useful for prediction, but the individual weather coeffi
 
 We can check this more formally using variance inflation factors.
 
-```{r seoul vifs}
+```{r seoul-vifs}
 vif(seoul_weather.lm)
 ```
 
@@ -391,9 +378,9 @@ The important interpretation is: the Seoul bike predictors can give similar pred
 
 ### Recall from Lecture 28
 
-In the previous lecture we fitted ridge and lasso to the Seoul bike data using `glmnet`. We used `alpha = 0` for ridge regression, and `alpha = 1` for lasso regression. We also compared `lambda.min` and `lambda.1se`. We do not need to refit those models here. Instead, we focus on why these methods are useful when predictors overlap. Let's focus on the ridge regression results and compare them to the ordinary regression coefficients.
+Last lecture we used `alpha = 0` for ridge and `alpha = 1` for lasso, and compared `lambda.min` with `lambda.1se`. Here we fit ridge and ordinary least squares to the same six weather predictors. Let's compare their coefficients at `lambda.min`.
 
-```{r seoul ols ridge compare, include=FALSE}
+```{r seoul-ols-ridge-compare, include=FALSE}
 library(glmnet)
 
 X_weather = model.matrix(
@@ -413,22 +400,20 @@ ols_weather = lm(rented_bike_count ~ temperature + humidity + dew_point_temperat
 ridge_coef = coef(seoul_ridge_weather, s = "lambda.min")
 
 coef_compare = tibble(
-  coefficient = rownames(ridge_coef),
-  OLS = as.numeric(coef(ols_weather)),
-  Ridge = as.numeric(ridge_coef)
+  Coefficient = rownames(ridge_coef),
+  `OLS estimate` = as.numeric(coef(ols_weather)),
+  `Ridge estimate (lambda.min)` = as.numeric(ridge_coef)
 )
 ```
 
-```{r seoul ols ridge compare display, echo=FALSE}
+```{r seoul-ols-ridge-compare-display, echo=FALSE}
 coef_compare
 ```
 
-Notice how the ridge coefficients are pulled toward zero compared to the OLS estimates. This shrinkage is the mechanism that reduces coefficient instability when predictors overlap.
+`glmnet` standardises predictors internally while fitting, then reports coefficients on their original scales. The two columns are therefore on compatible scales.
 
-This is a useful caution. Earlier, in the orthogonal case, ridge had a very simple form: \[\hat\beta^{\text{ridge}}_j = \frac{n}{n+\lambda}\hat\beta^{\text{OLS}}_j.\] That made it look as though every ridge coefficient is just a smaller version of the OLS coefficient. That simple interpretation only holds when the predictors are orthogonal. Here the predictors are not orthogonal. Temperature, humidity, and dew point overlap strongly. In this setting, ridge does not simply shrink each coefficient one at a time. It shrinks the coefficient vector while rebalancing the contributions of correlated predictors. So the ridge coefficient for `dew_point_temperature` can move away from zero, even though the fitted model is still being penalised. This is why the phrase "ridge shrinks coefficients toward zero" is useful as a first intuition, but not a literal guarantee for every coefficient in a correlated design.
+Ridge penalises the *whole coefficient vector*. With orthogonal predictors, each coefficient simply moves towards zero as the penalty grows. With correlated predictors, the coefficients are estimated jointly and can rebalance. An individual coefficient may even move away from zero relative to its OLS estimate. Judge the change in the collection of coefficients and the fitted predictions; do not expect every entry in this table to be a smaller copy of its OLS counterpart. Ridge can reduce instability, but it does not create independent information about highly overlapping predictors.
 
 Ridge and lasso both penalise large coefficients. That penalty can reduce the instability caused by multicollinearity. Ridge usually keeps all predictors and shrinks them. Lasso can shrink some predictors exactly to zero. So the same fitted models from the previous lecture can be interpreted in a second way: as tools for controlling model complexity; and as tools for reducing coefficient instability when predictors overlap.
 
-## Lecture Summary
-
-Multicollinearity occurs when explanatory variables overlap in the information they carry. It can produce large standard errors, unstable coefficients, unexpected coefficient signs, and sensitivity to small modelling choices. Correlation matrices and pairs plots can reveal simple pairwise relationships among predictors. Variance inflation factors are a more general diagnostic because they assess how well each predictor can be explained by all the others. One response is to remove or combine correlated predictors. Another response is to use penalised regression. Ridge keeps predictors in the model and shrinks their coefficients toward zero. Lasso shrinks coefficients and can set some exactly to zero. The key point is that multicollinearity is not only a model-selection problem. It is an information problem. If two predictors contain nearly the same information, the data may not be able to tell us cleanly which one is responsible for the association with the response.
+So far we have asked how much each *predictor* contributes. Next we change a different part of the problem: some observed responses are measured more precisely than others.

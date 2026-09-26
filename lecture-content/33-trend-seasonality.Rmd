@@ -14,7 +14,7 @@ By the end of this lecture, students should be able to:
 
 We consider monthly electricity bills for a household from May 1994 to May 1998. During some months there were paying guests staying in part of the house, so the householder wanted to estimate the extra business-related electricity cost.
 
-After allowing for the number of days in the bill, whether the bill was estimated, the guest weeks, and a time trend, we then examine what seasonal structure remains.
+We first allow for bill length, whether the bill was estimated, guest weeks, and a time trend. Then we examine the seasonal pattern that remains.
 
 `r xfun::embed_file("../data/Electricity.csv")`
 
@@ -34,118 +34,89 @@ lines(resids ~ Time, data = Electricity, col = 4)
 abline(h = 0, lty = 2)
 ```
 
-The plot suggests that some months tend to lie above zero and others below zero, so there is still seasonal structure after adjusting for the non-weather-related variables.
+After this adjustment, residuals tend to be positive in some months and negative in others. That suggests a seasonal pattern remains.
 
-### A Separate Effect for Each Month
-
-```{r electricity-month-factor}
-Electricity_lm2 <- lm(resids ~ factor(Month), data = Electricity)
-summary(Electricity_lm2)
-```
-
-This shows that the average residual differs by month. That is useful diagnostically, but using eleven indicator variables for a short series is not very parsimonious.
+We use the residual plot to choose seasonal terms for the *mean* model. To test their contribution, we add them to the original `Bill` regression while keeping `Days`, `Estimate`, `Guestwks` and `Time` in the model.
 
 ## Sinusoidal Terms
 
-A smoother alternative is to represent seasonality by sine and cosine waves. Suppose we try
-$$\sin\left(\frac{2\pi (t - c)}{12}\right)$$
-for monthly data, where the shift constant $c$ says where the cycle starts.
+A sine and cosine pair with the same period can represent a seasonal wave whose peak occurs at any point in the cycle. The origin used to define the pair is a choice of coordinates, not a claim about which month is the average.
 
-An initial guess is to place the zero point near April, because that is close to autumn and might correspond to an "average" month for electricity use.
-
-So we create
-$$\mathrm{SinTime} = \sin\left(\frac{2\pi (Time - 4)}{12}\right), \qquad
-\mathrm{CosTime} = \cos\left(\frac{2\pi (Time - 4)}{12}\right).$$
-
-The cosine term matters because we may not know the best phase shift in advance. If the true seasonal pattern is
-$$A\sin(x + \phi),$$
-then trigonometry gives
-$$A\sin(x + \phi) = A\sin(x)\cos(\phi) + A\cos(x)\sin(\phi)
-= A_1 \sin(x) + A_2 \cos(x).$$
-
-So a regression on both sine and cosine can estimate the amplitude and the phase shift automatically.
-
-### First Guess: Shift by Four Months
-
-```{r electricity-first-sinusoid}
+```{r electricity-phase-invariance}
 Electricity <- Electricity |>
   mutate(
-    SinTime = sin((Time - 4) * 2 * pi / 12),
-    CosTime = cos((Time - 4) * 2 * pi / 12)
-  )
-
-Electricity_lm3 <- lm(resids ~ SinTime + CosTime, data = Electricity)
-summary(Electricity_lm3)
-```
-
-```{r electricity-first-sinusoid-plot}
-plot(resids ~ Time, data = Electricity, ylab = "Residuals")
-lines(resids ~ Time, data = Electricity, col = 4)
-lines(Electricity_lm3$fitted.values ~ Time, data = Electricity, col = 2, lwd = 2, lty = 2)
-abline(h = 0, lty = 2)
-```
-
-The coefficient of `CosTime` is clearly not zero, which tells us our guessed phase shift is not quite right.
-
-### Second Guess: Shift by Five Months
-
-The fitted curve crosses zero closer to `Time = 5`, so we try that shift instead.
-
-```{r electricity-second-sinusoid}
-Electricity <- Electricity |>
-  mutate(
-    SinTime = sin((Time - 5) * 2 * pi / 12),
-    CosTime = cos((Time - 5) * 2 * pi / 12)
-  )
-
-Electricity_lm4 <- lm(resids ~ SinTime + CosTime, data = Electricity)
-summary(Electricity_lm4)
-```
-
-Now the cosine term is no longer doing much work, which suggests the revised phase shift is much more sensible.
-
-### A Sharper Seasonal Shape: Add Second Harmonics
-
-The fitted curve still looks a little too smooth. In particular, the rise toward winter is steeper than a simple sine wave suggests, so we add terms with twice the frequency:
-$$\sin\left(\frac{4\pi (Time - 5)}{12}\right), \qquad
-\cos\left(\frac{4\pi (Time - 5)}{12}\right).$$
-
-```{r electricity-second-harmonic}
-Electricity <- Electricity |>
-  mutate(
+    SinTime4 = sin((Time - 4) * 2 * pi / 12),
+    CosTime4 = cos((Time - 4) * 2 * pi / 12),
+    SinTime5 = sin((Time - 5) * 2 * pi / 12),
+    CosTime5 = cos((Time - 5) * 2 * pi / 12),
     Sin2Time = sin((Time - 5) * 4 * pi / 12),
     Cos2Time = cos((Time - 5) * 4 * pi / 12)
   )
 
-Electricity_lm5 <- lm(resids ~ SinTime + CosTime + Sin2Time + Cos2Time, data = Electricity)
-summary(Electricity_lm5)
-anova(Electricity_lm4, Electricity_lm5)
+Electricity_first4 <- lm(
+  Bill ~ Days + Estimate + Guestwks + Time + SinTime4 + CosTime4,
+  data = Electricity
+)
+Electricity_first5 <- lm(
+  Bill ~ Days + Estimate + Guestwks + Time + SinTime5 + CosTime5,
+  data = Electricity
+)
+
+c(
+  maximum_fitted_value_difference = max(abs(fitted(Electricity_first4) - fitted(Electricity_first5))),
+  cosine_coefficient_shift_4 = coef(Electricity_first4)["CosTime4"],
+  cosine_coefficient_shift_5 = coef(Electricity_first5)["CosTime5"]
+)
+
+Electricity <- Electricity |>
+  mutate(
+    SinTime = SinTime5,
+    CosTime = CosTime5
+  )
+```
+
+We can choose any convenient month as the origin of the sine and cosine pair. With a 12-month period, shifting the origin changes the two coefficients, but it does not change the family of curves the pair can fit. To see this, fit the pair using `Time - 4`, then repeat using `Time - 5`. The fitted values agree to numerical precision. A smaller cosine coefficient in the second version therefore says something about how we labelled the two basis functions, not that we found a better seasonal model. We will use `Time - 5` from here on because its coefficients are easier to describe.
+
+### A Sharper Seasonal Shape: Add Second Harmonics
+
+One sine/cosine pair produces a smooth cycle with one peak and one trough per year. The residual pattern suggests a sharper rise or fall than this pair can produce. Adding a second pair, at twice the frequency, allows that shape to change while keeping the original adjustment variables in the model. Compare the model with the first pair against the model with both pairs. The partial F test asks whether those *two additional coefficients* improve the fit after the other terms have already been included.
+
+```{r electricity-second-harmonic}
+Electricity_full1 <- lm(
+  Bill ~ Days + Estimate + Guestwks + Time + SinTime + CosTime,
+  data = Electricity
+)
+Electricity_full2 <- lm(
+  Bill ~ Days + Estimate + Guestwks + Time + SinTime + CosTime + Sin2Time + Cos2Time,
+  data = Electricity
+)
+
+anova(Electricity_full1, Electricity_full2)
 ```
 
 ```{r electricity-second-harmonic-plot}
-plot(resids ~ Time, data = Electricity, ylab = "Residuals")
-lines(resids ~ Time, data = Electricity, col = 4)
-lines(Electricity_lm5$fitted.values ~ Time, data = Electricity, col = 2, lwd = 2, lty = 2)
-abline(h = 0, lty = 2)
+Electricity |>
+  mutate(
+    first_harmonic = fitted(Electricity_full1),
+    second_harmonic = fitted(Electricity_full2)
+  ) |>
+  ggplot(aes(x = Time, y = Bill)) +
+  geom_point() +
+  geom_line(aes(y = first_harmonic, colour = "First harmonic")) +
+  geom_line(aes(y = second_harmonic, colour = "Second harmonic")) +
+  scale_colour_manual(values = c("First harmonic" = "blue", "Second harmonic" = "red")) +
+  labs(x = "Month index", y = "Electricity bill ($)", colour = "Model")
 ```
 
-The extra sine and cosine pair gives a noticeably more flexible shape. It captures a steeper winter peak and a flatter period through part of the year without requiring a separate coefficient for each month.
+Under the usual OLS error assumptions, the second harmonic provides evidence of additional seasonal shape in these data: $F(2, 40) = 3.83$, $p = 0.0301$. This two-degree-of-freedom test compares models with the same original adjustment variables. Later we will check whether the residual errors are dependent, which matters for that P-value. The fitted pattern describes this household after adjustment for the recorded covariates; it does not establish that the same pattern applies elsewhere.
 
 ### Putting the Model Together
 
 ```{r electricity-full-model}
-Electricity_lm6 <- lm(
-  Bill ~ Days + Estimate + Guestwks + Time + SinTime + CosTime + Sin2Time + Cos2Time,
-  data = Electricity
-)
-summary(Electricity_lm6)
-
-plot(Bill ~ Time, data = Electricity)
-lines(Bill ~ Time, data = Electricity, col = 4)
-lines(Electricity_lm6$fitted.values ~ Time, data = Electricity, col = 2, lwd = 2, lty = 2)
+summary(Electricity_full2)
 ```
 
-This final model is still a regression model. The main difference is that the seasonal predictors are now smooth waves rather than month indicators.
+The final model is still a regression model. It adjusts for the bill length, estimated status, guest weeks and time trend, then adds smooth seasonal waves rather than a separate effect for each month.
 
 ## Fourier Terms in a Modern Example
 
@@ -155,6 +126,9 @@ The Seoul bike data use the same idea, but on a daily time scale. The sine and c
 
 ```{r read-seoul-daily-trend-seasonality, message=FALSE}
 seoul_daily <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE) |>
+  mutate(date = as.Date(date)) |>
+  arrange(date) |>
+  filter(functioning_day_all == "yes") |>
   mutate(
     S1 = sin(2 * pi * day_index / 365),
     C1 = cos(2 * pi * day_index / 365),
@@ -164,6 +138,8 @@ seoul_daily <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE) 
 
 seoul_daily |> head() |> kable()
 ```
+
+We keep the same 352 functioning days used in Lecture 32 and retain their original dates and `day_index` values. The gaps remain in the time index after the 13 outage days are removed.
 
 ```{r seoul-fourier-model}
 seoul_fourier <- lm(
@@ -183,11 +159,11 @@ seoul_daily |>
   labs(
     x = "Day index",
     y = "Daily rented bike count",
-    title = "Fourier terms give a smooth seasonal fit for bike demand"
+    title = "Fourier terms capture the observed within-year pattern"
   )
 ```
 
-The electricity example introduced the ideas in a small, interpretable setting. The Seoul bike model shows the same method on a larger dataset, where the sine and cosine pairs become a compact way to represent annual seasonality.
+The electricity example introduced the ideas in a small, interpretable setting. The Seoul bike model shows the same method with daily data. The sine and cosine pairs compactly represent the rise and fall observed within this one-year record; they do not establish a recurring annual pattern.
 
 ## Looking Ahead
 

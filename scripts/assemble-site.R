@@ -164,16 +164,22 @@ copy_dir(data_src, data_dest)
 # 6. Lab files
 cat("  Rendering Lab 10 pages...\n")
 source(file.path(repo_root, "scripts", "render-lab10.R"), local = TRUE)
+cat("  Rendering Lab 12 pages...\n")
+source(file.path(repo_root, "scripts", "render-lab12.R"), local = TRUE)
 
 cat("  Copying lab files...\n")
 labs_src <- file.path(repo_root, "labs")
 labs_dest <- file.path(course_dir, "labs")
 copy_dir(labs_src, labs_dest)
 copy_dir(file.path(repo_root, "build", "labs"), labs_dest)
-required_lab_files <- c("lab10.Rmd", "lab10.html", "lab10-sols.Rmd", "lab10-sols.html")
+required_lab_files <- c(
+  "lab10.Rmd", "lab10.html", "lab10-sols.Rmd", "lab10-sols.html",
+  "lab11.Rmd", "lab11-sols.Rmd",
+  "lab12.Rmd", "lab12.html", "lab12-sols.Rmd", "lab12-sols.html"
+)
 missing_lab_files <- required_lab_files[!file.exists(file.path(labs_dest, required_lab_files))]
 if (length(missing_lab_files) > 0) {
-  stop("Missing published Lab 10 files: ", paste(missing_lab_files, collapse = ", "))
+  stop("Missing published lab files: ", paste(missing_lab_files, collapse = ", "))
 }
 
 # 7. Resources (images, downloadable files)

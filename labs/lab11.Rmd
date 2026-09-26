@@ -1,0 +1,309 @@
+---
+title: "Computer Laboratory 11: Search, Shrinkage, and Weighting"
+subtitle: "161.251 Regression Modelling"
+author: "Nick Knowlton nknowlton@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = "", dev = "png")
+library(tidyverse)
+library(car)
+library(glmnet)
+```
+
+# Computer Laboratory 11: Search, Shrinkage, and Weighting
+
+Last week we built and compared several Auto MPG models by hand. This week we let the candidate set become larger, then look at what happens when several predictors carry nearly the same information. In the second part, we change the problem: the magazine data contain group means with different levels of precision.
+
+## Search from both ends
+
+The null model contains only an intercept. The full candidate model contains the seven predictors we are willing to consider. Fit both models, then run forward search from the null model and backward search from the full model using the same AIC scope. Print each search path and final formula.
+
+```{r import-auto, message=FALSE}
+auto <- readr::read_csv("../data/auto_mpg.csv") |>
+  mutate(origin = factor(origin))
+
+levels(auto$origin)
+```
+
+As in Lab 10, we will model `mpg` and exclude `car_name` from the candidate predictors. `origin` is a factor, with Europe as the reference level.
+
+```{r search-models}
+null_model <- lm(mpg ~ 1, data = auto)
+
+full_model <- lm(
+  mpg ~ cylinders + displacement + horsepower + weight +
+    acceleration + model_year + origin,
+  data = auto
+)
+```
+
+```{r run-searches}
+search_scope <- list(
+  lower = formula(null_model),
+  upper = formula(full_model)
+)
+
+forward_search <- step(
+  null_model,
+  scope = search_scope,
+  direction = "forward",
+  trace = 0
+)
+
+backward_search <- step(
+  full_model,
+  scope = search_scope,
+  direction = "backward",
+  trace = 0
+)
+```
+
+```{r search-paths}
+forward_search$anova
+backward_search$anova
+formula(forward_search)
+formula(backward_search)
+```
+
+Discuss: Did the two routes end at the same model? What would agreement or disagreement tell us about this particular search, and what would it *not* establish?
+
+Compare AIC for `full_model`, `forward_search` and `backward_search`. How large is the difference between the best AIC and the full model's AIC? If the values are close, what else would you consider before choosing a model?
+
+```{r compare-search-aic}
+AIC(full_model, forward_search, backward_search)
+```
+
+## Keep `origin` in every candidate model
+
+Fit a lower-bound model containing `origin`, then repeat backward search with that model as the lower scope limit. Print the selected formula.
+
+```{r forced-origin, eval=FALSE}
+# Create origin_model with mpg explained by origin.
+# Use it as the lower model in a backward stepwise search from full_model.
+# Print the resulting formula.
+```
+
+Discuss: What decision did we make before the search? Why could an automatic AIC step not remove `origin` this time?
+
+## How much do the numerical predictors overlap?
+
+Make a correlation matrix for `cylinders`, `displacement`, `horsepower`, `weight`, `acceleration` and `model_year`. Then compute the VIFs or adjusted GVIFs for the full model.
+
+```{r correlation-matrix}
+auto |>
+  select(
+    cylinders,
+    displacement,
+    horsepower,
+    weight,
+    acceleration,
+    model_year
+  ) |>
+  cor() |>
+  round(3)
+```
+
+```{r vif-full, eval=FALSE}
+# Compute VIFs or adjusted GVIFs for full_model.
+```
+
+Discuss: Which conditional coefficients might be hard to estimate separately? Why would a high VIF alone be an inadequate reason to delete one of them?
+
+## Simple associations and conditional coefficients
+
+Fit separate simple regressions for `cylinders`, `displacement`, `horsepower` and `weight`. Compare each slope with the corresponding coefficient in the full model.
+
+```{r coefficient-comparison, eval=FALSE}
+# Fit one simple regression for each predictor.
+# Compare each simple slope with the corresponding coefficient and standard
+# error from full_model.
+```
+
+Discuss: Which signs or magnitudes changed? Describe the full-model coefficient as an association conditional on the other included predictors; do not interpret a sign reversal as a causal benefit.
+
+## Ridge and lasso on the same folds
+
+Build the model matrix shown below. Use one fold assignment for both `cv.glmnet()` fits. Plot both coefficient paths and both CV curves. Extract coefficients at `lambda.min` and `lambda.1se`.
+
+```{r glmnet-data}
+X <- model.matrix(
+  mpg ~ cylinders + displacement + horsepower + weight +
+    acceleration + model_year + origin,
+  data = auto
+)[, -1]
+
+y <- auto$mpg
+
+set.seed(161251)
+fold_id <- sample(rep(1:10, length.out = nrow(X)))
+```
+
+```{r cross-validated-penalties}
+ridge_cv <- cv.glmnet(
+  X,
+  y,
+  alpha = 0,
+  foldid = fold_id
+)
+
+lasso_cv <- cv.glmnet(
+  X,
+  y,
+  alpha = 1,
+  foldid = fold_id
+)
+```
+
+```{r coefficient-paths, fig.width=9, fig.height=5}
+par(mfrow = c(1, 2))
+plot(ridge_cv$glmnet.fit, xvar = "lambda", label = TRUE)
+title("Ridge coefficient paths")
+plot(lasso_cv$glmnet.fit, xvar = "lambda", label = TRUE)
+title("Lasso coefficient paths")
+par(mfrow = c(1, 1))
+```
+
+```{r cv-curves, fig.width=9, fig.height=5}
+par(mfrow = c(1, 2))
+plot(ridge_cv)
+title("Ridge cross-validation")
+plot(lasso_cv)
+title("Lasso cross-validation")
+par(mfrow = c(1, 1))
+
+penalty_choices <- tibble(
+  Method = c("Ridge", "Lasso"),
+  `lambda.min` = c(ridge_cv$lambda.min, lasso_cv$lambda.min),
+  `lambda.1se` = c(ridge_cv$lambda.1se, lasso_cv$lambda.1se)
+)
+
+knitr::kable(penalty_choices, digits = 4)
+```
+
+What trade-off is made by choosing `lambda.1se` rather than `lambda.min`?
+
+```{r penalised-coefficients}
+round(as.matrix(coef(ridge_cv, s = "lambda.min")), 4)
+round(as.matrix(coef(ridge_cv, s = "lambda.1se")), 4)
+
+round(as.matrix(coef(lasso_cv, s = "lambda.min")), 4)
+round(as.matrix(coef(lasso_cv, s = "lambda.1se")), 4)
+```
+
+Discuss: Which coefficients are exactly zero under lasso? What trade-off does `lambda.1se` make? Why is a zero dummy coefficient for one `origin` level different from removing the `origin` term as a whole?
+
+## Which magazine means are most precise?
+
+Each row in the magazine data is a mean number of magazines read for one age and sex group. The columns `N` and `StDev` give the group size and within-group standard deviation. Plot `Avemags` against `Age`, marking `Sex`, group size `N` and within-group standard deviation `StDev`. Compute `N/StDev^2` and list the groups with the highest and lowest precision weights.
+
+```{r import-magazines, message=FALSE}
+mags <- readr::read_csv("../data/AveMags.csv") |>
+  mutate(
+    Sex = factor(Sex, levels = c(0, 1), labels = c("Male", "Female")),
+    Older = as.integer(Age >= 50),
+    precision_weight = N / StDev^2
+  )
+```
+
+```{r magazine-data-plot}
+ggplot(mags, aes(x = Age, y = Avemags)) +
+  geom_point(aes(size = N, colour = StDev, shape = Sex)) +
+  labs(
+    x = "Age",
+    y = "Mean number of magazines",
+    size = "Group size",
+    colour = "Within-group SD"
+  ) +
+  theme_minimal()
+```
+
+```{r inspect-magazine-weights}
+mags |>
+  select(Age, Sex, N, StDev, precision_weight) |>
+  arrange(desc(precision_weight))
+```
+
+Discuss: Why do both group size and within-group variation enter the weight?
+
+## Hold the mean formula fixed and change the weights
+
+Fit the provided age-piece and sex formula once without weights and once with `weights = N/StDev^2`. Compare the fitted values and coefficients. Then plot ordinary residuals for the first fit and `sqrt(w_i) * (y_i - fitted_i)` for the weighted fit.
+
+```{r magazine-models}
+magazine_unweighted <- lm(
+  Avemags ~ Age * Adult + Age * Older + Sex,
+  data = mags
+)
+
+magazine_weighted <- lm(
+  Avemags ~ Age * Adult + Age * Older + Sex,
+  data = mags,
+  weights = precision_weight
+)
+
+coefficient_comparison <- tibble(
+  Term = names(coef(magazine_unweighted)),
+  Unweighted = unname(coef(magazine_unweighted)),
+  Weighted = unname(coef(magazine_weighted))
+) |>
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+
+knitr::kable(coefficient_comparison)
+```
+
+```{r compare-magazine-fits}
+magazine_fits <- bind_rows(
+  mags |>
+    mutate(fitted = fitted(magazine_unweighted), fit = "Unweighted"),
+  mags |>
+    mutate(fitted = fitted(magazine_weighted), fit = "Weighted")
+)
+
+ggplot(magazine_fits, aes(x = Age, colour = Sex)) +
+  geom_point(aes(y = Avemags, size = precision_weight), alpha = 0.5) +
+  geom_line(aes(y = fitted, linetype = fit), linewidth = 0.9) +
+  labs(
+    x = "Age",
+    y = "Mean number of magazines",
+    size = "Precision weight",
+    linetype = "Fit"
+  ) +
+  theme_minimal()
+```
+
+```{r compare-magazine-residuals}
+residual_comparison <- bind_rows(
+  mags |>
+    transmute(
+      Age,
+      Sex,
+      residual = resid(magazine_unweighted),
+      model = "Unweighted: ordinary residuals"
+    ),
+  mags |>
+    transmute(
+      Age,
+      Sex,
+      residual = resid(magazine_weighted) * sqrt(precision_weight),
+      model = "Weighted: weighted residuals"
+    )
+)
+
+ggplot(residual_comparison, aes(x = Age, y = residual, colour = Sex)) +
+  geom_hline(yintercept = 0, colour = "grey60") +
+  geom_point() +
+  facet_wrap(~ model, scales = "free_y", ncol = 1) +
+  labs(x = "Age", y = "Residual") +
+  theme_minimal()
+```
+
+Discuss: Which fitted contrasts change? What assumption about the precision of a group mean justifies the weights? Why do the two residual panels have different scales?
+
+## Final decision
+
+In one short paragraph, state when you would use term-based search, ridge or lasso, and weighted regression in these two examples. Explain what you would need to assess before claiming the selected Auto MPG model predicts new cars well.

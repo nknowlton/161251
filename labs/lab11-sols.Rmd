@@ -15,7 +15,7 @@ library(car)
 library(glmnet)
 ```
 
-# Computer Laboratory: Search, Shrinkage, and Weighting
+# Computer Laboratory 11: Search, Shrinkage, and Weighting
 
 Last week we built and compared several Auto MPG models by hand. That worked because the candidate set was still manageable.
 
@@ -32,7 +32,7 @@ levels(auto$origin)
 
 Europe is the reference level for `origin`. As in Lab 10, we will model `mpg` and exclude `car_name` from the candidate predictors.
 
-## 1. Automated model search
+## Search from both ends
 
 The null model contains only an intercept. The full candidate model contains the seven predictors we are willing to consider.
 
@@ -46,7 +46,7 @@ full_model <- lm(
 )
 ```
 
-Run forward, backward, and both-direction stepwise searches using AIC. The `scope` tells `step()` which models define the lower and upper limits of the search.
+Fit the null and full Auto MPG models shown here. Run forward search from the null model and backward search from the full model using the same AIC scope. Print each search path and final formula.
 
 ```{r run-searches}
 search_scope <- list(
@@ -68,40 +68,40 @@ backward_search <- step(
   trace = 0
 )
 
-both_search <- step(
-  null_model,
-  scope = search_scope,
-  direction = "both",
-  trace = 0
-)
 ```
-
-Inspect the sequence followed by each search and its final formula.
 
 ```{r search-paths}
 forward_search$anova
 backward_search$anova
-both_search$anova
 
 formula(forward_search)
 formula(backward_search)
-formula(both_search)
 ```
 
-**Solution.** Forward search adds `weight`, `model_year`, `origin`, `displacement`, `horsepower`, and then `cylinders`. Backward search starts from the full model and removes only `acceleration`. The both-direction search started at the null model and followed the same path as forward search.
+Discuss: Did the two routes end at the same model? What would agreement or disagreement tell us about this particular search, and what would it *not* establish?
 
-All three procedures therefore finish at
+**Solution.** Forward search adds `weight`, `model_year`, `origin`, `displacement`, `horsepower`, and then `cylinders`. Backward search starts from the full model and removes only `acceleration`.
+
+Both searches therefore finish at
 
 ```text
 mpg ~ cylinders + displacement + horsepower + weight +
       model_year + origin
 ```
 
-They agree for these data and this candidate set. Stepwise procedures can still be path-dependent: at each stage they make a local decision from the models currently available. Agreement among these three runs does not establish that this is the uniquely best model, and it does not account for models or terms outside the specified scope.
+They agree for these data and this candidate set. Stepwise procedures can still be path-dependent: at each stage they make a local decision from the models currently available. Agreement does not establish that this is the uniquely best model, and it does not account for models or terms outside the specified scope.
 
-### Keeping a prespecified adjustment variable
+Compare the AIC values for the selected and full models.
 
-Suppose `origin` must remain in every candidate model because it was specified before the analysis. How can we prevent the search from removing it?
+```{r compare-search-aic}
+AIC(full_model, forward_search, backward_search)
+```
+
+**Solution.** The two searches agree and end about 1.3 AIC units below the full model. That is a small separation, so the lower AIC by itself is a weak reason to prefer the selected formula. The full model keeps `acceleration`; we should consider whether that term matters for the modelling question, and how we would assess prediction on new cars.
+
+## Keep `origin` in every candidate model
+
+Fit a lower-bound model containing `origin`, then repeat backward search with that model as the lower scope limit. Print the selected formula.
 
 **Solution.** Put `origin` in the lower model. It then becomes part of the lower boundary of the search.
 
@@ -121,11 +121,13 @@ forced_origin_search <- step(
 formula(forced_origin_search)
 ```
 
+Discuss: What decision did we make before the search? Why could an automatic AIC step not remove `origin` this time?
+
 This controls which models the algorithm is allowed to visit. It does not make the other statistical limitations of stepwise search disappear.
 
-## 2. This is where the predictors get in each other's way
+## How much do the numerical predictors overlap?
 
-Automated search has treated the candidate terms as possible additions or removals. Before interpreting their coefficients, check how much information the numerical predictors share.
+Make a correlation matrix for `cylinders`, `displacement`, `horsepower`, `weight`, `acceleration` and `model_year`. Then compute the VIFs or adjusted GVIFs for the full model.
 
 ```{r correlation-matrix}
 auto |>
@@ -149,13 +151,15 @@ Now inspect variance inflation factors for the full model.
 car::vif(full_model)
 ```
 
+Discuss: Which conditional coefficients might be hard to estimate separately? Why would a high VIF alone be an inadequate reason to delete one of them?
+
 **Solution.** For the one-degree-of-freedom numerical terms, the `GVIF` column is the usual VIF. The values are about 10.7 for `cylinders`, 22.9 for `displacement`, 10.0 for `horsepower`, and 11.1 for `weight`. These values match what we saw in the correlation matrix: the model has difficulty separating the conditional contributions of these overlapping predictors.
 
 `origin` has two degrees of freedom, so its raw GVIF is not directly comparable with the one-degree-of-freedom terms. The adjusted `GVIF^(1/(2*Df))` column is provided for that comparison.
 
-### Simple and conditional coefficients
+## Simple associations and conditional coefficients
 
-Compare the coefficient from a separate simple regression for each of the four strongly correlated predictors with its coefficient in the full model.
+Fit separate simple regressions for `cylinders`, `displacement`, `horsepower` and `weight`. Compare each slope with the corresponding coefficient in the full model.
 
 ```{r coefficient-comparison}
 overlapping_predictors <- c(
@@ -189,15 +193,17 @@ coefficient_comparison <- tibble(
 knitr::kable(coefficient_comparison)
 ```
 
+Discuss: Which signs or magnitudes changed? Describe the full-model coefficient as an association conditional on the other included predictors; do not interpret a sign reversal as a causal benefit.
+
 **Solution.** Every simple-regression coefficient is negative: cars with more cylinders, greater displacement, more horsepower, or greater weight tend to have lower `mpg`. In the combined model, the coefficient magnitudes change substantially and the displacement coefficient becomes positive.
 
 That sign change does not mean greater displacement causes fuel economy to improve. The full-model displacement coefficient compares cars with the other included predictors held fixed, including weight, cylinders, and horsepower. The data contain relatively little independent variation with which to make that comparison. The fitted model can still describe or predict the response reasonably while its individual conditional coefficients are difficult to estimate precisely.
 
-## 3. Ridge and lasso
+## Ridge and lasso on the same folds
 
 Stepwise regression makes a hard decision: a term is either in the model or out of it. Penalised regression takes a different approach. We can keep a larger starting model but penalise large coefficients. Ridge usually keeps all predictors and shrinks their coefficients. Lasso can shrink some coefficients all the way to zero.
 
-`glmnet()` needs a numerical model matrix rather than a formula containing a factor.
+Build the model matrix shown here. Use one fold assignment for both `cv.glmnet()` fits. Plot both coefficient paths and both CV curves. Extract coefficients at `lambda.min` and `lambda.1se`.
 
 ```{r glmnet-data}
 X <- model.matrix(
@@ -266,7 +272,7 @@ penalty_choices <- tibble(
 knitr::kable(penalty_choices, digits = 4)
 ```
 
-What trade-off is made by choosing `lambda.1se` rather than `lambda.min`?
+Discuss: What trade-off is made by choosing `lambda.1se` rather than `lambda.min`?
 
 **Solution.** `lambda.min` gives the smallest mean cross-validated error among the fitted penalty values. `lambda.1se` chooses the most strongly regularised model whose estimated error is within one standard error of that minimum. It accepts a small amount of uncertainty in predictive performance in exchange for stronger shrinkage and, for lasso, usually a simpler active set.
 
@@ -281,6 +287,8 @@ round(as.matrix(coef(ridge_cv, s = "lambda.1se")), 4)
 round(as.matrix(coef(lasso_cv, s = "lambda.min")), 4)
 round(as.matrix(coef(lasso_cv, s = "lambda.1se")), 4)
 ```
+
+Discuss: Which coefficients are exactly zero under lasso? What trade-off does `lambda.1se` make? Why is a zero dummy coefficient for one `origin` level different from removing the `origin` term as a whole?
 
 **Solution.** Ridge retains every coefficient at both penalty choices, but shrinks them. At `lambda.min`, lasso sets `cylinders`, `displacement`, and `acceleration` to zero. At the more strongly regularised `lambda.1se`, it also sets the Japan-versus-Europe origin contrast to zero.
 
@@ -303,7 +311,7 @@ mags <- readr::read_csv("../data/AveMags.csv") |>
 glimpse(mags)
 ```
 
-## 4. Plot the grouped means
+## Which magazine means are most precise?
 
 ```{r magazine-data-plot}
 ggplot(mags, aes(x = Age, y = Avemags)) +
@@ -343,7 +351,7 @@ mags |>
 
 **Solution.** The unweighted fit increases through the teenage ages, is approximately flat through adulthood, and decreases for the older group. Females have a higher fitted mean than males at each age because the model contains an additive sex effect but no age-by-sex interaction.
 
-## 5. Which rows are estimated most precisely?
+Compute each group's precision weight as `N/StDev^2` and list the groups from highest to lowest weight.
 
 For a mean based on (N_i) independent people with within-group standard deviation (SD_i), its sampling variance is proportional to
 
@@ -363,9 +371,13 @@ mags |>
   arrange(desc(precision_weight))
 ```
 
+Discuss: Why do both group size and within-group variation enter the weight?
+
 **Solution.** The age-67 groups receive by far the largest weights because they combine large sample sizes with relatively modest standard deviations. The teenage groups generally receive much less weight. The 16-year-old male group has the smallest weight because its estimated mean is based on only 18 people and has a large within-group standard deviation.
 
-## 6. Fit the same mean structure with weights
+## Hold the mean formula fixed and change the weights
+
+Fit the provided age-piece and sex formula once without weights and once with `weights = N/StDev^2`. Compare the fitted values and coefficients. Then plot ordinary residuals for the first fit and $\sqrt{w_i}(y_i-\hat y_i)$ for the weighted fit.
 
 ```{r fit-weighted-model}
 magazine_weighted <- lm(
@@ -384,7 +396,13 @@ coefficient_comparison <- tibble(
 knitr::kable(coefficient_comparison)
 ```
 
-Compare the fitted curves from the two models.
+
+
+
+
+**Solution.** Weighting changes the fit because the highly weighted adult and older groups now have more influence than the relatively imprecise teenage groups. The fitted female-minus-male difference decreases from about 1.13 magazines in the unweighted model to about 0.72 in the weighted model. The weighted teenage fitted values, especially for females, move down, while several fitted values for older males move up slightly.
+
+The weighting has not changed the response or the mean-model formula. It has changed the criterion being minimised: discrepancies from more precise group means count more heavily.
 
 ```{r compare-magazine-fits}
 magazine_fits <- bind_rows(
@@ -412,11 +430,7 @@ ggplot(magazine_fits, aes(x = Age, colour = Sex)) +
   theme_minimal()
 ```
 
-**Solution.** Weighting changes the fit because the highly weighted adult and older groups now have more influence than the relatively imprecise teenage groups. The fitted female-minus-male difference decreases from about 1.13 magazines in the unweighted model to about 0.72 in the weighted model. The weighted teenage fitted values, especially for females, move down, while several fitted values for older males move up slightly.
-
-The weighting has not changed the response or the mean-model formula. It has changed the criterion being minimised: discrepancies from more precise group means count more heavily.
-
-## 7. Ordinary and weighted residuals
+### Ordinary and weighted residuals
 
 For the unweighted model, inspect the ordinary residuals. For the weighted model, inspect
 
@@ -452,11 +466,17 @@ ggplot(residual_comparison, aes(x = Age, y = residual, colour = Sex)) +
   theme_minimal()
 ```
 
+Discuss: Which fitted contrasts change? What assumption about the precision of a group mean justifies the weights? Why do the two residual panels have different scales?
+
+**Solution.** The weighted residuals are scaled by the square root of their precision weights, so the panels are on different scales. A small weighted residual means the discrepancy is small relative to the assumed standard deviation of that group mean; it does not by itself show that the group is unimportant.
+
 **Solution.** The ordinary residual plot treats every group mean as equally precise even though the sample sizes and standard deviations differ considerably. The weighted residuals rescale each discrepancy by the information behind that row. A raw discrepancy from a precise group mean matters more; the same discrepancy from a noisy group mean matters less.
 
 We should not compare the vertical magnitudes across the two panels as if they were in identical units. The useful comparison is whether the residual structure is reasonable on the error scale assumed by each fit. Some variation and individual large residuals remain, but the weighted analysis no longer asks the low-information teenage rows to influence the fit as much as the large, more precise older groups.
 
-## Where this leaves us
+## Final decision
+
+In one short paragraph, state when you would use term-based search, ridge or lasso, and weighted regression in these two examples. Explain what you would need to assess before claiming the selected Auto MPG model predicts new cars well.
 
 The two parts of this lab solve different problems:
 

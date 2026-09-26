@@ -1,0 +1,208 @@
+---
+title: "Computer Laboratory 12: Curves, seasons and dependent errors"
+subtitle: "161.251 Regression Modelling"
+author: "Nick Knowlton nknowlton@massey.ac.nz"
+date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = "", dev = "png")
+library(tidyverse)
+library(nlme)
+```
+
+# Computer Laboratory 12: Curves, seasons and dependent errors
+
+We have been changing the *mean* in a regression model: a curve for temperature, a trend over time and a seasonal pattern. Now we need to look at what remains. We will work through daily Seoul bike demand, repeat the time-series analysis on monthly tourism and finish with quarterly Perth house prices.
+
+## How much curve do we need for temperature?
+
+Each row in `seoul_bike_daily.csv` is one calendar day. `rented_bike_count` is the number of rentals and `mean_temperature` is in °C. The 13 days when the system was not fully functioning should not represent ordinary demand. Keep the original `date` and `day_index` after filtering so that a gap in service remains a gap in time.
+
+```{r seoul-data, message=FALSE}
+seoul_all <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE) |>
+  mutate(date = as.Date(date)) |>
+  arrange(date)
+seoul <- seoul_all |>
+  filter(functioning_day_all == "yes")
+c(all_days = nrow(seoul_all), outage_days = nrow(seoul_all) - nrow(seoul),
+  analysed_days = nrow(seoul))
+```
+
+### Seoul: compare the smooths and spline models
+
+Start with the points and two LOESS curves. `span` is the fraction of nearby observations used in each local fit. A small span can follow local changes but can also chase noise; a large span smooths more strongly.
+
+```{r seoul-loess}
+ggplot(seoul, aes(mean_temperature, rented_bike_count)) +
+  geom_point(alpha = 0.25) +
+  geom_smooth(method = "loess", formula = y ~ x, span = 0.3,
+              se = FALSE, aes(colour = "span 0.3")) +
+  geom_smooth(method = "loess", formula = y ~ x, span = 0.9,
+              se = FALSE, aes(colour = "span 0.9")) +
+  labs(x = "Mean temperature (°C)", y = "Daily rentals", colour = "LOESS")
+```
+
+Now fit a line, a cubic B-spline and a natural cubic spline, using `df = 5` for both splines. Here `df` controls the size of the spline basis, not the degree of a single polynomial. The spline model is linear in its fitted coefficients, even though its curve bends with temperature. Predict on the same temperature grid to compare the curves directly.
+
+```{r seoul-splines}
+seoul_line <- lm(rented_bike_count ~ mean_temperature, data = seoul)
+seoul_bs <- lm(rented_bike_count ~ splines::bs(mean_temperature, df = 5), data = seoul)
+seoul_ns <- lm(rented_bike_count ~ splines::ns(mean_temperature, df = 5), data = seoul)
+temperature_grid <- tibble(mean_temperature = seq(
+  min(seoul$mean_temperature), max(seoul$mean_temperature), length.out = 250
+))
+curve_fits <- temperature_grid |>
+  mutate(
+    Line = predict(seoul_line, newdata = temperature_grid),
+    `B-spline` = predict(seoul_bs, newdata = temperature_grid),
+    `Natural spline` = predict(seoul_ns, newdata = temperature_grid)
+  ) |>
+  pivot_longer(-mean_temperature, names_to = "model", values_to = "fitted")
+ggplot(seoul, aes(mean_temperature, rented_bike_count)) +
+  geom_point(alpha = 0.2) +
+  geom_line(data = curve_fits,
+            aes(y = fitted, colour = model), linewidth = 1) +
+  labs(x = "Mean temperature (°C)", y = "Daily rentals", colour = "Model")
+```
+
+Plot the natural spline residuals against temperature to check for any remaining shape.
+
+```{r seoul-spline-residuals}
+seoul |>
+  mutate(residual = residuals(seoul_ns)) |>
+  ggplot(aes(mean_temperature, residual)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(x = "Mean temperature (°C)", y = "Natural spline residual")
+```
+
+Discuss: Where does a line miss the shape in the points? How does the LOESS span change the curve? Compare the B-spline and natural spline near the observed temperature limits. A natural spline becomes linear beyond its boundary knots, but does that make extrapolation safe? Would a more flexible fit to these observations by itself justify choosing that model?
+
+## Can we separate trend from seasonality?
+
+### Seoul: fit a trend, then seasonal pairs
+
+Plot rentals against the actual date. Fit a linear `day_index` trend; then add one annual sine and cosine pair. The pair can express a seasonal wave at any phase, rather than fixing its peak to the start of the calendar. Add a second pair for a sharper within-year shape. Both terms in each pair have to enter together. Use `anova()` for a joint, two-degree-of-freedom comparison of the first- and second-pair models.
+
+```{r seoul-fourier, eval=FALSE}
+# Plot rented_bike_count against date.
+# Create S1 = sin(2*pi*day_index/365), C1 = cos(2*pi*day_index/365),
+# S2 = sin(4*pi*day_index/365), C2 = cos(4*pi*day_index/365).
+# Fit trend: rented_bike_count ~ day_index.
+# Fit first pair: rented_bike_count ~ day_index + S1 + C1.
+# Fit second pair: rented_bike_count ~ day_index + S1 + C1 + S2 + C2.
+# Plot the three fitted means over the actual dates.
+# Compare the nested first- and second-pair models with anova().
+```
+
+Discuss: What does the trend alone miss? Does the second pair change the fitted seasonal shape, and what does the partial F test say about its extra terms? We have only one year of Seoul data: what can we say about a pattern recurring next year?
+
+A factor for calendar season or month gives each category its own offset. Sine and cosine give a smooth within-year pattern. The terms answer different questions; neither makes a one-year record into evidence about future years.
+
+## What is left in the residuals?
+
+### Seoul: check the sequence before choosing an error model
+
+Keep the second-pair mean model from above. Plot its residuals against actual dates and check for long stretches on one side of zero. A missing part of the mean can also create a pattern in the residuals, so inspect the mean model before assuming that dependence alone is the problem.
+
+The ordinary ACF and sequence tests assume equally spaced observations. For those diagnostics use the uninterrupted 131-day run from 1 December 2017 to 10 April 2018. Check the dates before treating lag 1 as one day. `DescTools::RunsTest()` splits a numerical sequence at its median; `lmtest::dwtest()` tests first-order correlation in regression residuals; `Box.test(..., type = "Ljung-Box")` tests several lags together. Use the time plot and ACF to interpret their small P-values rather than treating the tests as a diagnosis of the cause.
+
+```{r seoul-dependence, eval=FALSE}
+# Plot residuals from the second-pair model against date with a zero line.
+# Filter those residuals to 2017-12-01 through 2018-04-10.
+# Check n = 131 and consecutive dates.
+# Run DescTools::RunsTest() on that residual sequence.
+# Plot its ACF, then use Box.test(..., lag = 14, type = "Ljung-Box").
+# For a Durbin-Watson check on a regression fitted to consecutive dates,
+# refit the same mean formula on that run and use lmtest::dwtest(...,
+# alternative = "greater") for positive autocorrelation.
+```
+
+Discuss: What do the time plot, median runs and lag-1 ACF show? A small Durbin-Watson or Ljung-Box P-value indicates what kind of departure? Could a missed mean pattern produce some of it? Why must we not feed the gappy 352-day residual vector into an ordinary daily ACF?
+
+## Does AR(1) change the tourism analysis?
+
+### Victoria tourism: work through the full comparison
+
+Each row in `motel.csv` is a month from January 1980 to December 1994. `RoomNights` counts occupied room nights. `Time` increases one step per month and `Month` is a calendar-month factor. We can compare an indicator model for the seasonal mean with an AR(1) model for dependence left in its errors. In an AR(1) model, $\varepsilon_t = \phi\varepsilon_{t-1} + \eta_t$ with $|\phi| < 1$, and errors $k$ months apart have correlation $\phi^k$.
+
+```{r tourism-data, message=FALSE}
+tourism <- read_csv("../data/motel.csv", show_col_types = FALSE) |>
+  mutate(
+    Date = as.Date(Date),
+    Month = factor(lubridate::month(Date, label = TRUE), ordered = FALSE)
+  ) |>
+  arrange(Date) |>
+  mutate(Time = row_number() - 1L)
+stopifnot(identical(tourism$Date,
+                    seq.Date(min(tourism$Date), max(tourism$Date), by = "month")))
+```
+
+Plot room nights, fit `RoomNights ~ Time + Month` by OLS, plot the fitted mean and the residuals over time, and inspect the residual ACF. Then fit the same mean by GLS with `corAR1(form = ~ Time)`. Compare the `Time` estimates and their standard errors, extract $\phi$ and check the ACF of the *normalised* GLS residuals. Normalising accounts for the fitted variance and correlation structure before checking what remains.
+
+```{r tourism-models}
+ggplot(tourism, aes(Date, RoomNights)) +
+  geom_line() + labs(x = "Month", y = "Room nights")
+tourism_lm <- lm(RoomNights ~ Time + Month, data = tourism)
+summary(tourism_lm)
+tourism |>
+  mutate(fitted_mean = fitted(tourism_lm), residual = residuals(tourism_lm)) |>
+  ggplot(aes(Date, RoomNights)) +
+  geom_line(colour = "grey60") +
+  geom_line(aes(y = fitted_mean), colour = "blue") +
+  labs(x = "Month", y = "Room nights")
+tourism |>
+  mutate(residual = residuals(tourism_lm)) |>
+  ggplot(aes(Date, residual)) +
+  geom_line() + geom_hline(yintercept = 0, linetype = 2)
+acf(residuals(tourism_lm), main = "Tourism OLS residuals")
+```
+
+```{r tourism-gls}
+tourism_gls <- gls(RoomNights ~ Time + Month,
+                   correlation = corAR1(form = ~ Time), data = tourism)
+summary(tourism_gls)
+bind_rows(
+  broom::tidy(tourism_lm) |> filter(term == "Time") |> mutate(model = "OLS"),
+  broom::tidy(tourism_gls) |> filter(term == "Time") |> mutate(model = "GLS AR(1)")
+) |>
+  select(model, estimate, std.error)
+coef(tourism_gls$modelStruct$corStruct, unconstrained = FALSE)
+acf(residuals(tourism_gls, type = "normalized"),
+    main = "Tourism normalised GLS residuals")
+```
+
+Discuss: Which observed patterns belong to the mean model and which remain in the errors? What does the estimated $\phi$ imply about nearby months? Did GLS change the `Time` estimate, its standard error, or both? Does the normalised residual ACF look quieter? Correlated errors make ordinary OLS standard errors unreliable, but do not by themselves force a correctly specified OLS slope to be biased.
+
+## Does the same workflow hold for Perth?
+
+### Quarterly house prices: make your own comparison
+
+Each row of `hp.csv` is one quarter. `Perth` is a relative house-price index and `WtAve` is the weighted index across eight Australian capitals. The indices use Darwin in the second quarter of 1986 as a reference value of 100. The published `WtAve` includes Perth itself, so describe an association with that average rather than an independent prediction from the other seven cities. `lubridate::my()` parses the month-year text as the quarter's first month.
+
+```{r perth-data, message=FALSE}
+hp <- read_csv("../data/hp.csv", show_col_types = FALSE) |>
+  mutate(Quarter = as.Date(lubridate::my(Quarter))) |>
+  arrange(Quarter) |>
+  mutate(Time = row_number() - 1L)
+stopifnot(identical(hp$Quarter,
+                    seq.Date(min(hp$Quarter), max(hp$Quarter), by = "3 months")))
+hp |> select(Quarter, Time) |> slice(c(1, n()))
+```
+
+Plot `Perth` against `Quarter`. Fit `Perth ~ WtAve + Time` with `lm()`, plot its residuals against the quarter and inspect their ACF. Fit that same mean with `gls()` and `corAR1(form = ~ Time)`, compare all coefficient estimates and standard errors, and inspect the normalised residual time plot and ACF. Use `intervals()` to inspect the interval for $\phi$. All operations have appeared in the Seoul or tourism blocks.
+
+```{r perth-analysis, eval=FALSE}
+# Make the time plot, fit the OLS and AR(1) GLS models, and print summaries.
+# Plot OLS residuals against Quarter and inspect their ACF.
+# Compare term estimates and standard errors from both models.
+# Inspect intervals(hp_gls) and the time plot and ACF of normalised GLS residuals.
+```
+
+Discuss: Where does Perth's index move with `WtAve`, and where does time add information? Is there evidence of serial structure after OLS and after GLS? What changed in the estimated coefficients and their uncertainty? Explain why the overlap between `WtAve` and Perth limits the interpretation.
+
+We have now checked the shape of the mean and the dependence left after fitting it. If a clear pattern survives in the normalised residuals, what would you revisit first: the mean model, the AR(1) error model, or both? Give a reason from the plots rather than another P-value alone.

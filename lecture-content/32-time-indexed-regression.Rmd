@@ -106,13 +106,18 @@ The same idea appears in a richer modern dataset. Here the response is daily bik
 `r xfun::embed_file("../data/seoul_bike_daily.csv")`
 
 ```{r read-seoul-daily-time-indexed, message=FALSE}
-seoul_daily <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE)
+seoul_daily <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE) |>
+  mutate(date = as.Date(date)) |>
+  arrange(date)
+
+seoul_outage_days <- sum(seoul_daily$functioning_day_all != "yes")
+seoul_outage_days
 seoul_daily |> head() |> kable()
 ```
 
 ### Plot 1: Raw Data with Non-Functioning Days Highlighted
 
-Before modelling, check whether every observation represents the process you think it does. Days when the bike system was not functioning all day are not ordinary demand observations --- they are system-availability failures.
+Let's check whether every observation measures ordinary demand. On days when the bike system was not functioning all day, the count also reflects the lack of access to bikes.
 
 ```{r seoul-plot1-raw-highlight}
 seoul_daily |>
@@ -130,7 +135,7 @@ seoul_daily |>
   )
 ```
 
-The teaching message: **data cleaning is part of model specification**. If the system was not functioning all day, the response is not measuring normal daily demand. This motivates filtering.
+We therefore exclude the red days before modelling ordinary bike demand.
 
 ### Plot 2: Clean Time Series After Filtering
 
@@ -147,7 +152,9 @@ ggplot(seoul_daily_clean, aes(x = date, y = rented_bike_count)) +
   )
 ```
 
-Once structural outage days are removed, the time series still has clear structure. Three features should be visible: a broad upward or changing time pattern, a strong annual seasonal cycle, and short-term noise around that pattern. Observations are ordered, and that order matters --- the data are not just independent rows in a spreadsheet.
+We removed 13 outage days. The remaining rows retain their original dates and `day_index` values, so consecutive rows are not always consecutive days. Keep that distinction in mind when we examine residual dependence.
+
+This dataset covers one year. Its rise and fall within that year are visible, but one year cannot establish that the same annual cycle will recur or that a fitted linear trend persists over several years.
 
 ### Plot 3: Trend-Only Model
 
@@ -167,11 +174,13 @@ seoul_daily_clean |>
   )
 ```
 
-The fitted line rises slowly, but the data oscillate around it in a regular annual cycle. The trend-only model systematically underpredicts in some seasons and overpredicts in others --- exactly the same pattern we saw in the ski sales residuals.
+The fitted line describes a broad change across the observed year, but it misses the rise and fall within that year. It underpredicts in some parts of the year and overpredicts in others, as we also saw in the ski sales residuals.
 
 ### Plot 4: Adding a Fourier Seasonal Term
 
-A pair of sine and cosine terms at the annual frequency captures a smooth seasonal cycle without needing a separate indicator for each month.
+A sine and cosine pair with a one-year period describes a smooth within-year pattern without needing a separate indicator for each date.
+
+One sine term completes an annual cycle, and one cosine term completes the same cycle with a different starting position. Fitting them together lets the data determine where the seasonal peak falls. This adds two coefficients to the trend-only model. Next lecture we will unpack why the pair represents a shifted seasonal wave.
 
 ```{r seoul-plot4-fourier-prep}
 seoul_daily_clean <- seoul_daily_clean |>
@@ -195,11 +204,11 @@ seoul_daily_clean |>
   labs(
     x = "Date",
     y = "Daily rented bike count",
-    title = "Trend + Fourier seasonal model captures the annual cycle"
+    title = "Trend plus Fourier terms captures much of the within-year pattern"
   )
 ```
 
-The Fourier pair adds only two parameters but visibly tracks the annual rise and fall. The model now follows the data through summer peaks and winter troughs.
+The Fourier pair adds only two parameters and captures much of the observed rise and fall. We have a one-year record, so this fitted cycle describes the pattern within these data; it does not establish that the same pattern will recur in later years.
 
 ### Plot 5: Comparing Trend Only and Trend + Fourier
 
@@ -218,11 +227,11 @@ seoul_daily_clean |>
     x = "Date",
     y = "Daily rented bike count",
     colour = "Model",
-    title = "Adding a Fourier seasonal term dramatically improves the fit"
+    title = "Trend and Fourier terms capture more of the within-year pattern"
   )
 ```
 
-The logic is the same as in the ski example. We are still using ordinary regression, but one predictor records where the observation sits in time and a pair of trigonometric terms describes the smooth annual cycle.
+The logic is the same as in the ski example. We are still using ordinary regression, but one predictor records where the observation sits in time and a pair of trigonometric terms describes the within-year pattern.
 
 ## Mean Structure First, Error Dependence Later
 
