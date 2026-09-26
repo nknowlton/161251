@@ -12,6 +12,7 @@ output:
 knitr::opts_chunk$set(comment = "", dev = "png")
 library(tidyverse)
 library(nlme)
+library(broom.mixed)
 ```
 
 # Computer Laboratory 12: Curves, seasons and dependent errors
