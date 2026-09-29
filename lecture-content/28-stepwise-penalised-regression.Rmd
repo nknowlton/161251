@@ -62,14 +62,9 @@ In practice, `step()` looks at models one move away from the current model and t
 
 The climate data are small enough that we can actually watch the search process move from one model to the next.
 ```{r read-Climate-data-30, message=FALSE}
-climate <- read.csv("../data/climate.csv", header = TRUE, row.names = 1)
-climate <- climate |>
+climate <- read.csv("../data/climate.csv", header = TRUE, row.names = 1) |>
   drop_na(Sun, Lat, Long, MnJanTemp, MnJlyTemp, Rain, Height, Sea, NorthIsland)
-```
 
-A full model for annual sunshine is
-
-```{r climate-full}
 climate_null <- lm(Sun ~ 1, data = climate)
 climate_full <- lm(
   Sun ~ Lat + Long + MnJanTemp + MnJlyTemp + Rain + Height + Sea + NorthIsland,
@@ -81,86 +76,150 @@ climate_scope <- list(
 )
 ```
 
-Let us run the search from both ends of the candidate set. Forward selection starts with an intercept and asks which term to add next. Backward elimination starts with the full model and asks which term to remove. Each step is local: the algorithm compares models it can reach from its current position.
+The full model for annual sunshine is
 
-```{r climate-backward-check}
+$$
+\text{Sun} \sim \text{Lat} + \text{Long} + \text{MnJanTemp} +
+\text{MnJlyTemp} + \text{Rain} + \text{Height} + \text{Sea} +
+\text{NorthIsland}.
+$$
+
+## Forward selection
+
+Start with the intercept-only model. At each step, ask which single addition gives the best reduction in AIC.
+
+```{r climate-forward-28}
 climate_forward <- step(
   climate_null,
   scope = climate_scope,
   direction = "forward",
-  trace = 0
+  trace = 1
 )
+```
 
+The trace is the search. Each block shows the candidate additions from the current model and the move the algorithm actually takes.
+
+```{r climate-forward-result-28}
+formula(climate_forward)
+AIC(climate_forward)
+```
+
+## Backward elimination
+
+Now start from the full model and ask which single deletion gives the best reduction in AIC.
+
+```{r climate-backward-28}
 climate_backward <- step(
   climate_full,
   scope = climate_scope,
   direction = "backward",
-  trace = 0
-)
-
-climate_forward$anova
-climate_backward$anova
-formula(climate_forward)
-formula(climate_backward)
-c(
-  forward_AIC = climate_forward$anova$AIC[nrow(climate_forward$anova)],
-  backward_AIC = climate_backward$anova$AIC[nrow(climate_backward$anova)]
+  trace = 1
 )
 ```
 
-Compare the paths and final formulas before looking at any P-values. If they differ, the starting point has changed the answer. If they agree, that is reassuring about this particular search, but it does not prove that the resulting formula is the best model among every possible combination. We still have to decide whether the predictors and assumptions make sense for the scientific question.
+```{r climate-backward-result-28}
+formula(climate_backward)
+AIC(climate_backward)
+```
 
-Here the forward search retains `MnJanTemp`, `Rain`, `Sea` and `Height` (AIC 371.040), while the backward search retains `Long`, `MnJanTemp`, `Rain`, `Height`, `Sea` and `NorthIsland` (AIC 368.958). The searches end at different formulas because each follows a local path through the candidate set.
+The candidate set is the same, but the route through that set is different.
 
-## Stepwise search on the Seoul data
+## Stepwise selection
 
-The Seoul bike data give us a more realistic version of the same problem. We have many weather and calendar variables, and a large number of plausible models.
+Stepwise selection allows both kinds of move. We start small, but after adding a term the algorithm can reconsider terms already in the model.
+
+```{r climate-both-28}
+climate_both <- step(
+  climate_null,
+  scope = climate_scope,
+  direction = "both",
+  trace = 1
+)
+```
+
+```{r climate-both-result-28}
+formula(climate_both)
+AIC(climate_both)
+```
+
+Does the bidirectional search finish at the forward model, the backward model, or somewhere else?
+
+## Comparing the climate searches
+
+```{r climate-search-comparison-28, echo=FALSE}
+model_formula <- function(model) paste(deparse(formula(model)), collapse = " ")
+
+climate_searches <- tibble(
+  Search = c("Forward", "Backward", "Stepwise: both"),
+  `Final formula` = c(
+    model_formula(climate_forward),
+    model_formula(climate_backward),
+    model_formula(climate_both)
+  ),
+  AIC = c(AIC(climate_forward), AIC(climate_backward), AIC(climate_both))
+)
+
+knitr::kable(climate_searches, digits = 2)
+```
+
+The lower AIC is preferred among the models actually reached by the search. Different starting points can finish at different local solutions. Agreement between searches is reassuring for this dataset, but it does not make the selected formula uniquely correct.
+
+## A larger problem: Seoul bike demand
+
+The Seoul data contain hourly bike rentals together with weather and calendar variables. We have already watched forward, backward and bidirectional search on the smaller climate problem, so here we will use one bidirectional search and focus on defining the model space.
 
 ```{r seoul-stepwise-read, message=FALSE}
 seoul_hourly <- read_csv("../data/seoul_bike_hourly.csv", show_col_types = FALSE) |>
   mutate(hour = factor(hour))
-```
 
-`hour` records a position in the day. We will treat it as a factor so each hour can have its own mean shift, rather than forcing demand to change in one straight line from midnight to 11 pm. A CSV does not preserve R's factor class, so we convert it after import. The same coding must be used when we build the model matrix for ridge and lasso.
-
-```{r seoul-stepwise-setup}
 seoul_subset <- seoul_hourly |>
   select(
-    rented_bike_count,
-    hour,
-    season,
-    holiday,
-    functioning_day,
-    temperature,
-    humidity,
-    wind_speed,
-    visibility,
-    dew_point_temperature,
-    solar_radiation,
-    rainfall,
-    snowfall
+    rented_bike_count, hour, season, holiday, functioning_day,
+    temperature, humidity, wind_speed, visibility, dew_point_temperature,
+    solar_radiation, rainfall, snowfall
   ) |>
   drop_na()
+```
 
+`hour` records position within the day, so we treat it as a factor rather than forcing bike demand to change linearly from midnight to 11 pm.
+
+```{r seoul-stepwise-setup}
 seoul_null <- lm(rented_bike_count ~ 1, data = seoul_subset)
+
 seoul_full <- lm(
   rented_bike_count ~ hour + season + holiday + functioning_day +
     temperature + humidity + wind_speed + visibility +
     dew_point_temperature + solar_radiation + rainfall + snowfall,
   data = seoul_subset
 )
-seoul_scope <- list(lower = formula(seoul_null), upper = formula(seoul_full))
+
+seoul_scope <- list(
+  lower = formula(seoul_null),
+  upper = formula(seoul_full)
+)
+
+seoul_scope
 ```
+
+`scope` tells `step()` the smallest and largest formulas it is allowed to consider.
+
+## Stepwise search on the Seoul data
 
 ```{r seoul-step-preview}
-seoul_step <- step(seoul_null, scope = seoul_scope, direction = "both", trace = 0)
-formula(seoul_step)
+seoul_step <- step(
+  seoul_null,
+  scope = seoul_scope,
+  direction = "both",
+  trace = 1
+)
 ```
 
-This is the kind of setting where automated search is useful. We do not want to fit and compare every plausible model by hand. But the search still makes a hard decision: a term is either in or out.
+```{r seoul-step-result-28}
+formula(seoul_step)
+seoul_step$anova
+```
 
-The next question is whether we want to search through many smaller models at all. Another approach is to keep a richer model and shrink the coefficients.
-
+This is where automated search becomes convenient. We do not want to fit every plausible formula ourselves. But the procedure still makes a hard decision at each step: a term is either in the model or out.
 ## Part II: shrinkage instead of searching
 
 Stepwise regression makes discrete decisions. Penalised regression takes a different approach. We keep the larger model, but we add a penalty that discourages large coefficient values.
