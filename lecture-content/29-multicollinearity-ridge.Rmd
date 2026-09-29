@@ -8,36 +8,35 @@ library(car)
 
 Before worrying about diagnostics, look at the geometry of the predictors.
 
-```{r collinearity-geometry-29, echo=FALSE, fig.width=10, fig.height=4.5}
+```{r collinearity-geometry-data-29, include=FALSE}
 set.seed(42)
 n_demo <- 80
 x_demo <- scale(rnorm(n_demo), scale = FALSE)[, 1]
 z_seed <- rnorm(n_demo)
 z_orth <- residuals(lm(z_seed ~ x_demo))
 z_col <- x_demo + rnorm(n_demo, sd = 0.18)
-
-old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 2.5, 1))
-plot(x_demo, z_orth, pch = 19,
-     xlab = "Predictor X", ylab = "Predictor Z",
-     main = "Different information")
-abline(lm(z_orth ~ x_demo), lwd = 2)
-
-plot(x_demo, z_col, pch = 19,
-     xlab = "Predictor X", ylab = "Predictor Z",
-     main = "Overlapping information")
-abline(lm(z_col ~ x_demo), lwd = 2)
-par(old_par)
 ```
 
-::: incremental
-### Orthogonal predictors
+```{r orthogonal-geometry-29, echo=FALSE, fig.show='hide', fig.width=5, fig.height=4.3}
+plot(x_demo, z_orth, pch = 19, col = adjustcolor("#0072B2", alpha.f = 0.65),
+     xlab = "Predictor X", ylab = "Predictor Z",
+     main = "Different information")
+abline(lm(z_orth ~ x_demo), col = "#00517F", lwd = 2)
+```
 
-When the centred predictor columns are orthogonal, one predictor contains no linear information about the other. Their coefficient estimates can be separated cleanly.
+```{r collinear-geometry-29, echo=FALSE, fig.show='hide', fig.width=5, fig.height=4.3}
+plot(x_demo, z_col, pch = 19, col = adjustcolor("#D55E00", alpha.f = 0.65),
+     xlab = "Predictor X", ylab = "Predictor Z",
+     main = "Overlapping information")
+abline(lm(z_col ~ x_demo), col = "#A94700", lwd = 2)
+```
 
-### Collinear predictors
+|  |  |
+|:---|:---|
+| ![](`r knitr::fig_chunk('orthogonal-geometry-29', 'png')`){width="100%"} | ![](`r knitr::fig_chunk('collinear-geometry-29', 'png')`){width="100%"} |
+| **Orthogonal predictors:** When the centred predictor columns are orthogonal, one predictor contains no linear information about the other. Their coefficient estimates can be separated cleanly. | **Collinear predictors:** When predictors move together, they contain overlapping information. The regression can still fit the response well, but it becomes harder to separate their individual conditional coefficients. |
 
-When predictors move together, they contain overlapping information. The regression can still fit the response well, but it becomes harder to separate their individual conditional coefficients.
-:::
+. . .
 
 A little overlap is normal. The problem becomes important when predictors are so strongly related that the individual coefficient estimates become unstable.
 
@@ -59,6 +58,8 @@ sim_final <- sim |>
   mutate(Y = 50 + 5*A + 5*B + epsilon)
 ```
 
+To isolate the effect of collinearity, we randomly shuffle the observed $B$ values between rows and recalculate the response using the shuffled $B$. This keeps the values of $A$ and $B$, the error terms, and each predictor's coefficient of 5 the same. What changes is which $B$ value is paired with each $A$ value, so the strong correlation between the predictors is much weaker in the shuffled data.
+
 ```{r correlated-vs-orthogonal-29, echo=FALSE, fig.width=10, fig.height=4.5}
 set.seed(42)
 sim_rand <- sim_final |>
@@ -73,7 +74,7 @@ plot(sim_final$A, sim_final$B, pch = 19,
 abline(lm(B ~ A, data = sim_final), lwd = 2)
 
 plot(sim_rand$A, sim_rand$B_rand, pch = 19,
-     xlab = "A", ylab = "B", main = "Correlation broken")
+     xlab = "A", ylab = "B", main = "B values shuffled")
 abline(lm(B_rand ~ A, data = sim_rand), lwd = 2)
 par(old_par)
 ```
@@ -86,14 +87,12 @@ lm_uncor <- lm(Y_rand ~ A + B_rand, data = sim_rand)
 
 bind_rows(
   tidy(lm_cor) |> mutate(Model = "Correlated predictors"),
-  tidy(lm_uncor) |> mutate(Model = "Correlation broken")
+  tidy(lm_uncor) |> mutate(Model = "B values shuffled")
 ) |>
   select(Model, term, estimate, std.error)
 ```
 
-The response noise has not become smaller. What changed is the relationship between the predictors.
-
-With correlated predictors, the model has less independent information for deciding how much of the response belongs to $A$ and how much belongs to $B$. The individual standard errors increase and the coefficient estimates become more sensitive to small changes in the data.
+The fitted coefficients have smaller standard errors after the shuffle. The response still uses the same coefficients of 5 and the same error terms; the change is in how much information $A$ and $B$ share with each other. With less overlap, the model can separate their individual contributions more precisely, so the coefficient estimates are less sensitive to small changes in the data.
 
 ## Exact dependence: coefficients are not estimable
 
@@ -106,6 +105,8 @@ Z = \alpha_0 + \alpha_1 X.
 $$
 
 Then $Z$ contains no information that is not already determined by the intercept and $X$. There are infinitely many coefficient combinations that give exactly the same fitted values.
+
+. . .
 
 R shows us this directly.
 
@@ -123,26 +124,21 @@ summary(exact_fit)
 One coefficient is reported as `NA` because the design matrix is rank deficient. R can still calculate fitted values, but it cannot identify separate coefficients for all linearly dependent columns.
 
 Near dependence is less obvious: R returns coefficients for all terms, but those coefficients can have large standard errors and change substantially when the sample or formula changes.
+
 ## Electricity data: correlated predictors in practice
 
-Now move from the artificial example to household electricity bills. We will model `Bill` using household `Income`, the number of `Persons`, and floor `Area`.
+Now let's look at a real data example of household electricity bills. We will model `Bill` using household `Income`, the number of `Persons`, and floor `Area`.
 
 ```{r read-electric, eval=-1, echo=-2, message=FALSE}
 electric = read_csv("electric.csv")
 electric = read_csv("../data/electric.csv")
 ```
 
-## Correlations among the predictors
 
 A correlation matrix is a useful first check.
 
-```{r electric-cor}
-round(cor(electric), 3)
-```
 
-`Area` and `Income` are very strongly correlated. `Persons` overlaps much less with either one.
-
-```{r electric-pairs-29, fig.width=9, fig.height=7, message=FALSE, warning=FALSE}
+```{r electric-pairs-29, fig.height=7, fig.width=9, message=FALSE, warning=FALSE, include=FALSE}
 library(GGally)
 
 ggpairs(
@@ -154,7 +150,11 @@ ggpairs(
   theme_bw(base_size = 12)
 ```
 
-Pairwise correlation is a warning, not a decision rule. A predictor can also be well explained by several other predictors together even if no individual pairwise correlation looks extreme.
+. . .
+
+It looks like `Area` and `Income` are very strongly correlated. `Persons` overlaps much less with either one.
+
+Note: Pairwise correlation is a visual check or a warning, not a decision rule. A predictor can also be well explained by several other predictors together even if no individual pairwise correlation looks extreme.
 
 ## Spotting multicollinearity in the fitted model
 
@@ -165,7 +165,9 @@ summary(electric_lm0)
 
 The model can explain substantial variation in electricity bills while the individual coefficients are much less stable.
 
-What should make us suspicious?
+. . .
+
+> What should make us suspicious?
 
 ::: incremental
 - The overall regression can look useful while individual terms have large standard errors.
@@ -195,6 +197,8 @@ By themselves, both `Area` and `Income` are positively associated with `Bill`. W
 
 Because area and income move together so strongly, the data contain little independent information for those comparisons. A sign change should not be read as evidence that higher income causes lower electricity use.
 
+## Contradictory coefficient behaviour con't
+
 Now compare two models that adjust the `Persons` coefficient in different ways.
 
 ```{r electric-persons-29}
@@ -216,9 +220,6 @@ The coefficient for `Persons` changes because the two models condition on differ
 Pairwise plots are useful, but we want a diagnostic that asks a broader question:
 
 > How well can each predictor be explained by all of the other predictors together?
-
-That leads directly to variance inflation factors.
-## Regressing predictors among themselves
 
 For predictor $X_i$, regress it on all of the other predictors and call the resulting coefficient of determination $R_i^2$.
 
@@ -250,10 +251,10 @@ The final factor is the VIF. It tells us how much the variance of that coefficie
 
 ## Computing VIFs
 
-The `car` package provides `vif()`.
+In R the `car` package provides `vif()`.
 
 ```{r vifs1-29}
-car::vif(electric_lm0)
+vif(electric_lm0)
 ```
 
 The large values for `Area` and `Income` match what we already saw in the pairwise plots and coefficient behaviour.
@@ -270,12 +271,9 @@ $$
 A + A1 + P + P1 \approx 5.
 $$
 
-```{r read-SAP, eval=-1, echo=-2, message=FALSE}
-SAP = read_csv("SAP.csv")
+```{r read-SAP, message=FALSE, include=FALSE}
 SAP = read_csv("../data/SAP.csv")
 ```
-
-## SAP: full model
 
 ```{r sap-full}
 SAP_lm <- lm(S ~ A + P + SE + A1 + P1, data = SAP)
@@ -287,12 +285,12 @@ The model is trying to estimate separate advertising and promotion coefficients 
 ## SAP: VIFs
 
 ```{r vif-SAP}
-car::vif(SAP_lm)
+vif(SAP_lm)
 ```
 
 The VIFs make the problem obvious. Apart from `SE`, the advertising and promotion variables contain very little independent information for separating their individual coefficients.
 
-## SAP: drop one term and the coefficients move
+### Drop one term
 
 ```{r dropping-29}
 SAP_lm2 <- lm(S ~ P + SE + A1 + P1, data = SAP)
@@ -307,6 +305,10 @@ bind_rows(
 ```
 
 The coefficient pattern changes depending on which member of the constrained set is removed. That is exactly the instability we expect when the predictors are nearly linearly dependent.
+
+## Reconstructing A(dvertising)
+
+Given the linear relationship between variables, we are going to predict Adversting from the other variables. This is what VIF is doing in essence to calcuate the $R^2_a$
 
 ```{r looking-in-29}
 SAPA_lm <- lm(A ~ P + SE + A1 + P1, data = SAP)
@@ -327,13 +329,15 @@ There is no single automatic fix. The response should match the modelling goal.
 3. **Use penalised regression.** As we saw in Lecture 28, ridge uses an **L2** penalty and lasso uses an **L1** penalty. Ridge is particularly useful when we want to retain overlapping predictors but stabilise the fitted coefficient vector. Lasso can instead set some model-matrix coefficients to zero.
 :::
 
+. . .
+
 Penalisation does not make correlated predictors independent. It changes the estimation problem so that unstable coefficient combinations are discouraged.
 
 ## Seoul bike data: the same problem in a realistic model
 
-The Seoul weather predictors give us a useful example because temperature, humidity and dew point overlap strongly.
+The Seoul weather predictors give us a useful example of this effect because temperature, humidity and dew point overlap strongly.
 
-```{r seoul-multi-read-29, message=FALSE}
+```{r seoul-multi-read-29, message=FALSE, include=FALSE}
 seoul_hourly <- read_csv("../data/seoul_bike_hourly.csv", show_col_types = FALSE)
 
 seoul_weather <- seoul_hourly |>
@@ -344,7 +348,7 @@ seoul_weather <- seoul_hourly |>
   drop_na()
 ```
 
-```{r seoul-pairs-29, fig.height=7, fig.width=8, message=FALSE, warning=FALSE}
+```{r seoul-pairs-29, fig.height=7, fig.width=8, message=FALSE, warning=FALSE, include=FALSE}
 ggpairs(
   seoul_weather |>
     select(temperature, humidity, dew_point_temperature, solar_radiation),
@@ -354,6 +358,8 @@ ggpairs(
 ) +
   theme_bw(base_size = 12)
 ```
+
+The strongest relationship is 0.913 between dew point and temperature. Not a surprise.
 
 ## Seoul: OLS and VIFs
 
@@ -365,7 +371,7 @@ seoul_weather_lm <- lm(
 )
 
 summary(seoul_weather_lm)
-car::vif(seoul_weather_lm)
+vif(seoul_weather_lm)
 ```
 
 The model can still be useful as a prediction model, but the separate coefficients for highly overlapping weather measurements are conditional on holding almost redundant quantities fixed.
@@ -438,6 +444,8 @@ knitr::kable(seoul_coef_compare, digits = 3)
 
 These columns answer related but different modelling questions.
 
+. . .
+
 ::: incremental
 - **OLS** estimates the unpenalised conditional coefficients with all six weather predictors.
 - **Ridge, L2** keeps the whole predictor set but regularises unstable coefficient combinations.
@@ -445,12 +453,14 @@ These columns answer related but different modelling questions.
 - **Dropping dew point** changes the model itself and asks the remaining predictors to absorb information previously shared with dew point.
 :::
 
+. . .
+
 The important distinction is between **prediction** and **coefficient interpretation**. Several models can predict similarly while assigning very different numerical coefficients to overlapping predictors.
 
 ## Looking ahead
 
-We can now build models with numerical and categorical predictors, compare and search through candidate models, and deal more deliberately with overlapping predictors.
+We can now build models with numerical and categorical predictors, compare and search through candidate models, and deal more deliberately with overlapping predictors. As we saw with the Seoul data, stepwise selection can behave poorly when predictors contain much of the same information because it still has to decide which terms to keep and which to remove. Shrinkage gives us another option by allowing correlated predictors to remain in the model while reducing their coefficients rather than forcing an all-or-nothing decision.
 
-One limitation remains: our mean structure has still mostly been built from straight-line effects of numerical predictors.
+One limitation remains: we have still mostly assumed that the mean response changes linearly with our numerical predictors.
 
-Lecture 30 first deals with a different issue, observations that do not all carry the same precision. After that, we move to **LOESS and splines**, where the fitted mean itself can bend rather than being forced to follow a straight line.
+Lecture 30 first deals with a different issue, observations that do not all carry the same precision. After that, we move to **splines**, where the fitted mean itself can bend rather than being forced to follow a straight line.

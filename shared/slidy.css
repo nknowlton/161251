@@ -239,6 +239,100 @@ div.slide img {
   object-fit: contain;
 }
 
+/* Lecture 29: pair each predictor plot with its explanation. */
+#collinearity-and-orthogonality table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border: 0;
+  background: transparent;
+}
+
+#collinearity-and-orthogonality table thead {
+  display: none;
+}
+
+#collinearity-and-orthogonality table tr,
+#collinearity-and-orthogonality table td {
+  border: 0;
+  background: transparent;
+}
+
+#collinearity-and-orthogonality table td {
+  width: 50%;
+  padding: 0 0.6em !important;
+  vertical-align: top;
+}
+
+#collinearity-and-orthogonality table img {
+  width: 100%;
+  max-height: 42vh;
+}
+
+/* Lecture 28: results table above an image and interpretation row. */
+#comparing-the-climate-searches table:first-of-type,
+#stepwise-regression-versus-shrinkage table:first-of-type {
+  width: 100%;
+}
+
+#comparing-the-climate-searches table:last-of-type,
+#stepwise-regression-versus-shrinkage table:last-of-type {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0.3em !important;
+  border: 0;
+  background: transparent;
+  table-layout: fixed;
+}
+
+#comparing-the-climate-searches table:last-of-type thead,
+#stepwise-regression-versus-shrinkage table:last-of-type thead {
+  display: none;
+}
+
+#comparing-the-climate-searches table:last-of-type col:first-child,
+#stepwise-regression-versus-shrinkage table:last-of-type col:first-child {
+  width: 38%;
+}
+
+#comparing-the-climate-searches table:last-of-type col:last-child,
+#stepwise-regression-versus-shrinkage table:last-of-type col:last-child {
+  width: 62%;
+}
+
+#comparing-the-climate-searches table:last-of-type tr,
+#comparing-the-climate-searches table:last-of-type td,
+#stepwise-regression-versus-shrinkage table:last-of-type tr,
+#stepwise-regression-versus-shrinkage table:last-of-type td {
+  border: 0;
+  background: transparent;
+}
+
+#comparing-the-climate-searches table:last-of-type td,
+#stepwise-regression-versus-shrinkage table:last-of-type td {
+  padding: 0 !important;
+  vertical-align: middle;
+}
+
+#comparing-the-climate-searches table:last-of-type td:first-child,
+#stepwise-regression-versus-shrinkage table:last-of-type td:first-child {
+  width: 38%;
+}
+
+#comparing-the-climate-searches table:last-of-type td:last-child,
+#stepwise-regression-versus-shrinkage table:last-of-type td:last-child {
+  width: 62%;
+  padding-left: 1.5em !important;
+  font-size: 1.1em;
+  line-height: 1.4;
+}
+
+#comparing-the-climate-searches table:last-of-type img,
+#stepwise-regression-versus-shrinkage table:last-of-type img {
+  width: 100%;
+  max-height: 56vh;
+}
+
 /* Links */
 a:link,
 a:visited {

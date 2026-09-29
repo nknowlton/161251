@@ -1,58 +1,8 @@
-```{r setup, include=FALSE}
-library(tidyverse)
-
-lecture28_visual_file <- if (exists("slide_format")) {
-  "images/lecture28_two_ways.svg"
-} else {
-  "../slides/images/lecture28_two_ways.svg"
-}
-
-lecture28_overview_svg <- if (file.exists(lecture28_visual_file)) {
-  svg <- paste(readLines(lecture28_visual_file, warn = FALSE), collapse = "\n")
-  sub(
-    "<svg ",
-    '<svg style="width:100%;height:auto;display:block;" ',
-    svg,
-    fixed = TRUE
-  )
-} else {
-  ""
-}
-
-lecture28_panel_html <- function(panel = c("stepwise", "penalised"), width = "100%") {
-  panel <- match.arg(panel)
-  shift <- if (panel == "penalised") "-50%" else "0"
-  paste0(
-    '<div style="width:', width, ';overflow:hidden;">',
-    '<div style="width:200%;transform:translateX(', shift,
-    ');transform-origin:left top;">',
-    lecture28_overview_svg,
-    "</div></div>"
-  )
-}
-```
-
 ## From manual model building to automated search
 
 In Lecture 27, we still chose the candidate models ourselves. Once the number of plausible predictors grows, there are two broad ways to stop doing all of that by hand.
 
-```{r model-search-overview, echo=FALSE, results='asis'}
-if (
-  exists("slide_format") &&
-  identical(slide_format, "slidy") &&
-  nzchar(lecture28_overview_svg)
-) {
-  cat(
-    '<div class="incremental" style="display:flex;gap:1.5%;',
-    'width:100%;align-items:flex-start;">',
-    lecture28_panel_html("stepwise", "49.25%"),
-    lecture28_panel_html("penalised", "49.25%"),
-    "</div>"
-  )
-} else if (nzchar(lecture28_overview_svg)) {
-  knitr::include_graphics(lecture28_visual_file)
-}
-```
+![Stepwise search](../resources/lecture28_stepwise.png){.incremental width="43%"} ![Ridge and lasso shrinkage](../resources/lecture28_penalised.png){.incremental width="43%"}
 
 We will use both approaches in this lecture.
 
@@ -66,17 +16,19 @@ The basic idea is simple.
 - **Stepwise selection** allows moves in either direction.
 :::
 
-::: incremental
+. . .
+
 The unit being added or removed is a **model term**, not an arbitrary coefficient. A factor can generate several coefficients and still count as one term.
 
 For a prespecified nested comparison, a partial $F$ test is still useful. For a larger automated search, we need a criterion that can be evaluated repeatedly. Here we will use **AIC**, introduced in Lecture 27.
 
 In practice, `step()` looks at models one move away from the current model and takes a move that lowers AIC. That makes the search local, so the path and starting model can matter.
-:::
+
 
 ## Climate data: small enough to watch the search
 
 The climate data are small enough that we can actually watch the search process move from one model to the next.
+
 ```{r read-Climate-data-30, message=FALSE}
 climate <- read.csv("../data/climate.csv", header = TRUE, row.names = 1) |>
   drop_na(Sun, Lat, Long, MnJanTemp, MnJlyTemp, Rain, Height, Sea, NorthIsland)
@@ -92,7 +44,11 @@ climate_scope <- list(
 )
 ```
 
+. . .
+
 The full model for annual sunshine is
+
+. . .
 
 $$
 \text{Sun} \sim \text{Lat} + \text{Long} + \text{MnJanTemp} +
@@ -102,7 +58,8 @@ $$
 
 ## Forward selection
 
-Start with the intercept-only model. At each step, ask which single addition gives the best reduction in AIC.
+Start with the intercept-only model. At each step, ask which single addition gives the best reduction in AIC. We will follow each step and examine how the candidate models are considered by the algorithm.
+
 
 ```{r climate-forward-28}
 climate_forward <- step(
@@ -113,7 +70,11 @@ climate_forward <- step(
 )
 ```
 
-The trace is the search. Each block shows the candidate additions from the current model and the move the algorithm actually takes.
+. . .
+
+Finally stopped.Let's check what we ended up with again.
+
+. . .
 
 ```{r climate-forward-result-28}
 formula(climate_forward)
@@ -122,7 +83,8 @@ AIC(climate_forward)
 
 ## Backward elimination
 
-Now start from the full model and ask which single deletion gives the best reduction in AIC.
+This is the same overall idea as forward selection, however we start with all terms in the model and kick terms out based on the best reduction in AIC.
+
 
 ```{r climate-backward-28}
 climate_backward <- step(
@@ -133,12 +95,18 @@ climate_backward <- step(
 )
 ```
 
+. . .
+
+Done.
+
 ```{r climate-backward-result-28}
 formula(climate_backward)
 AIC(climate_backward)
 ```
 
-The candidate set is the same, but the route through that set is different.
+. . .
+
+Now where did we end up? Not the same model as the forward selection. Now let's try stepwise!?
 
 ## Stepwise selection
 
@@ -152,6 +120,12 @@ climate_both <- step(
   trace = 1
 )
 ```
+
+. . .
+
+Done.
+
+. . .
 
 ```{r climate-both-result-28}
 formula(climate_both)
@@ -178,23 +152,9 @@ climate_searches <- tibble(
 knitr::kable(climate_searches, digits = 2)
 ```
 
-The lower AIC is preferred among the models actually reached by the search. Different starting points can finish at different local solutions. Agreement between searches is reassuring for this dataset, but it does not make the selected formula uniquely correct.
-
-```{r climate-search-visual-recap-28, echo=FALSE, results='asis'}
-if (
-  exists("slide_format") &&
-  identical(slide_format, "slidy") &&
-  nzchar(lecture28_overview_svg)
-) {
-  cat(
-    '<div class="incremental">',
-    '<div style="position:absolute;top:5.2em;left:19%;width:62%;',
-    'z-index:20;background:white;padding:0.25em 0.5em;">',
-    lecture28_panel_html("stepwise"),
-    "</div></div>"
-  )
-}
-```
+|  |  |
+|:---|:---|
+| ![](../resources/lecture28_stepwise.png){width="100%"} | The lower AIC is preferred among the models actually reached by the search. Different starting points can finish at different local solutions. Agreement between searches is reassuring for this dataset, but it does not make the selected formula uniquely correct. |
 
 ## A larger problem: Seoul bike demand
 
@@ -213,7 +173,9 @@ seoul_subset <- seoul_hourly |>
   drop_na()
 ```
 
-`hour` records position within the day, so we treat it as a factor rather than forcing bike demand to change linearly from midnight to 11 pm.
+Note that we are treating `hour` records as a factor rather than forcing bike demand to change linearly from midnight to 11 pm.
+
+. . .
 
 ```{r seoul-stepwise-setup}
 seoul_null <- lm(rented_bike_count ~ 1, data = seoul_subset)
@@ -233,9 +195,10 @@ seoul_scope <- list(
 seoul_scope
 ```
 
-`scope` tells `step()` the smallest and largest formulas it is allowed to consider.
+The R term `scope` tells `step()` the smallest and largest formulas it is allowed to consider. This is handy if you always want a certain term in the model.
 
 ## Stepwise search on the Seoul data
+
 
 ```{r seoul-step-preview}
 seoul_step <- step(
@@ -246,17 +209,28 @@ seoul_step <- step(
 )
 ```
 
+. . .
+
+Done.
+
+. . .
+
 ```{r seoul-step-result-28}
 formula(seoul_step)
 seoul_step$anova
 ```
 
-This is where automated search becomes convenient. We do not want to fit every plausible formula ourselves. But the procedure still makes a hard decision at each step: a term is either in the model or out.
-## Shrinkage instead of searching
+This is where automated search becomes convenient. We do not want to fit every plausible formula ourselves. But the procedure still makes a consistent decision at each step: a term is either in the model or out.
 
-Stepwise regression makes discrete decisions: a term is either kept or removed. Penalised regression gives us another option. We keep the larger model, but discourage large coefficient values.
+## Penalized Regression Models
 
-Ordinary least squares minimises
+Until now, we have taken discrete steps when selecting terms: include a term, or leave it out. Just as moving from categories to numbers gave us a smoother way to represent a variable, there is a smoother approach to building multivariable models: shrinkage.
+
+When shrinkage is applied to regression, we call it a penalised regression model. Rather than immediately removing terms, we can keep the larger model but discourage large coefficient values. Coefficients are pulled towards zero, with the amount of shrinkage controlled by a penalty.
+
+Different penalties let us express different kinds of model structure. We might expect the response to reflect many small influences, or instead expect that only a smaller number of predictors have substantial effects.
+
+Remember that Ordinary Least Squares (OLS) minimises
 
 $$
 RSS = \sum_{i=1}^{n}(y_i-\hat y_i)^2.
@@ -268,13 +242,14 @@ $$
 RSS + \lambda \times \text{penalty}.
 $$
 
+
+The two penalties we will use are **L2** for ridge and **L1** for lasso.
+
 ::: incremental
 - $\lambda = 0$ gives ordinary least squares.
 - Larger $\lambda$ means a stronger penalty.
 - The intercept is normally left unpenalised.
 :::
-
-The two penalties we will use are **L2** for ridge and **L1** for lasso.
 
 ## Ridge regression: L2 penalty
 
@@ -289,6 +264,8 @@ $$
 - As $\lambda$ increases, the fitted coefficient vector is pulled towards zero.
 - Ridge generally keeps all predictors rather than setting coefficients exactly to zero.
 :::
+
+. . .
 
 In matrix form,
 
@@ -313,6 +290,8 @@ $$
 - Unlike ridge, some coefficients can become **exactly zero**.
 - Lasso can therefore perform shrinkage and variable selection at the same time.
 :::
+
+. . .
 
 Ridge and lasso both control coefficient size. The difference is what the penalty allows to happen at zero.
 
@@ -342,25 +321,35 @@ knitr::kable(
 
 The fitted relationship is identical, but the raw coefficient penalty is not. Without standardisation, changing units can change how strongly a predictor is penalised.
 
-`glmnet` standardises predictors by default when `standardize = TRUE`.
 
 ## Using `glmnet`
 
-The `glmnet` package writes ridge and lasso as one family of penalties:
+For a Gaussian response variable, `glmnet` minimises
 
 $$
-\lambda\left[
+\text{Objective}(\beta_0,\boldsymbol\beta)
+= \frac{RSS}{2n} + \lambda\left[
 \frac{1-\alpha}{2}\sum_j\beta_j^2
 +
 \alpha\sum_j|\beta_j|
 \right].
 $$
 
+The first term measures fit, with RSS divided by $2n$. The bracketed term penalises coefficient size.
+
+Here $\alpha$ is the mixing parameter, with $0 \leq \alpha \leq 1$. We choose its value to set the balance between the L2 and L1 parts of the penalty.
+
 ::: incremental
-- `alpha = 0`: ridge, the **L2** penalty.
-- `alpha = 1`: lasso, the **L1** penalty.
+- `alpha = 0`: the L1 term disappears, giving ridge (**L2**).
+- `alpha = 1`: the L2 term disappears, giving lasso (**L1**).
 - $0 < \alpha < 1$: elastic net, a mixture of the two. We will not develop elastic net further here.
 :::
+
+. . .
+
+Note: `glmnet` standardises predictors by default when `standardize = TRUE`.
+
+. . .
 
 The remaining tuning parameter is $\lambda$, which we choose by cross-validation.
 
@@ -431,7 +420,7 @@ ggplot(ridge_cv, aes(x = log_lambda, y = cv_error)) +
 
 ## Ridge: `lambda.min` versus `lambda.1se`
 
-This is the one place where we will keep both choices and compare them directly.
+Let's look at both the min and 1se in an example dataset.
 
 ```{r seoul-ridge-summary-28}
 ridge_coef_compare <- cbind(
@@ -467,71 +456,66 @@ lasso_path <- lasso_beta |>
     cols = -log_lambda,
     names_to = "term",
     values_to = "coefficient"
+  ) |>
+  mutate(
+    group = case_when(
+      grepl("^hour", term) | term %in% c("holidayNo Holiday", "functioning_dayYes") ~ "Time / calendar",
+      grepl("^season", term) ~ "Season",
+      term %in% c("temperature", "humidity", "wind_speed", "visibility") ~ "Temperature / air",
+      term %in% c("rainfall", "snowfall", "solar_radiation", "dew_point_temperature") ~ "Rain / snow / solar / dew",
+      TRUE ~ NA_character_
+    ),
+    group = factor(
+      group,
+      levels = c("Time / calendar", "Season", "Temperature / air", "Rain / snow / solar / dew")
+    )
   )
 
-label_terms <- lasso_path |>
-  group_by(term) |>
-  summarise(max_abs = max(abs(coefficient)), .groups = "drop") |>
-  slice_max(max_abs, n = 8) |>
-  pull(term)
-
-lasso_labels <- lasso_path |>
-  filter(term %in% label_terms) |>
-  group_by(term) |>
-  slice_min(log_lambda, n = 1, with_ties = FALSE) |>
-  ungroup()
+stopifnot(!anyNA(lasso_path$group))
 ```
 
-```{r seoul-lasso-path-28, echo=FALSE, fig.width=10, fig.height=6}
-ggplot(lasso_path, aes(x = log_lambda, y = coefficient, group = term)) +
-  geom_hline(yintercept = 0, linetype = 3) +
-  geom_line(alpha = 0.65) +
-  geom_vline(xintercept = log(seoul_lasso$lambda.min), linetype = 2) +
-  geom_vline(xintercept = log(seoul_lasso$lambda.1se), linetype = 3) +
-  geom_text(
-    data = lasso_labels,
-    aes(label = term),
-    hjust = 1.05, size = 3, check_overlap = TRUE
+```{r seoul-lasso-path-28, echo=FALSE, fig.width=12, fig.height=6, out.width="100%"}
+ggplot(lasso_path, aes(x = log_lambda, y = coefficient, group = term, colour = group)) +
+  geom_hline(yintercept = 0, linetype = 3, colour = "grey55") +
+  geom_line(alpha = 0.72, linewidth = 0.75) +
+  geom_vline(xintercept = log(seoul_lasso$lambda.min), linetype = 2, colour = "grey30") +
+  geom_vline(xintercept = log(seoul_lasso$lambda.1se), linetype = 3, colour = "grey30") +
+  scale_colour_manual(
+    name = "Predictor group",
+    values = c(
+      "Time / calendar" = "#0072B2",
+      "Season" = "#D55E00",
+      "Temperature / air" = "#009E73",
+      "Rain / snow / solar / dew" = "#CC79A7"
+    ),
+    labels = c(
+      "Hour, holiday, functioning day",
+      "Season indicators",
+      "Temperature, humidity, wind, visibility",
+      "Rainfall, snowfall, solar, dew point"
+    )
   ) +
-  annotate(
-    "text", x = log(seoul_lasso$lambda.min), y = Inf,
-    label = "lambda.min", angle = 90, vjust = -0.4, hjust = 1.15
-  ) +
-  annotate(
-    "text", x = log(seoul_lasso$lambda.1se), y = Inf,
-    label = "lambda.1se", angle = 90, vjust = 1.2, hjust = 1.15
-  ) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1, linewidth = 2))) +
   labs(
     x = expression(log(lambda)~"(stronger penalty to the right)"),
-    y = "Coefficient"
+    y = "Coefficient",
+    caption = "Dashed line: lambda.min    Dotted line: lambda.1se"
   ) +
-  theme_bw(base_size = 12)
+  theme_bw(base_size = 13) +
+  theme(
+    legend.position = "right",
+    legend.title = element_text(face = "bold"),
+    legend.text = element_text(size = 10),
+    plot.caption = element_text(hjust = 0)
+  )
 ```
 
-Each line is one model-matrix coefficient. Moving to the right means increasing $\lambda$.
+Each line is one model-matrix coefficient. The colours group related predictors; several lines can share a colour, especially the hour indicators. Moving to the right means increasing $\lambda$.
 
 For lasso, coefficients do not just get smaller. Some paths hit zero and stay there. At `lambda.1se` we use the stronger of the two marked penalties.
 
 ```{r seoul-lasso-1se-28}
 coef(seoul_lasso, s = "lambda.1se")
-```
-
-## Ridge and lasso: what the penalty did
-
-```{r penalised-visual-recap-28, echo=FALSE, results='asis'}
-if (
-  exists("slide_format") &&
-  identical(slide_format, "slidy") &&
-  nzchar(lecture28_overview_svg)
-) {
-  cat(
-    '<div style="width:78%;margin:0 auto;">',
-    lecture28_panel_html("penalised"),
-    "</div>"
-  )
-} else if (nzchar(lecture28_overview_svg)) {
-  knitr::include_graphics(lecture28_visual_file)
-}
 ```
 
 ## Stepwise regression versus shrinkage
@@ -542,9 +526,9 @@ if (
 | Ridge, L2 | Penalise squared coefficient size | Keep predictors but shrink/stabilise the coefficient vector |
 | Lasso, L1 | Penalise absolute coefficient size | Shrink coefficients and set some exactly to zero |
 
-Stepwise and lasso can both produce sparse models, but they do not select the same object. Stepwise works with **model terms**. `glmnet` works with **columns of the model matrix**, so a multi-level factor can contribute several penalised coefficients.
-
-These procedures are also data-dependent. Change the sample slightly and the selected stepwise model or lasso set can change.
+|  |  |
+|:---|:---|
+| ![](../resources/lecture28_penalised.png){width="100%"} | Stepwise and lasso can both produce sparse models, but they do not select the same object. Stepwise works with **model terms**. `glmnet` works with **columns of the model matrix**, so a multi-level factor can contribute several penalised coefficients.<br><br>These procedures are also data-dependent. Change the sample slightly and the selected stepwise model or lasso set can change. |
 
 ## Looking ahead
 
