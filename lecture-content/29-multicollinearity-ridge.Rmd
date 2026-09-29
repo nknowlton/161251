@@ -4,106 +4,125 @@ library(car)
 ```
 
 
-## Idea of Collinearity and Orthogonality
+## Collinearity and orthogonality
 
-In multiple regression, we often use several explanatory variables at the same time. Sometimes these explanatory variables give us different kinds of information. For example, in a model for electricity bills, the number of people in a house and the area of the house may both be useful predictors. But sometimes explanatory variables overlap strongly. For example, household income and house area may be strongly related. Higher-income households may tend to live in larger houses. If both variables are included in the same model, the regression has to separate two predictors that are partly measuring the same underlying thing.
+Before worrying about diagnostics, look at the geometry of the predictors.
 
-This problem is called **multicollinearity**. Multicollinearity occurs when two or more explanatory variables are strongly related to each other. It does not necessarily mean that the model predicts badly. The main problem is that the individual regression coefficients can become hard to interpret.
+```{r collinearity-geometry-29, echo=FALSE, fig.width=10, fig.height=4.5}
+set.seed(42)
+n_demo <- 80
+x_demo <- scale(rnorm(n_demo), scale = FALSE)[, 1]
+z_seed <- rnorm(n_demo)
+z_orth <- residuals(lm(z_seed ~ x_demo))
+z_col <- x_demo + rnorm(n_demo, sd = 0.18)
 
-Consider the model \[Y  =  \beta_0 + \beta_1 X_1 + \beta_2X_2 + \varepsilon.\] We usually interpret \(\beta_1\) as the rate of change in \(Y\) for a one-unit increase in \(X_1\), holding \(X_2\) constant. That interpretation becomes difficult if \(X_1\) and \(X_2\) usually move together.
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 2.5, 1))
+plot(x_demo, z_orth, pch = 19,
+     xlab = "Predictor X", ylab = "Predictor Z",
+     main = "Different information")
+abline(lm(z_orth ~ x_demo), lwd = 2)
 
-If \(X_1\) and \(X_2\) have no linear relationship, they are called **orthogonal**. Orthogonality makes regression easier to interpret because each predictor is contributing separate information. In practice, explanatory variables are rarely perfectly orthogonal unless the data come from a carefully designed experiment. A little non-orthogonality is usually not a problem.
+plot(x_demo, z_col, pch = 19,
+     xlab = "Predictor X", ylab = "Predictor Z",
+     main = "Overlapping information")
+abline(lm(z_col ~ x_demo), lwd = 2)
+par(old_par)
+```
 
-When predictors overlap strongly, small changes to the model can shift their separate coefficients. We may see large standard errors or unexpected signs, even when the model as a whole is useful. We will use these examples to see when that instability matters, how to detect it, and what we can do about it.
+::: incremental
+### Orthogonal predictors
 
-Two cases need to be kept separate. With exact linear dependence, one predictor is an exact combination of the others. The model cannot identify every coefficient separately, although it may still identify fitted values or particular combinations of coefficients. With near dependence, the coefficients are identifiable, but their separate estimates can be very imprecise and can change markedly when the sample or formula changes. Neither case says, by itself, that the predictors are scientifically unnecessary or that the model cannot predict.
+When the centred predictor columns are orthogonal, one predictor contains no linear information about the other. Their coefficient estimates can be separated cleanly.
 
-## A Numerical Example
+### Collinear predictors
 
-We will consider the effects of multicollinearity using a simple artificial example. Suppose the true model is \[Y = 50 + 5A + 5B + \epsilon.\] Both \(A\) and \(B\) genuinely affect \(Y\). The issue is that \(A\) and \(B\) are highly correlated.
+When predictors move together, they contain overlapping information. The regression can still fit the response well, but it becomes harder to separate their individual conditional coefficients.
+:::
 
-`r xfun::embed_file("../data/simulation1.csv")` 
+A little overlap is normal. The problem becomes important when predictors are so strongly related that the individual coefficient estimates become unstable.
+
+## What does collinearity do to a model?
+
+Consider
+
+$$
+Y = \beta_0 + \beta_1 A + \beta_2 B + \varepsilon,
+$$
+
+where both $A$ and $B$ genuinely contribute to the response.
 
 ```{r read-Simulation1, eval=-1, echo=-2, message=FALSE}
 sim = read_csv("simulation1.csv")
 sim = read_csv("../data/simulation1.csv")
 
-sim_final <- sim |> mutate(Y = 50 + 5*A +5*B+ epsilon)
+sim_final <- sim |>
+  mutate(Y = 50 + 5*A + 5*B + epsilon)
 ```
 
-### Correlated A and B scatterplot
-
-```{r, fig.height=5}
-ggplot(sim_final) + 
-  geom_point(mapping=aes(x=A, y=B, size=Y))
-```
-
-### Model with correlated predictors
-
-```{r lm-Simulation1}
-lm.cor = lm( Y ~ A + B, data=sim_final)
-summary(lm.cor)
-```
-
-The model fits very well overall, but the standard errors for the individual coefficients are larger than we might expect. The reason is that \(A\) and \(B\) overlap. The model has difficulty separating the contribution of \(A\) from the contribution of \(B\).
-
-### Breaking the correlation
-
-Now suppose we keep the same values of \(A\), \(B\), and \(\epsilon\), but break the correlation between \(A\) and \(B\). One simple way to do this is to randomly reorder the values in column \(B\).
-
-```{r Sim-randomized}
+```{r correlated-vs-orthogonal-29, echo=FALSE, fig.width=10, fig.height=4.5}
 set.seed(42)
-
 sim_rand <- sim_final |>
-  mutate(B_rand = sample(B)) |>
-  mutate(Y_rand = 50 + 5*A + 5*B_rand + epsilon)
+  mutate(
+    B_rand = sample(B),
+    Y_rand = 50 + 5*A + 5*B_rand + epsilon
+  )
+
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 2.5, 1))
+plot(sim_final$A, sim_final$B, pch = 19,
+     xlab = "A", ylab = "B", main = "Correlated predictors")
+abline(lm(B ~ A, data = sim_final), lwd = 2)
+
+plot(sim_rand$A, sim_rand$B_rand, pch = 19,
+     xlab = "A", ylab = "B", main = "Correlation broken")
+abline(lm(B_rand ~ A, data = sim_rand), lwd = 2)
+par(old_par)
 ```
 
-Now \(A\) and `B_rand` contain the same numerical values as before, but the strong relationship between them has been broken.
+## Models with correlated predictors
 
-```{r}
-ggplot(sim_rand) + 
-  geom_point(mapping=aes(x=A, y=B_rand, size=Y_rand))
+```{r compare-correlated-models-29}
+lm_cor <- lm(Y ~ A + B, data = sim_final)
+lm_uncor <- lm(Y_rand ~ A + B_rand, data = sim_rand)
+
+bind_rows(
+  tidy(lm_cor) |> mutate(Model = "Correlated predictors"),
+  tidy(lm_uncor) |> mutate(Model = "Correlation broken")
+) |>
+  select(Model, term, estimate, std.error)
 ```
 
-### Model with uncorrelated predictors
+The response noise has not become smaller. What changed is the relationship between the predictors.
 
-```{r}
-lm.uncor = lm( Y_rand ~ A + B_rand, data=sim_rand)
-summary(lm.uncor)
+With correlated predictors, the model has less independent information for deciding how much of the response belongs to $A$ and how much belongs to $B$. The individual standard errors increase and the coefficient estimates become more sensitive to small changes in the data.
+
+## Exact dependence: coefficients are not estimable
+
+Strong correlation is inconvenient. **Exact** linear dependence is more fundamental.
+
+Suppose
+
+$$
+Z = \alpha_0 + \alpha_1 X.
+$$
+
+Then $Z$ contains no information that is not already determined by the intercept and $X$. There are infinitely many coefficient combinations that give exactly the same fitted values.
+
+R shows us this directly.
+
+```{r exact-collinearity-29}
+exact_dat <- tibble(
+  x = 1:8,
+  z = 2 + 3 * x,
+  y = c(4.1, 5.0, 6.2, 7.0, 8.1, 9.2, 10.0, 11.1)
+)
+
+exact_fit <- lm(y ~ x + z, data = exact_dat)
+summary(exact_fit)
 ```
 
-The standard errors of the coefficients are now much smaller. The important point is that we did not make the response less noisy. We mainly changed the relationship between the predictors. When the predictors are less correlated, the model can estimate their separate effects more precisely.
+One coefficient is reported as `NA` because the design matrix is rank deficient. R can still calculate fitted values, but it cannot identify separate coefficients for all linearly dependent columns.
 
-### Orthogonal Data
-
-Consider the model	$$Y  =  \beta_0 + \beta_1 X  + \beta_2 Z + \varepsilon$$  
-
-If $X$ and $Z$ are orthogonal in the observed data, adding $Z$ does not change the estimated slope for $X$ or the sum of squares attributed to $X$. Under independent, constant-variance errors, the two slope estimates are uncorrelated; under normal errors they are independent. That makes the separate coefficients easier to interpret. We often see this in balanced designed experiments, but should not expect it automatically in observational data.
-
-### Collinear data
-
-Suppose we have three sets of numbers $X,Z,Y$ such that 
-$$Y = \beta_0 +\beta_1 X  + \beta_2 Z +\varepsilon$$
-
-but that, unknown to us,
-$$Z = \alpha_0 + \alpha_1 X$$
-exactly. We will consider near dependence separately.
-
-We can rewrite the model with different coefficients: add $k$ copies of $\alpha_0 + \alpha_1 X$ and subtract $kZ$. Since the two are equal, this does not change the fitted value:
-
-$$\begin{aligned}Y &= \beta_0 +\beta_1 X + \beta_2 Z + k(\alpha_0 + \alpha_1 X) - k Z  +\varepsilon\\ & = (\beta_0 + k\alpha_0) + (\beta_1 + k\alpha_1)X + (\beta_2 - k)Z + \varepsilon\end{aligned}$$
-
-for any real number $k$.
-
-There are infinitely many sets of coefficients with the same fitted values. With near dependence, a unique solution exists, but even a small change in the data can move the separate coefficients substantially.
-
-#### Not estimable
-
-Here the dependence is exact. Many sets of intercept and slope coefficients produce the same fitted values, so we cannot estimate the individual coefficients uniquely from these data. In less extreme examples the dependence is only approximate: the model can be fitted, but separating the coefficients requires information that the observed predictors contain very little of.
-
-How do we assess whether it is a real problem in our data?
-
+Near dependence is less obvious: R returns coefficients for all terms, but those coefficients can have large standard errors and change substantially when the sample or formula changes.
 ## Correlations among the predictors
 
 Pairwise correlations are a useful first check. A strong correlation tells us that two predictors tend to move together, so their separate conditional coefficients may be hard to estimate. It does not tell us to discard either variable. The scientific question may require both, and a predictor can also be nearly explained by several others even when no single pairwise correlation is striking. We will look at both the correlation matrix and what the fitted model says about coefficient precision.
