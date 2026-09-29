@@ -11,10 +11,6 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(comment = "", dev = "png")
 library(tidyverse)
-course_data <- function(filename) {
-  local_file <- file.path("..", "data", filename)
-  if (file.exists(local_file)) local_file else paste0("https://knowlton.co.nz/161251/data/", filename)
-}
 ```
 
 # Computer Laboratory 10: Building and Comparing Linear Models
@@ -49,13 +45,13 @@ Both datasets are observational, so the fitted relationships describe associatio
 | `model_year` | model year, 70--82 |
 | `horsepower` | engine power, horsepower |
 
-The lab uses [wage.csv](https://knowlton.co.nz/161251/data/wage.csv) and [auto_mpg.csv](https://knowlton.co.nz/161251/data/auto_mpg.csv). You can download the R Markdown file on its own: it reads these data from the course site when local copies are unavailable.
+The lab uses [wage.csv](https://knowlton.co.nz/161251/data/wage.csv) and [auto_mpg.csv](https://knowlton.co.nz/161251/data/auto_mpg.csv). The downloadable R Markdown file reads both datasets directly from the course site.
 
 ```{r import-data, message=FALSE}
-wage <- readr::read_csv(course_data("wage.csv")) |>
+wage <- read_csv("https://knowlton.co.nz/161251/data/wage.csv") |>
   mutate(education = factor(education))
 
-auto <- readr::read_csv(course_data("auto_mpg.csv")) |>
+auto <- read_csv("https://knowlton.co.nz/161251/data/auto_mpg.csv") |>
   mutate(origin = factor(origin, levels = c("USA", "Europe", "Japan")))
 
 glimpse(wage)

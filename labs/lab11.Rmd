@@ -13,24 +13,20 @@ knitr::opts_chunk$set(comment = "", dev = "png")
 library(tidyverse)
 library(car)
 library(glmnet)
-course_data <- function(filename) {
-  local_file <- file.path("..", "data", filename)
-  if (file.exists(local_file)) local_file else paste0("https://knowlton.co.nz/161251/data/", filename)
-}
 ```
 
 # Computer Laboratory 11: Search, Shrinkage, and Weighting
 
 Last week we built and compared several Auto MPG models by hand. This week we let the candidate set become larger, then look at what happens when several predictors carry nearly the same information. In the second part, we change the problem: the magazine data contain group means with different levels of precision.
 
-The lab uses [auto_mpg.csv](https://knowlton.co.nz/161251/data/auto_mpg.csv) and [AveMags.csv](https://knowlton.co.nz/161251/data/AveMags.csv). You can download the R Markdown file on its own: it reads these data from the course site when local copies are unavailable.
+The lab uses [auto_mpg.csv](https://knowlton.co.nz/161251/data/auto_mpg.csv) and [AveMags.csv](https://knowlton.co.nz/161251/data/AveMags.csv). The downloadable R Markdown file reads both datasets directly from the course site.
 
 ## Search from both ends
 
 The null model contains only an intercept. The full candidate model contains the seven predictors we are willing to consider. Fit both models, then run forward search from the null model and backward search from the full model using the same AIC scope. Print each search path and final formula.
 
 ```{r import-auto, message=FALSE}
-auto <- readr::read_csv(course_data("auto_mpg.csv")) |>
+auto <- read_csv("https://knowlton.co.nz/161251/data/auto_mpg.csv") |>
   mutate(origin = factor(origin))
 
 levels(auto$origin)
@@ -208,7 +204,7 @@ Discuss: Which coefficients are exactly zero under lasso? What trade-off does `l
 Each row in the magazine data is a mean number of magazines read for one age and sex group. The columns `N` and `StDev` give the group size and within-group standard deviation. Plot `Avemags` against `Age`, marking `Sex`, group size `N` and within-group standard deviation `StDev`. Compute `N/StDev^2` and list the groups with the highest and lowest precision weights.
 
 ```{r import-magazines, message=FALSE}
-mags <- readr::read_csv(course_data("AveMags.csv")) |>
+mags <- read_csv("https://knowlton.co.nz/161251/data/AveMags.csv") |>
   mutate(
     Sex = factor(Sex, levels = c(0, 1), labels = c("Male", "Female")),
     Older = as.integer(Age >= 50),
