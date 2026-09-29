@@ -4,39 +4,63 @@ library(tidyverse)
 
 ## From manual model building to automated search
 
-In Lecture 27, we built candidate models by hand. That works when there are only a few plausible predictors. It becomes awkward very quickly when the set of possible models grows.
+In Lecture 27, we still chose the candidate models ourselves. Once the number of plausible predictors grows, there are two broad ways to stop doing all of that by hand.
 
-At that point, we need a rule for how to move through a larger model space. There are two useful ways to respond.
+```{r model-search-overview, echo=FALSE, fig.width=10, fig.height=4.5, out.width="95%"}
+old_par <- par(mfrow = c(1, 2), mar = c(3.5, 3.5, 3, 1))
 
-1. Search through candidate models by adding or dropping terms.
-2. Keep a larger model and shrink its coefficients.
+plot.new()
+plot.window(xlim = c(0.5, 4.5), ylim = c(0, 1))
+text(c(1, 2, 3, 4), rep(0.65, 4),
+     c("Small\nmodel", "+ term", "+ term", "Larger\nmodel"), cex = 1.05)
+arrows(c(1.35, 2.35, 3.35), rep(0.65, 3),
+       c(1.65, 2.65, 3.65), rep(0.65, 3), length = 0.08)
+text(2.5, 0.18, "Add or drop whole model terms", cex = 1.05)
+title("Search through models")
+box()
 
-This lecture is about those two strategies.
+penalty <- seq(0, 1, length.out = 100)
+paths <- cbind(
+  2.2 * (1 - penalty),
+  -1.5 * (1 - penalty)^1.2,
+  1.1 * pmax(0, 1 - 1.25 * penalty),
+  -0.8 * pmax(0, 1 - 1.8 * penalty)
+)
+matplot(penalty, paths, type = "l", lty = 1, lwd = 2,
+        xlab = "Penalty strength", ylab = "Coefficient")
+abline(h = 0, lty = 3)
+title("Shrink coefficients")
+par(old_par)
+```
 
-## Part I: automated model search
+::: incremental
+- **Automated search:** move through candidate models by adding or dropping terms.
+- **Shrinkage:** keep a richer model, but penalise large coefficients.
+:::
 
-### Forward, backward, and stepwise
+We will use both approaches in this lecture.
+
+## Forward, backward, and stepwise search
 
 The basic idea is simple.
 
-- Forward selection starts small and adds one term at a time.
-- Backward elimination starts large and removes one term at a time.
-- Stepwise selection allows moves in either direction.
+::: incremental
+- **Forward selection** starts small and adds one term at a time.
+- **Backward elimination** starts large and removes one term at a time.
+- **Stepwise selection** allows moves in either direction.
+:::
 
-This matters because the model-building unit is the term, not an arbitrary coefficient. A four-level factor is one model term even though it corresponds to several coefficients. An interaction is also one term in the model formula. That is why the criterion should be phrased in terms of adding or dropping terms, not hunting for the coefficient with the smallest p-value.
+::: incremental
+The unit being added or removed is a **model term**, not an arbitrary coefficient. A factor can generate several coefficients and still count as one term.
 
-That is the same idea we stressed in Lecture 27: select terms, not arbitrary coefficients.
+For a prespecified nested comparison, a partial $F$ test is still useful. For a larger automated search, we need a criterion that can be evaluated repeatedly. Here we will use **AIC**, introduced in Lecture 27.
 
-### What criterion do we use?
+In practice, `step()` looks at models one move away from the current model and takes a move that lowers AIC. That makes the search local, so the path and starting model can matter.
+:::
 
-For a nested comparison, a partial F test is still a good choice. For a broader search, AIC is often more convenient. Lecture 27 introduced AIC as a fit-versus-complexity criterion, so we can use it directly. If two candidates differ only slightly in AIC, the lower value alone does not settle which model we should use.
+## Climate data: small enough to watch the search
 
-In practice, a stepwise algorithm evaluates models one term away from the current model and moves to the model with the lower AIC if that reduces the criterion. This is exactly what `step()` does in R.
-
-### Climate example: path dependence matters
-
-The `climate` data are small enough that we can watch the search move.
-
+The climate data are small enough that we can actually watch the search process move from one model to the next.
 ```{r read-Climate-data-30, message=FALSE}
 climate <- read.csv("../data/climate.csv", header = TRUE, row.names = 1)
 climate <- climate |>
