@@ -1,42 +1,58 @@
 ```{r setup, include=FALSE}
 library(tidyverse)
+
+lecture28_visual_file <- if (exists("slide_format")) {
+  "images/lecture28_two_ways.svg"
+} else {
+  "../slides/images/lecture28_two_ways.svg"
+}
+
+lecture28_overview_svg <- if (file.exists(lecture28_visual_file)) {
+  svg <- paste(readLines(lecture28_visual_file, warn = FALSE), collapse = "\n")
+  sub(
+    "<svg ",
+    '<svg style="width:100%;height:auto;display:block;" ',
+    svg,
+    fixed = TRUE
+  )
+} else {
+  ""
+}
+
+lecture28_panel_html <- function(panel = c("stepwise", "penalised"), width = "100%") {
+  panel <- match.arg(panel)
+  shift <- if (panel == "penalised") "-50%" else "0"
+  paste0(
+    '<div style="width:', width, ';overflow:hidden;">',
+    '<div style="width:200%;transform:translateX(', shift,
+    ');transform-origin:left top;">',
+    lecture28_overview_svg,
+    "</div></div>"
+  )
+}
 ```
 
 ## From manual model building to automated search
 
 In Lecture 27, we still chose the candidate models ourselves. Once the number of plausible predictors grows, there are two broad ways to stop doing all of that by hand.
 
-```{r model-search-overview, echo=FALSE, fig.width=10, fig.height=4.5, out.width="95%"}
-old_par <- par(mfrow = c(1, 2), mar = c(3.5, 3.5, 3, 1))
-
-plot.new()
-plot.window(xlim = c(0.5, 4.5), ylim = c(0, 1))
-text(c(1, 2, 3, 4), rep(0.65, 4),
-     c("Small\nmodel", "+ term", "+ term", "Larger\nmodel"), cex = 1.05)
-arrows(c(1.35, 2.35, 3.35), rep(0.65, 3),
-       c(1.65, 2.65, 3.65), rep(0.65, 3), length = 0.08)
-text(2.5, 0.18, "Add or drop whole model terms", cex = 1.05)
-title("Search through models")
-box()
-
-penalty <- seq(0, 1, length.out = 100)
-paths <- cbind(
-  2.2 * (1 - penalty),
-  -1.5 * (1 - penalty)^1.2,
-  1.1 * pmax(0, 1 - 1.25 * penalty),
-  -0.8 * pmax(0, 1 - 1.8 * penalty)
-)
-matplot(penalty, paths, type = "l", lty = 1, lwd = 2,
-        xlab = "Penalty strength", ylab = "Coefficient")
-abline(h = 0, lty = 3)
-title("Shrink coefficients")
-par(old_par)
+```{r model-search-overview, echo=FALSE, results='asis'}
+if (
+  exists("slide_format") &&
+  identical(slide_format, "slidy") &&
+  nzchar(lecture28_overview_svg)
+) {
+  cat(
+    '<div class="incremental" style="display:flex;gap:1.5%;',
+    'width:100%;align-items:flex-start;">',
+    lecture28_panel_html("stepwise", "49.25%"),
+    lecture28_panel_html("penalised", "49.25%"),
+    "</div>"
+  )
+} else if (nzchar(lecture28_overview_svg)) {
+  knitr::include_graphics(lecture28_visual_file)
+}
 ```
-
-::: incremental
-- **Automated search:** move through candidate models by adding or dropping terms.
-- **Shrinkage:** keep a richer model, but penalise large coefficients.
-:::
 
 We will use both approaches in this lecture.
 
@@ -163,6 +179,22 @@ knitr::kable(climate_searches, digits = 2)
 ```
 
 The lower AIC is preferred among the models actually reached by the search. Different starting points can finish at different local solutions. Agreement between searches is reassuring for this dataset, but it does not make the selected formula uniquely correct.
+
+```{r climate-search-visual-recap-28, echo=FALSE, results='asis'}
+if (
+  exists("slide_format") &&
+  identical(slide_format, "slidy") &&
+  nzchar(lecture28_overview_svg)
+) {
+  cat(
+    '<div class="incremental">',
+    '<div style="position:absolute;top:5.2em;left:19%;width:62%;',
+    'z-index:20;background:white;padding:0.25em 0.5em;">',
+    lecture28_panel_html("stepwise"),
+    "</div></div>"
+  )
+}
+```
 
 ## A larger problem: Seoul bike demand
 
@@ -482,6 +514,24 @@ For lasso, coefficients do not just get smaller. Some paths hit zero and stay th
 
 ```{r seoul-lasso-1se-28}
 coef(seoul_lasso, s = "lambda.1se")
+```
+
+## Ridge and lasso: what the penalty did
+
+```{r penalised-visual-recap-28, echo=FALSE, results='asis'}
+if (
+  exists("slide_format") &&
+  identical(slide_format, "slidy") &&
+  nzchar(lecture28_overview_svg)
+) {
+  cat(
+    '<div style="width:78%;margin:0 auto;">',
+    lecture28_panel_html("penalised"),
+    "</div>"
+  )
+} else if (nzchar(lecture28_overview_svg)) {
+  knitr::include_graphics(lecture28_visual_file)
+}
 ```
 
 ## Stepwise regression versus shrinkage
