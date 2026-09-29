@@ -123,82 +123,101 @@ summary(exact_fit)
 One coefficient is reported as `NA` because the design matrix is rank deficient. R can still calculate fitted values, but it cannot identify separate coefficients for all linearly dependent columns.
 
 Near dependence is less obvious: R returns coefficients for all terms, but those coefficients can have large standard errors and change substantially when the sample or formula changes.
-## Correlations among the predictors
+## Electricity data: correlated predictors in practice
 
-Pairwise correlations are a useful first check. A strong correlation tells us that two predictors tend to move together, so their separate conditional coefficients may be hard to estimate. It does not tell us to discard either variable. The scientific question may require both, and a predictor can also be nearly explained by several others even when no single pairwise correlation is striking. We will look at both the correlation matrix and what the fitted model says about coefficient precision.
-
-Consider household electricity bills with income, number of people and floor area as predictors. These variables can all be included when the question calls for them, but income and area move closely together in these data. We will check whether that overlap makes their separate conditional coefficients difficult to estimate.
-
-`r xfun::embed_file("../data/electric.csv")` 
+Now move from the artificial example to household electricity bills. We will model `Bill` using household `Income`, the number of `Persons`, and floor `Area`.
 
 ```{r read-electric, eval=-1, echo=-2, message=FALSE}
 electric = read_csv("electric.csv")
 electric = read_csv("../data/electric.csv")
-electric
 ```
 
-### Correlation matrix
+## Correlations among the predictors
 
-We could check all pair-wise correlations with the `cor()` function:
+A correlation matrix is a useful first check.
 
 ```{r electric-cor}
-cor(electric)
+round(cor(electric), 3)
 ```
 
-This indicates that the `Area` of the house is very strongly correlated with the `Income` of the occupants ($r=0.961$). By contrast, the number of persons in the house is less strongly related to `Income` ($r=0.143$) and `Area` ($r=0.366$), so it may provide additional information. A pairs plot can help us see these relationships.
+`Area` and `Income` are very strongly correlated. `Persons` overlaps much less with either one.
 
-### Pairs plot
+```{r electric-pairs-29, fig.width=9, fig.height=7, message=FALSE, warning=FALSE}
+library(GGally)
 
-```{r electric-pairs}
-pairs(electric)
+ggpairs(
+  electric,
+  upper = list(continuous = wrap("cor", size = 4)),
+  lower = list(continuous = wrap("points", alpha = 0.55, size = 1.4)),
+  diag = list(continuous = wrap("densityDiag", alpha = 0.35))
+) +
+  theme_bw(base_size = 12)
 ```
 
-But how do we know this is causing real problems? 
+Pairwise correlation is a warning, not a decision rule. A predictor can also be well explained by several other predictors together even if no individual pairwise correlation looks extreme.
 
-### Spotting multicollinearity
+## Spotting multicollinearity in the fitted model
 
-```{r lm}
-electric.lm0 = lm(Bill~ Area+ Persons + Income, data=electric)
-summary(electric.lm0)
+```{r electric-full-29}
+electric_lm0 <- lm(Bill ~ Area + Persons + Income, data = electric)
+summary(electric_lm0)
 ```
 
-The overall F test gives evidence that the predictors jointly explain variation in bills, while the individual coefficient tests are much less precise. With the strong `Area`–`Income` correlation we saw above, overlap is a plausible reason. Let's look at what happens when we fit these predictors separately and together.
+The model can explain substantial variation in electricity bills while the individual coefficients are much less stable.
 
-### Contradictory regression coefficients
+What should make us suspicious?
 
-Let's look at the variable we know are highly correlated (i.e. `Area` and `Income`) separately as predictors:
+::: incremental
+- The overall regression can look useful while individual terms have large standard errors.
+- Coefficient signs or magnitudes can change sharply when correlated predictors enter together.
+- Small changes to the formula can produce large changes in the conditional coefficients.
+:::
 
-By themselves both variables are positively related to Bill and have small Std Errors, as we would expect given the pairs chart.
+## Contradictory coefficient behaviour
 
-But let's see what happens if we put them together:
+First fit `Area` and `Income` separately, then together.
 
-#### Area and Income together
+```{r electric-contradictory-29}
+area_only <- lm(Bill ~ Area, data = electric)
+income_only <- lm(Bill ~ Income, data = electric)
+area_income <- lm(Bill ~ Area + Income, data = electric)
 
-```{r correlated-variables}
-elec.lm3 <- lm(Bill ~ Area + Income, data=electric)
-summary(elec.lm3)
+bind_rows(
+  tidy(area_only) |> mutate(Model = "Area only"),
+  tidy(income_only) |> mutate(Model = "Income only"),
+  tidy(area_income) |> mutate(Model = "Area + Income")
+) |>
+  filter(term != "(Intercept)") |>
+  select(Model, term, estimate, std.error, p.value)
 ```
 
-Once `Area` and `Income` enter together, the income coefficient changes sign and both coefficients have larger standard errors. We should not read that sign change as evidence that a higher income reduces a household's bill. These data provide little independent variation in income after holding area fixed.
+By themselves, both `Area` and `Income` are positively associated with `Bill`. When they enter together, the model is asking a much harder conditional question: what is the association with income among houses of the same area, and vice versa?
 
-#### Area + Persons model
+Because area and income move together so strongly, the data contain little independent information for those comparisons. A sign change should not be read as evidence that higher income causes lower electricity use.
 
-We could fit a smaller model, but the choice of predictor changes the question. Suppose we want to estimate the association between household size and the bill after adjusting for either area or income:
+Now compare two models that adjust the `Persons` coefficient in different ways.
 
-```{r pair-of-variables}
-elec.lm4 = lm(Bill ~ Area + Persons, data=electric)
-elec.lm5= lm(Bill ~ Income + Persons, data=electric)
-summary(elec.lm4)
+```{r electric-persons-29}
+area_persons <- lm(Bill ~ Area + Persons, data = electric)
+income_persons <- lm(Bill ~ Income + Persons, data = electric)
+
+bind_rows(
+  tidy(area_persons) |> mutate(Model = "Area + Persons"),
+  tidy(income_persons) |> mutate(Model = "Income + Persons")
+) |>
+  filter(term == "Persons") |>
+  select(Model, term, estimate, std.error, p.value)
 ```
 
-#### Income + Persons model
+The coefficient for `Persons` changes because the two models condition on different household characteristics. This is not merely a numerical nuisance. With correlated predictors, the scientific interpretation of a coefficient depends strongly on what else is held fixed.
 
-```{r}
-summary(elec.lm5)
-```
+## Can we detect this systematically?
 
-The estimated increase per additional person is about \$42 when we hold house area fixed, but about \$85 when we hold income fixed. These models compare different households: the first holds area constant, and the second holds income constant. That is a sizeable change, so we need to be clear about which comparison answers our question.
+Pairwise plots are useful, but we want a diagnostic that asks a broader question:
 
+> How well can each predictor be explained by all of the other predictors together?
+
+That leads directly to variance inflation factors.
 ## Regressing the predictors among themselves
 
 More generally, we can ask how well each predictor is explained by a combination of the other regressors. Let $R_i^2$ be the $R^2$ from regressing $X_i$ on $X_1, X_2, \ldots, X_{i-1}, X_{i+1}, \ldots, X_p$. A large value means that little variation in $X_i$ is left to estimate its separate conditional coefficient. It is more general than checking pairwise correlations, but no single cutoff decides whether that matters for the question at hand. This leads to the concept of variance inflation.
