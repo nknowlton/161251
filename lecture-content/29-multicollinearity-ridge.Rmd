@@ -218,240 +218,239 @@ Pairwise plots are useful, but we want a diagnostic that asks a broader question
 > How well can each predictor be explained by all of the other predictors together?
 
 That leads directly to variance inflation factors.
-## Regressing the predictors among themselves
+## Regressing predictors among themselves
 
-More generally, we can ask how well each predictor is explained by a combination of the other regressors. Let $R_i^2$ be the $R^2$ from regressing $X_i$ on $X_1, X_2, \ldots, X_{i-1}, X_{i+1}, \ldots, X_p$. A large value means that little variation in $X_i$ is left to estimate its separate conditional coefficient. It is more general than checking pairwise correlations, but no single cutoff decides whether that matters for the question at hand. This leads to the concept of variance inflation.
+For predictor $X_i$, regress it on all of the other predictors and call the resulting coefficient of determination $R_i^2$.
 
-## Variance inflation factors, VIFs
+$$
+X_i \sim X_1 + \cdots + X_{i-1} + X_{i+1} + \cdots + X_p.
+$$
 
-A major impact of multicollinearity is found in the variances (and hence standard errors) of the regression coefficients. If $X_i$ is alone in the model $Y =\beta_0 +\beta_1 X_i +\varepsilon$, then $\hat{\mbox{var}}(\hat\beta_1) = \frac{s^2}{(n-1)\mbox{var}(X_i)}$. If $X_i$ is in a model with other predictors then $\hat{\mbox{var}}(\hat\beta_i) =  s^2   \left(X^T X\right)^{-1}_{ii}$ where the last term is the corresponding diagonal entry of the $(X^T X )^{-1}$ matrix, the *variance-covariance* matrix.
+If $R_i^2$ is close to 1, most of the variation in $X_i$ is already explained by the other predictors. Very little independent variation remains for estimating its separate conditional coefficient.
 
-It turns out that we can rewrite this as: $\hat{\mbox{var}}(\hat\beta_i) = \frac{s^2}{(n-1)\mbox{var}(X_i)}\cdot \frac{1}{1 - R_i^2}$ where $R_i^2$ is the multiple $R^2$ of the regression of $X_i$ on the other predictors. Thus, when going from a model with just $X_i$ to a full model, the variance of the coefficient of $X_i$ is multiplied by $\mbox{VIF}_i = \frac{1}{1 - R_i^2}$.
+The corresponding variance inflation factor is
 
-VIF describes how much the variance of one coefficient is enlarged by linear overlap with the other predictors, with the error variance and the spread of that predictor held fixed. A high VIF flags limited information for that *separate conditional effect*. It is a diagnostic, not an instruction to delete the predictor. Whether we change the model depends on whether we need that coefficient, the available data and the modelling goal.
+$$
+VIF_i = \frac{1}{1-R_i^2}.
+$$
 
-### Computing VIFs
+So if $R_i^2 = 0$, then $VIF_i = 1$: there is no inflation from linear overlap with the other predictors. As $R_i^2$ approaches 1, the variance inflation increases rapidly.
 
-To obtain VIFs we need to invoke `library(car)`.
+For a numerical predictor, we can write the coefficient variance as
 
-```{r vifs1}
-library(car)
+$$
+\widehat{\operatorname{var}}(\hat\beta_i)
+=
+\frac{s^2}{(n-1)\operatorname{var}(X_i)}
+\times
+\frac{1}{1-R_i^2}.
+$$
+
+The final factor is the VIF. It tells us how much the variance of that coefficient has been enlarged by linear overlap with the other predictors, holding the residual variance and spread of $X_i$ fixed.
+
+## Computing VIFs
+
+The `car` package provides `vif()`.
+
+```{r vifs1-29}
+car::vif(electric_lm0)
 ```
 
-```{r}
-vif( electric.lm0)
-```
+The large values for `Area` and `Income` match what we already saw in the pairwise plots and coefficient behaviour.
 
-The VIFs flag overlap in the information carried by `Area` and `Income`. Whether to change the formula depends on the question: we may need both predictors, or we may decide that their separate coefficients are not the target of this analysis.
+A VIF is a diagnostic, not an instruction to delete a variable. Whether the overlap matters depends on whether we need the separate coefficient, prediction is the main goal, and whether there is a scientifically defensible alternative representation.
 
-What we do depends on the question. We might retain both predictors, choose one with a stronger scientific justification, or construct a meaningful combined measure.
+## SAP example: a hidden constraint
 
-## Example: SAP data
+The SAP data relate sales (`S`) to current and previous advertising (`A`, `A1`), current and previous promotion spending (`P`, `P1`), and sales expenses (`SE`).
 
-The SAP example from Chatterjee and Price relates sales (`S`) to current and previous advertising (`A`, `A1`), current and previous promotion spending (`P`, `P1`), and sales expenses (`SE`). The four advertising and promotion variables were subject to an approximate budget constraint:
+The analyst did not know that four of the predictors were approximately constrained by a fixed budget:
 
-$$ A + A1 + P + P1  =  5  $$
-
-The advertising executives knew this, but the analyst did not. The constraint makes it difficult to separate the conditional coefficients for those four predictors.
-
-`r xfun::embed_file("../data/SAP.csv")` 
+$$
+A + A1 + P + P1 \approx 5.
+$$
 
 ```{r read-SAP, eval=-1, echo=-2, message=FALSE}
 SAP = read_csv("SAP.csv")
 SAP = read_csv("../data/SAP.csv")
-SAP
 ```
 
-### SAP full model
-
-We start with a linear model for sales in terms of all other variables:
+## SAP: full model
 
 ```{r sap-full}
-SAP.lm = lm( S ~ A + P + SE + A1 + P1, data=SAP)
-summary(SAP.lm)
+SAP_lm <- lm(S ~ A + P + SE + A1 + P1, data = SAP)
+summary(SAP_lm)
 ```
 
-### SAP VIFs
+The model is trying to estimate separate advertising and promotion coefficients from predictors that are close to a linear constraint.
 
-We see that, apart from Sales Expenses, there is only weak
-evidence of a relationship between advertising, promotions and sales. 
+## SAP: VIFs
 
 ```{r vif-SAP}
-vif(SAP.lm)
+car::vif(SAP_lm)
 ```
 
-The VIF shows high multicollinearity for all advertising and promotions data. 
+The VIFs make the problem obvious. Apart from `SE`, the advertising and promotion variables contain very little independent information for separating their individual coefficients.
 
-### Dropping variables from SAP
+## SAP: drop one term and the coefficients move
 
-If we drop one of the variables the others change their coefficients unpredictably  depending on which variable we drop. 
+```{r dropping-29}
+SAP_lm2 <- lm(S ~ P + SE + A1 + P1, data = SAP)
+SAP_lm3 <- lm(S ~ A + P + SE + P1, data = SAP)
 
-```{r dropping}
-SAP.lm2= lm( S ~  P + SE +A1 + P1, data=SAP)
-SAP.lm3= lm( S ~ A +P +SE  + P1, data=SAP)
-SAP.lm2 |> tidy()
-SAP.lm3 |> tidy()
+bind_rows(
+  tidy(SAP_lm2) |> mutate(Model = "Drop A"),
+  tidy(SAP_lm3) |> mutate(Model = "Drop A1")
+) |>
+  filter(term != "(Intercept)") |>
+  select(Model, term, estimate, std.error)
 ```
 
-### Hidden constraint revealed
+The coefficient pattern changes depending on which member of the constrained set is removed. That is exactly the instability we expect when the predictors are nearly linearly dependent.
 
-Suppose we look at the relationships among the predictor variables: 
-
-```{r looking-in}
-SAPA.lm = lm( A ~ P + SE + A1 + P1, data=SAP)
-SAPA.lm |> tidy()
+```{r looking-in-29}
+SAPA_lm <- lm(A ~ P + SE + A1 + P1, data = SAP)
+summary(SAPA_lm)
 ```
 
-This is approximately A = 5 - P -A1 - P1 as in the hidden constraint.
+The predictor regression reconstructs the hidden constraint: `A` is almost determined by the remaining advertising and promotion variables.
 
-## What do we do about multicollinearity?
+## Practical responses to multicollinearity
 
-In this course, we will focus on three practical responses to multicollinearity.
+There is no single automatic fix. The response should match the modelling goal.
 
-1. We can remove one (or more) of the correlated variables from the regression. Our aim is to fix the problem, but sometimes we have a bit of choice which variable to remove, in which case we would like the model to be as interpretable as possible. Sometimes the choice is between a variable with many missing values and one with few, and so we choose the latter if it allows us a bigger effective sample size $n$.
+::: incremental
+1. **Remove or redefine one of the overlapping predictors.** Prefer the variable with the stronger scientific interpretation, better measurement, or less missingness when the choice is defensible.
 
-2. We could construct another variable which is a combination of the two most highly correlated variables. It might be an ordinary average $(X_1+X_2)/2$, or an average of standardized versions of the $X_i$s or some other linear combination. Sometimes subtracting or dividing one variable by another will help. For example the incidence of a particular disease such as obesity may be higher in countries with high GDP and high Population. But GDP depends on the size of the economy, which is correlated with the Population. Dividing gives us per capita GDP which is a better indicator of average wealth and hence may be more related to disease incidence. 
+2. **Construct a meaningful combined quantity.** This might be an average, a standardised composite, a difference, or a scientifically meaningful ratio such as GDP per capita rather than GDP and population separately.
 
-3. We can use penalised regression methods. This links back to the previous lecture.
+3. **Use penalised regression.** As we saw in Lecture 28, ridge uses an **L2** penalty and lasso uses an **L1** penalty. Ridge is particularly useful when we want to retain overlapping predictors but stabilise the fitted coefficient vector. Lasso can instead set some model-matrix coefficients to zero.
+:::
 
-## Link back to penalised regression
+Penalisation does not make correlated predictors independent. It changes the estimation problem so that unstable coefficient combinations are discouraged.
 
-In the previous lecture, we introduced ridge and lasso regression. Both methods add a penalty to the regression fit. Ridge uses an \(L_2\) penalty: \(\lambda \sum_{j=1}^{p}\beta_j^2\). Lasso uses an \(L_1\) penalty: \(\lambda \sum_{j=1}^{p}|\beta_j|\). Both can be useful when predictors overlap, but they behave differently. Ridge keeps the predictors in the model and shrinks their coefficients toward zero. This can help when several predictors carry related information and we do not want the fitted coefficients to become too unstable. Lasso can shrink some coefficients exactly to zero. This can help when we want a smaller selected set of predictors, but it may choose one variable from a group of correlated variables and discard another similar variable. So, when the problem is mainly coefficient instability from overlapping predictors, ridge is often the more natural first example. When the goal is variable selection, lasso is often more natural. Neither method makes correlated observational predictors independent. They are modelling tools, not substitutes for better study design.
+## Seoul bike data: the same problem in a realistic model
 
-## Running example revisited: Seoul bike predictors
+The Seoul weather predictors give us a useful example because temperature, humidity and dew point overlap strongly.
 
-Last lecture we used ridge and lasso to control model complexity. We now return to the Seoul weather predictors to ask a different question: how much information do they provide about each separate coefficient? Temperature, humidity and dew point overlap, so the model may describe demand reasonably well while being uncertain about which one carries a particular conditional association.
+```{r seoul-multi-read-29, message=FALSE}
+seoul_hourly <- read_csv("../data/seoul_bike_hourly.csv", show_col_types = FALSE)
 
-```{r seoul-multi-read, message=FALSE}
-seoul_hourly = read_csv("../data/seoul_bike_hourly.csv")
-```
-
-```{r seoul-selected-correlations, include=FALSE}
-seoul_weather = seoul_hourly |>
+seoul_weather <- seoul_hourly |>
   select(
-    temperature,
-    humidity,
-    wind_speed,
-    visibility,
-    dew_point_temperature,
-    solar_radiation,
-    rainfall,
-    snowfall
-  )
+    rented_bike_count, temperature, humidity, dew_point_temperature,
+    solar_radiation, rainfall, snowfall
+  ) |>
+  drop_na()
 ```
 
-```{r seoul-cor-display, echo=FALSE}
-round(cor(seoul_weather), 2)
-```
-
-The correlation matrix shows that some weather predictors are strongly related. For example, temperature and dew point are strongly correlated. Humidity and visibility are also related. This matters because the regression model tries to estimate the separate effect of each predictor while holding the others constant. That is difficult when the predictors tend to move together.
-
-A pairs plot gives the same idea visually.
-
-```{r seoul-pairs, fig.height=7, fig.width=8, message=FALSE, warning=FALSE}
-library(GGally)
-
-seoul_pairs_data = seoul_hourly |>
-  transmute(
-    `Bike count` = rented_bike_count,
-    `Temperature` = temperature,
-    `Humidity` = humidity,
-    `Dew point` = dew_point_temperature,
-    `Solar radiation` = solar_radiation
-  )
-
+```{r seoul-pairs-29, fig.height=7, fig.width=8, message=FALSE, warning=FALSE}
 ggpairs(
-  seoul_pairs_data,
-  upper = list(
-    continuous = wrap(
-      "cor",
-      size = 4
-    )
-  ),
-  lower = list(
-    continuous = wrap(
-      "points",
-      alpha = 0.12,
-      size = 0.4
-    )
-  ),
-  diag = list(
-    continuous = wrap(
-      "densityDiag",
-      alpha = 0.35
-    )
-  )
+  seoul_weather |>
+    select(temperature, humidity, dew_point_temperature, solar_radiation),
+  upper = list(continuous = wrap("cor", size = 4)),
+  lower = list(continuous = wrap("points", alpha = 0.12, size = 0.4)),
+  diag = list(continuous = wrap("densityDiag", alpha = 0.35))
 ) +
-  theme_bw(base_size = 12) +
-  labs(
-    title = "Seoul bike demand and overlapping weather predictors",
-    subtitle = "Strong correlations indicate predictors that may cause unstable regression coefficients"
-  )
+  theme_bw(base_size = 12)
 ```
 
-Now fit an ordinary linear model using only the weather predictors.
+## Seoul: OLS and VIFs
 
-```{r seoul-multi-model}
-seoul_weather.lm = lm(
+```{r seoul-multi-model-29}
+seoul_weather_lm <- lm(
   rented_bike_count ~ temperature + humidity + dew_point_temperature +
     solar_radiation + rainfall + snowfall,
-  data = seoul_hourly
+  data = seoul_weather
 )
-summary(seoul_weather.lm)
+
+summary(seoul_weather_lm)
+car::vif(seoul_weather_lm)
 ```
 
-This model may still be useful for prediction, but the individual weather coefficients should be interpreted cautiously. Weather is still relevant, but the predictors overlap so strongly that their separate coefficients are hard to interpret.
+The model can still be useful as a prediction model, but the separate coefficients for highly overlapping weather measurements are conditional on holding almost redundant quantities fixed.
 
-We can check this more formally using variance inflation factors.
+## Seoul: four ways to handle the same predictor set
 
-```{r seoul-vifs}
-vif(seoul_weather.lm)
-```
+We will use `lambda.1se`, following the convention from Lecture 28.
 
-Large VIF values tell us that some predictors are strongly explained by the other predictors.
-
-The same Seoul bike model from the previous lecture is not just a model-selection example. It is also a **multicollinearity example**. In the previous lecture, ridge and lasso were introduced as penalised regression methods. Here, we can now see another reason they are useful. Ridge regression is helpful when we want to keep overlapping predictors in the model but reduce coefficient instability. Lasso regression is helpful when we want to shrink coefficients and possibly remove some predictors. These methods respond to the same problem in different ways. Ridge keeps the overlapping predictors and shrinks their coefficients, whereas lasso may shrink some coefficients all the way to zero. This is why ridge is often discussed in connection with multicollinearity. It is not mainly a variable-selection method. It is a *coefficient-stabilisation method*.
-
-The important interpretation is: the Seoul bike predictors can give similar prediction accuracy under several methods, but the ordinary regression coefficients may still be unstable because the predictors overlap. Prediction and coefficient interpretation are not the same problem.
-
-### Recall from Lecture 28
-
-Last lecture we used `alpha = 0` for ridge and `alpha = 1` for lasso, and compared `lambda.min` with `lambda.1se`. Here we fit ridge and ordinary least squares to the same six weather predictors. Let's compare their coefficients at `lambda.min`.
-
-```{r seoul-ols-ridge-compare, include=FALSE}
+```{r seoul-penalised-compare-29, include=FALSE}
 library(glmnet)
 
-X_weather = model.matrix(
+X_weather <- model.matrix(
   rented_bike_count ~ temperature + humidity + dew_point_temperature +
     solar_radiation + rainfall + snowfall,
-  data = seoul_hourly
+  data = seoul_weather
 )[, -1]
 
-y_weather = seoul_hourly$rented_bike_count
+y_weather <- seoul_weather$rented_bike_count
 
 set.seed(42)
-seoul_ridge_weather = cv.glmnet(X_weather, y_weather, alpha = 0, standardize = TRUE)
+foldid_weather <- sample(rep(seq_len(10), length.out = nrow(X_weather)))
 
-ols_weather = lm(rented_bike_count ~ temperature + humidity + dew_point_temperature +
-                   solar_radiation + rainfall + snowfall, data = seoul_hourly)
-
-ridge_coef = coef(seoul_ridge_weather, s = "lambda.min")
-
-coef_compare = tibble(
-  Coefficient = rownames(ridge_coef),
-  `OLS estimate` = as.numeric(coef(ols_weather)),
-  `Ridge estimate (lambda.min)` = as.numeric(ridge_coef)
+ridge_weather <- cv.glmnet(
+  X_weather, y_weather, alpha = 0, foldid = foldid_weather, standardize = TRUE
 )
+
+lasso_weather <- cv.glmnet(
+  X_weather, y_weather, alpha = 1, foldid = foldid_weather, standardize = TRUE
+)
+
+ols_drop_dew <- lm(
+  rented_bike_count ~ temperature + humidity + solar_radiation + rainfall + snowfall,
+  data = seoul_weather
+)
+
+coef_to_tibble <- function(x, label) {
+  tibble(term = rownames(x), value = as.numeric(x)) |>
+    rename(!!label := value)
+}
+
+ols_tbl <- tibble(
+  term = names(coef(seoul_weather_lm)),
+  OLS = as.numeric(coef(seoul_weather_lm))
+)
+
+ridge_tbl <- coef_to_tibble(
+  as.matrix(coef(ridge_weather, s = "lambda.1se")),
+  "Ridge L2"
+)
+
+lasso_tbl <- coef_to_tibble(
+  as.matrix(coef(lasso_weather, s = "lambda.1se")),
+  "Lasso L1"
+)
+
+drop_tbl <- tibble(
+  term = names(coef(ols_drop_dew)),
+  `OLS, drop dew point` = as.numeric(coef(ols_drop_dew))
+)
+
+seoul_coef_compare <- ols_tbl |>
+  full_join(ridge_tbl, by = "term") |>
+  full_join(lasso_tbl, by = "term") |>
+  full_join(drop_tbl, by = "term")
 ```
 
-```{r seoul-ols-ridge-compare-display, echo=FALSE}
-coef_compare
+```{r seoul-penalised-compare-display-29, echo=FALSE}
+knitr::kable(seoul_coef_compare, digits = 3)
 ```
 
-`glmnet` standardises predictors internally while fitting, then reports coefficients on their original scales. The two columns are therefore on compatible scales.
+These columns answer related but different modelling questions.
 
-Ridge penalises the *whole coefficient vector*. With orthogonal predictors, each coefficient simply moves towards zero as the penalty grows. With correlated predictors, the coefficients are estimated jointly and can rebalance. An individual coefficient may even move away from zero relative to its OLS estimate. Judge the change in the collection of coefficients and the fitted predictions; do not expect every entry in this table to be a smaller copy of its OLS counterpart. Ridge can reduce instability, but it does not create independent information about highly overlapping predictors.
+::: incremental
+- **OLS** estimates the unpenalised conditional coefficients with all six weather predictors.
+- **Ridge, L2** keeps the whole predictor set but regularises unstable coefficient combinations.
+- **Lasso, L1** can shrink some coefficients exactly to zero.
+- **Dropping dew point** changes the model itself and asks the remaining predictors to absorb information previously shared with dew point.
+:::
 
-Ridge and lasso both penalise large coefficients. That penalty can reduce the instability caused by multicollinearity. Ridge usually keeps all predictors and shrinks them. Lasso can shrink some predictors exactly to zero. So the same fitted models from the previous lecture can be interpreted in a second way: as tools for controlling model complexity; and as tools for reducing coefficient instability when predictors overlap.
+The important distinction is between **prediction** and **coefficient interpretation**. Several models can predict similarly while assigning very different numerical coefficients to overlapping predictors.
 
-So far we have asked how much each *predictor* contributes. Next we change a different part of the problem: some observed responses are measured more precisely than others.
+## Looking ahead
+
+We can now build models with numerical and categorical predictors, compare and search through candidate models, and deal more deliberately with overlapping predictors.
+
+One limitation remains: our mean structure has still mostly been built from straight-line effects of numerical predictors.
+
+Lecture 30 first deals with a different issue, observations that do not all carry the same precision. After that, we move to **LOESS and splines**, where the fitted mean itself can bend rather than being forced to follow a straight line.
