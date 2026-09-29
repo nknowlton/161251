@@ -220,68 +220,138 @@ seoul_step$anova
 ```
 
 This is where automated search becomes convenient. We do not want to fit every plausible formula ourselves. But the procedure still makes a hard decision at each step: a term is either in the model or out.
-## Part II: shrinkage instead of searching
+## Shrinkage instead of searching
 
-Stepwise regression makes discrete decisions. Penalised regression takes a different approach. We keep the larger model, but we add a penalty that discourages large coefficient values.
+Stepwise regression makes discrete decisions: a term is either kept or removed. Penalised regression gives us another option. We keep the larger model, but discourage large coefficient values.
 
-For ordinary least squares we minimise
+Ordinary least squares minimises
 
-$$RSS = \sum_{i=1}^{n} (y_i - \hat y_i)^2.$$
+$$
+RSS = \sum_{i=1}^{n}(y_i-\hat y_i)^2.
+$$
 
-For penalised regression we minimise
+Penalised regression minimises
 
-$$RSS + \lambda \times \text{penalty}.$$
+$$
+RSS + \lambda \times \text{penalty}.
+$$
 
-The tuning parameter \(\lambda\) controls the strength of the penalty. When \(\lambda = 0\), we get ordinary least squares. As \(\lambda\) increases, the coefficients are pulled more strongly toward zero. The intercept is usually not penalised.
+::: incremental
+- $\lambda = 0$ gives ordinary least squares.
+- Larger $\lambda$ means a stronger penalty.
+- The intercept is normally left unpenalised.
+:::
 
-The two main choices are:
+The two penalties we will use are **L2** for ridge and **L1** for lasso.
 
-- Ridge: penalty uses squared coefficients, \(\lambda \sum \beta_j^2\)
-- Lasso: penalty uses absolute coefficients, \(\lambda \sum |\beta_j|\)
+## Ridge regression: L2 penalty
 
-The practical distinction is straightforward:
+Ridge regression minimises
 
-- ridge shrinks coefficients toward zero, usually retaining all predictors;
-- lasso shrinks coefficients and can set some exactly to zero.
+$$
+RSS + \lambda\sum_{j=1}^{p}\beta_j^2.
+$$
 
-That gives us a second way to control complexity: not by selecting a model, but by shrinking the fitted coefficients.
+::: incremental
+- Large coefficients are penalised more strongly than small coefficients.
+- As $\lambda$ increases, the fitted coefficient vector is pulled towards zero.
+- Ridge generally keeps all predictors rather than setting coefficients exactly to zero.
+:::
 
-### Why standardisation matters
+In matrix form,
 
-The penalty is applied to coefficient size, so predictors measured on different scales are treated differently unless we standardise them first. This is one reason why ridge and lasso are usually fitted after standardising the predictors.
+$$
+\hat{\boldsymbol\beta}_{\text{ridge}}
+=
+(X^\top X+\lambda I)^{-1}X^\top y.
+$$
 
-The `glmnet` package does this by default when `standardize = TRUE`.
+A useful way to read this is that ridge adds $\lambda$ to the diagonal of $X^\top X$. That stabilises the inversion when predictors contain overlapping information.
 
-## Using `glmnet` on the Seoul data
+## Lasso regression: L1 penalty
+
+Lasso minimises
+
+$$
+RSS + \lambda\sum_{j=1}^{p}|\beta_j|.
+$$
+
+::: incremental
+- Lasso also shrinks coefficients as $\lambda$ increases.
+- Unlike ridge, some coefficients can become **exactly zero**.
+- Lasso can therefore perform shrinkage and variable selection at the same time.
+:::
+
+Ridge and lasso both control coefficient size. The difference is what the penalty allows to happen at zero.
+
+## Why standardisation matters
+
+The penalty acts on coefficient size, and coefficient size depends on the units used for the predictor.
+
+Suppose the same rainfall variable is measured in millimetres or metres.
+
+```{r standardisation-units-28, echo=FALSE}
+unit_example <- tibble(
+  Units = c("millimetres", "metres"),
+  Coefficient = c(0.002, 2),
+  `Squared coefficient` = c(0.002^2, 2^2)
+)
+
+knitr::kable(
+  unit_example,
+  digits = c(0, 3, 6),
+  col.names = c(
+    "Rainfall units",
+    "Equivalent coefficient",
+    "Contribution to an L2 penalty"
+  )
+)
+```
+
+The fitted relationship is identical, but the raw coefficient penalty is not. Without standardisation, changing units can change how strongly a predictor is penalised.
+
+`glmnet` standardises predictors by default when `standardize = TRUE`.
+
+## Using `glmnet`
+
+The `glmnet` package writes ridge and lasso as one family of penalties:
+
+$$
+\lambda\left[
+\frac{1-\alpha}{2}\sum_j\beta_j^2
++
+\alpha\sum_j|\beta_j|
+\right].
+$$
+
+::: incremental
+- `alpha = 0`: ridge, the **L2** penalty.
+- `alpha = 1`: lasso, the **L1** penalty.
+- $0 < \alpha < 1$: elastic net, a mixture of the two. We will not develop elastic net further here.
+:::
+
+The remaining tuning parameter is $\lambda$, which we choose by cross-validation.
 
 ```{r seoul-penalised-setup, message=FALSE, warning=FALSE}
 library(glmnet)
 
-X = model.matrix(
+X <- model.matrix(
   rented_bike_count ~ hour + season + holiday + functioning_day +
     temperature + humidity + wind_speed + visibility +
     dew_point_temperature + solar_radiation + rainfall + snowfall,
   data = seoul_subset
 )[, -1]
 
-y = seoul_subset$rented_bike_count
+y <- seoul_subset$rented_bike_count
 
 set.seed(42)
 foldid <- sample(rep(seq_len(10), length.out = nrow(X)))
 ```
 
-The argument `alpha` controls the penalty:
+## Ridge: choosing $\lambda$
 
-- `alpha = 0` gives ridge regression;
-- `alpha = 1` gives lasso regression;
-- values between 0 and 1 give elastic net.
-
-The amount of shrinkage is chosen by cross-validation rather than by hand.
-
-### Ridge regression
-
-```{r seoul-ridge-cv, message=FALSE, warning=FALSE}
-seoul_ridge = cv.glmnet(
+```{r seoul-ridge-fit-28, include=FALSE}
+seoul_ridge <- cv.glmnet(
   x = X,
   y = y,
   alpha = 0,
@@ -289,22 +359,67 @@ seoul_ridge = cv.glmnet(
   standardize = TRUE
 )
 
-plot(seoul_ridge, main = "Ridge regression")
+ridge_cv <- tibble(
+  log_lambda = log(seoul_ridge$lambda),
+  cv_error = seoul_ridge$cvm,
+  cv_se = seoul_ridge$cvsd
+)
 ```
 
-`lambda.min` is the penalty with the lowest average error across these held-out folds. `lambda.1se` is the largest penalty whose estimated error is within one standard error of that minimum. The latter accepts an estimated error close to the minimum in exchange for a more strongly regularised model. The CV curve selects a penalty from this dataset; it is not an untouched final test of the selected model's performance.
-
-```{r seoul-ridge-summary}
-coef(seoul_ridge, s = "lambda.min")
-coef(seoul_ridge, s = "lambda.1se")
+```{r seoul-ridge-cv-plot-28, echo=FALSE, fig.width=9, fig.height=5}
+ggplot(ridge_cv, aes(x = log_lambda, y = cv_error)) +
+  geom_errorbar(
+    aes(ymin = cv_error - cv_se, ymax = cv_error + cv_se),
+    width = 0, alpha = 0.35
+  ) +
+  geom_line() +
+  geom_point(size = 1.4) +
+  geom_vline(xintercept = log(seoul_ridge$lambda.min), linetype = 2) +
+  geom_vline(xintercept = log(seoul_ridge$lambda.1se), linetype = 3) +
+  annotate(
+    "text", x = log(seoul_ridge$lambda.min),
+    y = max(ridge_cv$cv_error), label = "lambda.min",
+    angle = 90, vjust = -0.4, hjust = 1
+  ) +
+  annotate(
+    "text", x = log(seoul_ridge$lambda.1se),
+    y = max(ridge_cv$cv_error), label = "lambda.1se",
+    angle = 90, vjust = 1.2, hjust = 1
+  ) +
+  labs(
+    x = expression(log(lambda)),
+    y = "Cross-validated mean squared error"
+  ) +
+  theme_bw(base_size = 13)
 ```
 
-Ridge usually keeps all predictors in the model, but makes the coefficients smaller and therefore more stable.
+`lambda.min` gives the lowest mean cross-validation error.
 
-### Lasso regression
+`lambda.1se` is the **largest** $\lambda$ whose estimated error is within one standard error of that minimum. It gives stronger regularisation while remaining close to the best estimated cross-validation performance.
 
-```{r seoul-lasso-cv, message=FALSE, warning=FALSE}
-seoul_lasso = cv.glmnet(
+## Ridge: `lambda.min` versus `lambda.1se`
+
+This is the one place where we will keep both choices and compare them directly.
+
+```{r seoul-ridge-summary-28}
+ridge_coef_compare <- cbind(
+  `lambda.min` = as.matrix(coef(seoul_ridge, s = "lambda.min"))[, 1],
+  `lambda.1se` = as.matrix(coef(seoul_ridge, s = "lambda.1se"))[, 1]
+)
+
+round(ridge_coef_compare, 3)
+```
+
+The `lambda.1se` column uses the stronger penalty, so the coefficient vector is more strongly regularised.
+
+**For the rest of this lecture we will use `lambda.1se`.**
+
+For ridge that means stronger shrinkage. For lasso it usually also means fewer non-zero coefficients.
+
+## Lasso coefficient paths
+
+```{r seoul-lasso-fit-28, include=FALSE}
+seoul_lasso <- cv.glmnet(
   x = X,
   y = y,
   alpha = 1,
@@ -312,66 +427,79 @@ seoul_lasso = cv.glmnet(
   standardize = TRUE
 )
 
-plot(seoul_lasso, main = "Lasso regression")
+lasso_beta <- as.data.frame(t(as.matrix(seoul_lasso$glmnet.fit$beta)))
+lasso_beta$log_lambda <- log(seoul_lasso$glmnet.fit$lambda)
+
+lasso_path <- lasso_beta |>
+  pivot_longer(
+    cols = -log_lambda,
+    names_to = "term",
+    values_to = "coefficient"
+  )
+
+label_terms <- lasso_path |>
+  group_by(term) |>
+  summarise(max_abs = max(abs(coefficient)), .groups = "drop") |>
+  slice_max(max_abs, n = 8) |>
+  pull(term)
+
+lasso_labels <- lasso_path |>
+  filter(term %in% label_terms) |>
+  group_by(term) |>
+  slice_min(log_lambda, n = 1, with_ties = FALSE) |>
+  ungroup()
 ```
 
-The lasso can set some coefficients exactly to zero. That is the main difference from ridge.
+```{r seoul-lasso-path-28, echo=FALSE, fig.width=10, fig.height=6}
+ggplot(lasso_path, aes(x = log_lambda, y = coefficient, group = term)) +
+  geom_hline(yintercept = 0, linetype = 3) +
+  geom_line(alpha = 0.65) +
+  geom_vline(xintercept = log(seoul_lasso$lambda.min), linetype = 2) +
+  geom_vline(xintercept = log(seoul_lasso$lambda.1se), linetype = 3) +
+  geom_text(
+    data = lasso_labels,
+    aes(label = term),
+    hjust = 1.05, size = 3, check_overlap = TRUE
+  ) +
+  annotate(
+    "text", x = log(seoul_lasso$lambda.min), y = Inf,
+    label = "lambda.min", angle = 90, vjust = -0.4, hjust = 1.15
+  ) +
+  annotate(
+    "text", x = log(seoul_lasso$lambda.1se), y = Inf,
+    label = "lambda.1se", angle = 90, vjust = 1.2, hjust = 1.15
+  ) +
+  labs(
+    x = expression(log(lambda)~"(stronger penalty to the right)"),
+    y = "Coefficient"
+  ) +
+  theme_bw(base_size = 12)
+```
 
-```{r seoul-lasso-summary}
-coef(seoul_lasso, s = "lambda.min")
+Each line is one model-matrix coefficient. Moving to the right means increasing $\lambda$.
+
+For lasso, coefficients do not just get smaller. Some paths hit zero and stay there. At `lambda.1se` we use the stronger of the two marked penalties.
+
+```{r seoul-lasso-1se-28}
 coef(seoul_lasso, s = "lambda.1se")
 ```
 
-### A coefficient path plot
+## Stepwise regression versus shrinkage
 
-```{r seoul-lasso-path, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
-plot(seoul_lasso$glmnet.fit, xvar = "lambda", label = TRUE)
-abline(v = log(seoul_lasso$lambda.min), lty = 2, col = "red")
-abline(v = log(seoul_lasso$lambda.1se), lty = 3, col = "blue")
-legend("topright",
-       legend = c("lambda.min", "lambda.1se"),
-       lty = c(2, 3), col = c("red", "blue"))
-```
-
-As \(\lambda\) grows, more coefficients get pushed toward zero. For lasso, some coefficients can actually become exactly zero. That is why lasso is often described as doing both shrinkage and selection.
-
-## Stepwise search versus shrinkage
-
-These methods solve different problems.
-
-| Method | Main idea | What it does |
+| Method | Decision being made | Typical result |
 |---|---|---|
-| Stepwise search | Add or remove terms | Produces a small model by searching through candidate formulas |
-| Ridge | Penalise large coefficients | Shrinks all coefficients, usually keeping every predictor |
-| Lasso | Penalise absolute coefficients | Shrinks coefficients and can set some to zero |
+| Stepwise search | Add or remove whole model terms | A smaller selected formula |
+| Ridge, L2 | Penalise squared coefficient size | Keep predictors but shrink/stabilise the coefficient vector |
+| Lasso, L1 | Penalise absolute coefficient size | Shrink coefficients and set some exactly to zero |
 
-This is more than a technical distinction. It reflects different modelling goals.
+Stepwise and lasso can both produce sparse models, but they do not select the same object. Stepwise works with **model terms**. `glmnet` works with **columns of the model matrix**, so a multi-level factor can contribute several penalised coefficients.
 
-- Stepwise selection is natural when we want a smaller, interpretable model.
-- Ridge is often attractive when prediction is the goal and predictors overlap.
-- Lasso sits between the two: it can select predictors while also shrinking the remaining coefficients.
+These procedures are also data-dependent. Change the sample slightly and the selected stepwise model or lasso set can change.
 
-The important conceptual point is that these are not just different algorithms for the same job. They are different ways of controlling model complexity.
+## Looking ahead
 
-We also need to be careful when comparing them. Stepwise search works with model terms. `glmnet` works with the columns of the model matrix. A factor such as `season` may correspond to several dummy-variable columns. So a lasso coefficient count is not always a count of scientific variables in the same sense as a stepwise term count.
+Automated search and shrinkage give us useful ways to work with a larger predictor set, but they expose another problem.
 
-Neither a stepwise coefficient P-value nor the chosen lasso set has the same inferential interpretation it would have had if that model had been specified before looking at the outcome.
+When predictors carry nearly the same information, ordinary least-squares coefficients can become unstable. A small change in the data or model can produce a large change in the separate coefficient estimates.
 
-There is one limitation to the Seoul example. Hours close together share weather, calendar conditions and demand patterns. Randomly splitting rows across folds allows the training and validation sets to contain near neighbours. That is enough to illustrate how `cv.glmnet()` chooses a penalty, but it is not a credible test of forecasting future days. Once time becomes the modelling question, validation must keep later observations out of the training set.
-
-## Why this leads naturally to Lecture 29
-
-Ridge is especially useful when predictors carry overlapping information. Ordinary least squares coefficients can then become unstable, hard to interpret, and sensitive to small changes in the data.
-
-That is the multicollinearity problem we turn to next.
-
-## Summary
-
-By the end of this lecture, the message is simple.
-
-There are two broad ways to handle a large collection of plausible predictors:
-
-1. Search through nested or near-nested models by adding and dropping terms.
-2. Keep a richer model and shrink the coefficients instead.
-
-Forward, backward, and stepwise methods are examples of the first idea. Ridge and lasso are examples of the second. The choice depends on the scientific goal, the prediction problem, and the structure of the predictors themselves.
+That is the **multicollinearity** problem we turn to next.
