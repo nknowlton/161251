@@ -1,6 +1,8 @@
 bookdown::gitbook:
   css: [sandstone.css, style.css]
   split_by: chapter
+  pandoc_args:
+    - "--lua-filter=filters/remove-slide-pauses.lua"
   includes:
     in_header: ../shared/book-header.html
   config:
@@ -24,9 +26,13 @@ bookdown::gitbook:
       pocket: no
       all: no
 bookdown::pdf_book:
+  pandoc_args:
+    - "--lua-filter=filters/remove-slide-pauses.lua"
   includes:
     in_header: preamble.tex
   latex_engine: xelatex
   citation_package: natbib
 bookdown::epub_book:
+  pandoc_args:
+    - "--lua-filter=filters/remove-slide-pauses.lua"
   stylesheet: style.css

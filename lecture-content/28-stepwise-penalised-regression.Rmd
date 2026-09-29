@@ -2,7 +2,7 @@
 
 In Lecture 27, we still chose the candidate models ourselves. Once the number of plausible predictors grows, there are two broad ways to stop doing all of that by hand.
 
-![Stepwise search](../resources/lecture28_stepwise.png){.incremental width="43%"} ![Ridge and lasso shrinkage](../resources/lecture28_penalised.png){.incremental width="43%"}
+![Stepwise search](`r if (knitr::is_latex_output()) "../resources/lecture28_stepwise.png" else "../graphics/stepwise_search.svg"`){.incremental width="43%"} ![Ridge and lasso shrinkage](`r if (knitr::is_latex_output()) "../resources/lecture28_penalised.png" else "../graphics/penalised_regression.svg"`){.incremental width="43%"}
 
 We will use both approaches in this lecture.
 
@@ -154,7 +154,7 @@ knitr::kable(climate_searches, digits = 2)
 
 |  |  |
 |:---|:---|
-| ![](../resources/lecture28_stepwise.png){width="100%"} | The lower AIC is preferred among the models actually reached by the search. Different starting points can finish at different local solutions. Agreement between searches is reassuring for this dataset, but it does not make the selected formula uniquely correct. |
+| ![](`r if (knitr::is_latex_output()) "../resources/lecture28_stepwise.png" else "../graphics/stepwise_search.svg"`){width="100%"} | The lower AIC is preferred among the models actually reached by the search. Different starting points can finish at different local solutions. Agreement between searches is reassuring for this dataset, but it does not make the selected formula uniquely correct. |
 
 ## A larger problem: Seoul bike demand
 
@@ -528,7 +528,7 @@ coef(seoul_lasso, s = "lambda.1se")
 
 |  |  |
 |:---|:---|
-| ![](../resources/lecture28_penalised.png){width="100%"} | Stepwise and lasso can both produce sparse models, but they do not select the same object. Stepwise works with **model terms**. `glmnet` works with **columns of the model matrix**, so a multi-level factor can contribute several penalised coefficients.<br><br>These procedures are also data-dependent. Change the sample slightly and the selected stepwise model or lasso set can change. |
+| ![](`r if (knitr::is_latex_output()) "../resources/lecture28_penalised.png" else "../graphics/penalised_regression.svg"`){width="100%"} | Stepwise and lasso can both produce sparse models, but they do not select the same object. Stepwise works with **model terms**. `glmnet` works with **columns of the model matrix**, so a multi-level factor can contribute several penalised coefficients.<br><br>These procedures are also data-dependent. Change the sample slightly and the selected stepwise model or lasso set can change. |
 
 ## Looking ahead
 
