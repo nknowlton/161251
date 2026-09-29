@@ -13,6 +13,10 @@ knitr::opts_chunk$set(comment = "", dev = "png")
 library(tidyverse)
 library(car)
 library(glmnet)
+course_data <- function(filename) {
+  local_file <- file.path("..", "data", filename)
+  if (file.exists(local_file)) local_file else paste0("https://knowlton.co.nz/161251/data/", filename)
+}
 ```
 
 # Computer Laboratory 11: Search, Shrinkage, and Weighting
@@ -21,10 +25,12 @@ Last week we built and compared several Auto MPG models by hand. That worked bec
 
 This week we continue with the same data, but we now let the predictor set become larger. We will first automate part of the model search, then look at what happens when several predictors carry almost the same information. In the second part of the lab, the problem changes: we will use weighted regression because the observations themselves do not all carry the same amount of information.
 
+The lab uses [auto_mpg.csv](https://knowlton.co.nz/161251/data/auto_mpg.csv) and [AveMags.csv](https://knowlton.co.nz/161251/data/AveMags.csv). You can download the R Markdown file on its own: it reads these data from the course site when local copies are unavailable.
+
 # Part A: Auto MPG
 
 ```{r import-auto, message=FALSE}
-auto <- readr::read_csv("../data/auto_mpg.csv") |>
+auto <- readr::read_csv(course_data("auto_mpg.csv")) |>
   mutate(origin = factor(origin))
 
 levels(auto$origin)
@@ -301,7 +307,7 @@ So far this week we have been deciding how to handle predictors in the mean mode
 The magazine data contain an estimated mean number of magazines read for each age and sex group. Each row summarises `N` people and reports the within-group standard deviation `StDev`.
 
 ```{r import-magazines, message=FALSE}
-mags <- readr::read_csv("../data/AveMags.csv") |>
+mags <- readr::read_csv(course_data("AveMags.csv")) |>
   mutate(
     Sex = factor(Sex, levels = c(0, 1), labels = c("Male", "Female")),
     Older = as.integer(Age >= 50),

@@ -13,18 +13,24 @@ knitr::opts_chunk$set(comment = "", dev = "png")
 library(tidyverse)
 library(nlme)
 library(broom.mixed)
+course_data <- function(filename) {
+  local_file <- file.path("..", "data", filename)
+  if (file.exists(local_file)) local_file else paste0("https://knowlton.co.nz/161251/data/", filename)
+}
 ```
 
 # Computer Laboratory 12: Curves, seasons and dependent errors
 
 We have been changing the *mean* in a regression model: a curve for temperature, a trend over time and a seasonal pattern. Now we need to look at what remains. We will work through daily Seoul bike demand, repeat the time-series analysis on monthly tourism and finish with quarterly Perth house prices.
 
+The lab uses [seoul_bike_daily.csv](https://knowlton.co.nz/161251/data/seoul_bike_daily.csv), [motel.csv](https://knowlton.co.nz/161251/data/motel.csv) and [hp.csv](https://knowlton.co.nz/161251/data/hp.csv). You can download the R Markdown file on its own: it reads these data from the course site when local copies are unavailable.
+
 ## How much curve do we need for temperature?
 
 Each row in `seoul_bike_daily.csv` is one calendar day. `rented_bike_count` is the number of rentals and `mean_temperature` is in °C. The 13 days when the system was not fully functioning should not represent ordinary demand. Keep the original `date` and `day_index` after filtering so that a gap in service remains a gap in time.
 
 ```{r seoul-data, message=FALSE}
-seoul_all <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE) |>
+seoul_all <- read_csv(course_data("seoul_bike_daily.csv"), show_col_types = FALSE) |>
   mutate(date = as.Date(date)) |>
   arrange(date)
 seoul <- seoul_all |>
@@ -161,7 +167,7 @@ Discuss: What do the time plot, median runs and lag-1 ACF show? A small Durbin-W
 Each row in `motel.csv` is a month from January 1980 to December 1994. `RoomNights` counts occupied room nights. `Time` increases one step per month and `Month` is a calendar-month factor. We can compare an indicator model for the seasonal mean with an AR(1) model for dependence left in its errors. In an AR(1) model, $\varepsilon_t = \phi\varepsilon_{t-1} + \eta_t$ with $|\phi| < 1$, and errors $k$ months apart have correlation $\phi^k$.
 
 ```{r tourism-data, message=FALSE}
-tourism <- read_csv("../data/motel.csv", show_col_types = FALSE) |>
+tourism <- read_csv(course_data("motel.csv"), show_col_types = FALSE) |>
   mutate(
     Date = as.Date(Date),
     Month = factor(lubridate::month(Date, label = TRUE), ordered = FALSE)
@@ -217,7 +223,7 @@ Discuss: Which observed patterns belong to the mean model and which remain in th
 Each row of `hp.csv` is one quarter. `Perth` is a relative house-price index and `WtAve` is the weighted index across eight Australian capitals. The indices use Darwin in the second quarter of 1986 as a reference value of 100. The published `WtAve` includes Perth itself, so describe an association with that average rather than an independent prediction from the other seven cities. `lubridate::my()` parses the month-year text as the quarter's first month.
 
 ```{r perth-data, message=FALSE}
-hp <- read_csv("../data/hp.csv", show_col_types = FALSE) |>
+hp <- read_csv(course_data("hp.csv"), show_col_types = FALSE) |>
   mutate(Quarter = as.Date(lubridate::my(Quarter))) |>
   arrange(Quarter) |>
   mutate(Time = row_number() - 1L)
