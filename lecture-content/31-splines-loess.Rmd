@@ -395,7 +395,7 @@ ggplot(tail_predictions,
   )
 ```
 
-The ordinary cubic spline can continue curving; the natural spline is straight beyond each boundary. Linear tails prevent one kind of unstable extension, but they do not provide information about bike demand at unobserved temperatures. A flexible curve will also tend to fit the observed data more closely, which alone does not make it the better model.
+The ordinary cubic spline can continue curving; the natural cubic spline is straight beyond each boundary. Linear tails prevent one kind of unstable extension, but they do not provide information about bike demand at unobserved temperatures. A flexible curve will also tend to fit the observed data more closely, which alone does not make it the better model.
 
 ## Where Does the Flexibility Come From?
 
@@ -404,8 +404,8 @@ The ordinary cubic spline can continue curving; the natural spline is straight b
 | Straight line | $1,x$ | One slope everywhere |
 | Cubic polynomial | $1,x,x^2,x^3$ | One global cubic curve |
 | Piecewise linear | Line plus hinge terms | Slope changes at knots |
-| Cubic spline | Smooth piecewise cubic basis | Mainly around knots |
-| Natural cubic spline | Cubic spline with linear tails | Mainly around knots; straight beyond boundaries |
+| Cubic spline | Smoothly joined cubic pieces | Curvature can change around knots |
+| Natural cubic spline | Smoothly joined cubic pieces with linear tails | Curvature can change around knots; straight beyond boundaries |
 | LOESS | Repeated distance-weighted regressions | Local neighbourhoods |
 
 ## Six Curves, One Temperature Dataset
