@@ -13,7 +13,7 @@ This helper file generates two animated GIFs for Lecture 31:
 2. a LOESS animation showing `span = 0.15, 0.30, 0.45, 0.60`
 
 The code looks for the course repository root, reads `data/seoul_bike_hourly.csv`,
-and writes the GIFs to `figures/lecture31/`.
+and writes the GIFs to `graphics/lecture31/`.
 
 ```{r setup}
 library(ggplot2)
@@ -48,7 +48,7 @@ find_repo_root <- function(start = getwd()) {
 
 repo_root <- find_repo_root()
 data_path <- file.path(repo_root, "data", "seoul_bike_hourly.csv")
-out_dir <- file.path(repo_root, "figures", "lecture31")
+out_dir <- file.path(repo_root, "graphics", "lecture31")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 gif_width <- 900

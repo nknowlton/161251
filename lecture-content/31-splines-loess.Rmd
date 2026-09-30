@@ -85,7 +85,7 @@ with weight zero outside the neighbourhood. Here $d(x_0)$ is the distance to its
 The animation keeps the observations fixed and changes only the span. Watch what happens to the smaller local features as each fit borrows information from farther away.
 
 ```{r loess-span-animation, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
-loess_gif <- "../figures/lecture31/loess-span.gif"
+loess_gif <- "../graphics/lecture31/loess-span.gif"
 
 if (file.exists(loess_gif) && pandoc_to() %in% c("html", "html4", "html5")) {
   cat(sprintf('<img src="%s" style="width:85%%;display:block;margin:auto;" alt="Animated LOESS fits with increasing span">\n', loess_gif))
@@ -244,7 +244,7 @@ temp_grid <- tibble(
 The animation holds the data and the cubic degree fixed. Only the degrees of freedom change: `df = 4, 5, 8, 10`. The dashed lines mark the internal knots. As `df` increases, the spline gains more knots and can adapt its curvature in more places.
 
 ```{r spline-df-animation, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
-spline_gif <- "../figures/lecture31/cubic-spline-df.gif"
+spline_gif <- "../graphics/lecture31/cubic-spline-df.gif"
 
 if (file.exists(spline_gif) && pandoc_to() %in% c("html", "html4", "html5")) {
   cat(sprintf('<img src="%s" style="width:85%%;display:block;margin:auto;" alt="Animated cubic spline fits with increasing degrees of freedom">\n', spline_gif))
