@@ -8,15 +8,15 @@ library(splines)
 library(patchwork)
 ```
 
-So far we have focused on parametric regression models, where the mean response is described by a small number of coefficients. In this lecture we use the Seoul Bike Sharing data to study a different problem: the relationship between demand and weather is clearly nonlinear.
+So far most of our mean models have imposed a fairly simple global shape. In this lecture we use the Seoul Bike Sharing data to deal with a different problem: the relationship between demand and weather is clearly nonlinear. We want the mean response to bend where the data support it without giving up the regression framework.
 
 By the end of this lecture, students should be able to:
 
 1. Explain why a straight-line mean function can be too restrictive.
 2. Use LOESS to explore nonlinear structure.
-3. Fit regression splines using basis functions.
-4. Explain the difference between ordinary and natural splines.
-5. Explain how degrees of freedom control the flexibility of a regression spline.
+3. Explain how cubic splines use knots to let a regression curve change shape smoothly.
+4. Fit and interpret cubic and natural cubic splines.
+5. Explain how degrees of freedom control the flexibility of a cubic spline.
 
 ## Running Example: Hourly Bike Demand
 
@@ -82,21 +82,60 @@ with weight zero outside the neighbourhood. Here $d(x_0)$ is the distance to its
 
 `span` sets the size of each neighbourhood as a proportion of the observations. A small span gives a flexible curve that can follow random fluctuations. A larger span borrows from farther away, producing a smoother curve that may miss a sharp change in the mean.
 
-Hold the observations fixed and move the slider. Which parts of the fitted curve change as more distant observations receive weight?
+The animation keeps the observations fixed and changes only the span. Watch what happens to the smaller local features as each fit borrows information from farther away.
 
-[Open the LOESS span widget in a separate page](https://knowlton.co.nz/161251/widget/labs/loess-span.html).
+```{r loess-span-animation, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
+loess_gif <- "../figures/lecture31/loess-span.gif"
 
-```{r loess-span-widget, echo=FALSE, results='asis'}
-if (pandoc_to() %in% c("html", "html4", "html5")) {
-  cat('<style>.loess-span-embed{display:block;width:100%;height:620px;border:1px solid #ccd5df;border-radius:6px}@media(max-width:640px){.loess-span-embed{height:900px}}</style>\n')
-  cat('<iframe id="loess-span-frame" class="loess-span-embed" title="Interactive LOESS span widget" loading="lazy"></iframe>\n')
-  cat('<script>document.getElementById("loess-span-frame").src = "https://knowlton.co.nz/161251/widget/labs/loess-span.html";</script>\n')
+if (file.exists(loess_gif) && pandoc_to() %in% c("html", "html4", "html5")) {
+  cat(sprintf('<img src="%s" style="width:85%%;display:block;margin:auto;" alt="Animated LOESS fits with increasing span">\n', loess_gif))
+} else {
+  loess_spans <- c(0.15, 0.30, 0.45, 0.60)
+
+  loess_static <- purrr::map_dfr(loess_spans, function(span_value) {
+    fit <- loess(
+      rented_bike_count ~ temperature,
+      data = seoul_hourly,
+      span = span_value,
+      degree = 2,
+      control = loess.control(surface = "direct")
+    )
+
+    grid <- tibble(
+      temperature = seq(
+        min(seoul_hourly$temperature),
+        max(seoul_hourly$temperature),
+        length.out = 250
+      )
+    )
+
+    grid |>
+      mutate(
+        fitted = predict(fit, newdata = grid),
+        span = factor(span_value, levels = loess_spans)
+      )
+  })
+
+  print(
+    ggplot(seoul_hourly, aes(temperature, rented_bike_count)) +
+      geom_point(alpha = 0.035, size = 0.35) +
+      geom_line(
+        data = loess_static,
+        aes(y = fitted),
+        colour = "forestgreen",
+        linewidth = 0.9
+      ) +
+      facet_wrap(~span, ncol = 2, labeller = label_both) +
+      labs(
+        x = "Temperature (°C)",
+        y = "Hourly rented bike count",
+        title = "Larger LOESS spans produce smoother fitted curves"
+      )
+  )
 }
 ```
 
-```{r loess-example-slide-break, echo=FALSE, results='asis'}
-if (pandoc_to() %in% c("beamer", "slidy")) cat("\n---\n\n")
-```
+The span is therefore a direct flexibility choice. Smaller values let the curve react to more local structure; larger values smooth over more of it.
 
 ### LOESS with the Seoul Bike Data
 
@@ -135,42 +174,44 @@ seoul_hourly |>
 
 The smaller span follows local changes more closely, including random fluctuations. The larger span smooths those fluctuations but may miss a sharp change in the mean. Let's check which features persist across both curves before choosing a regression formula.
 
-## We Have Used Bases All Along
-
-A **basis** is a set of building-block functions that we multiply by coefficients and add to make the fitted mean. We have used bases throughout this course, even though we have not called them that.
-
-$$
-\begin{array}{ll}
-\text{Straight line:} & 1,\quad x\\[3pt]
-\text{Quadratic:} & 1,\quad x,\quad x^2\\[3pt]
-\text{Piecewise linear:} & 1,\quad x,\quad (x-\kappa)_+
-\end{array}
-$$
-
-Each function becomes a column of the regression model matrix. In Lecture 18, the hinge $(x-\kappa)_+$ was zero before the knot and changed the slope after it. In Lecture 17, raw powers $x,x^2,x^3$ and the orthogonal columns from `poly(x, 3)` looked different but could represent the **same collection of cubic curves**. Changing the basis changes the building blocks, not necessarily the set of curves we can fit.
-
 ## From Piecewise Lines to Cubic Splines
 
-The piecewise linear model $f(x)=\beta_0+\beta_1x+\beta_2(x-\kappa)_+$ joins at the knot, but it can have a corner there. To let the slope change smoothly, use cubic pieces. One way to represent a cubic spline is
+We have already seen the basic idea behind a spline. In Lecture 18, a piecewise linear model with one knot at $\kappa$ was
+
+$$
+f(x)=\beta_0+\beta_1x+\beta_2(x-\kappa)_+.
+$$
+
+The extra term is zero before the knot and changes the slope after it. The lines join, but there can be a sharp corner at the knot.
+
+A **cubic spline** uses the same piecewise idea with cubic curves. One way to write a cubic spline with knots $\kappa_1,\ldots,\kappa_K$ is
 
 $$
 f(x)=\beta_0+\beta_1x+\beta_2x^2+\beta_3x^3
      +\sum_{j=1}^{K}\gamma_j(x-\kappa_j)_+^3.
 $$
 
-Each new term is zero before its knot. At the knot, $(x-\kappa)_+^3$ and its first two derivatives are all zero. Switching on that term changes the curve after the knot without a jump in its **value, slope or curvature**. The result is piecewise cubic, with the pieces joined smoothly.
+Each new term is zero before its knot. At the knot, $(x-\kappa)_+^3$ and its first two derivatives are all zero. The new cubic piece can therefore change the shape after the knot without introducing a jump, a corner, or an abrupt change in curvature.
 
-This equation gives one basis for cubic splines. We use it to see why the joins are smooth; we do not need to calculate its coefficients by hand.
+So a cubic spline is simply **piecewise cubic, with the pieces joined smoothly**. We use the equation to understand the construction; we do not need to calculate these coefficients by hand.
 
-## What Does `bs()` Build?
+## Fitting a Cubic Spline in R
 
-A B-spline basis is another way to represent cubic spline curves. Its functions $b_1(x),\ldots,b_5(x)$ are smooth and each acts mainly over part of the temperature range. R turns them into predictor columns, then `lm()` estimates their coefficients:
+R's `bs()` function constructs the terms needed to fit a cubic spline. Cubic is the default, so
+
+```r
+lm(rented_bike_count ~ bs(temperature, df = 5), data = seoul_temp)
+```
+
+fits a **cubic spline**, not a fifth-degree polynomial.
+
+For a cubic spline fitted with the default `intercept = FALSE`,
 
 $$
-\hat f(x)=\hat\beta_0+\hat\beta_1b_1(x)+\cdots+\hat\beta_5b_5(x).
+\text{number of internal knots} = df - 3.
 $$
 
-In `bs(temperature, df = 5)`, the `5` gives five spline columns **in addition to the intercept**. It does not mean a fifth-degree polynomial; `bs()` uses cubic pieces by default. The pieces stay cubic. With `df = 5`, R uses two internal knots to construct the five basis columns shown below. Increasing `df` while keeping the degree cubic adds internal knots, giving the fitted curve more places where its curvature can adapt. Thus `df` controls flexibility, but is not itself a count of knots.
+So `df = 5` gives two internal knots. Increasing the degrees of freedom keeps the pieces cubic but adds more internal knots, giving the curve more places where its curvature can adapt.
 
 ```{r spline-seoul-setup, include=FALSE}
 seoul_temp <- seoul_hourly |>
@@ -178,89 +219,104 @@ seoul_temp <- seoul_hourly |>
   filter(is.finite(temperature), is.finite(rented_bike_count))
 
 lm_linear <- lm(rented_bike_count ~ temperature, data = seoul_temp)
-lm_bs <- lm(rented_bike_count ~ bs(temperature, df = 5), data = seoul_temp)
-lm_ns <- lm(rented_bike_count ~ ns(temperature, df = 5), data = seoul_temp)
-
-bs_training <- bs(seoul_temp$temperature, df = 5)
-spline_knots <- attr(bs_training, "knots")
-temp_grid <- tibble(temperature = seq(
-  min(seoul_temp$temperature), max(seoul_temp$temperature),
-  length.out = 250
-))
-```
-
-## Five B-Spline Basis Functions
-
-```{r spline-basis-functions, echo=FALSE, fig.width=9, fig.height=4.6}
-basis_matrix <- predict(bs_training, temp_grid$temperature)
-colnames(basis_matrix) <- paste0("b", seq_len(ncol(basis_matrix)))
-basis_plot_data <- bind_cols(temp_grid, as_tibble(basis_matrix)) |>
-  pivot_longer(starts_with("b"), names_to = "basis",
-               values_to = "basis_value")
-basis_coefficients <- tibble(
-  basis = colnames(basis_matrix),
-  coefficient = unname(coef(lm_bs)[-1])
+lm_cubic_spline <- lm(
+  rented_bike_count ~ bs(temperature, df = 5),
+  data = seoul_temp
 )
-basis_labels <- basis_plot_data |>
-  group_by(basis) |>
-  slice_max(basis_value, n = 1, with_ties = FALSE) |>
-  ungroup() |>
-  left_join(basis_coefficients, by = "basis") |>
-  mutate(
-    label = sprintf("%s: %+.0f", basis, coefficient),
-    label_y = pmin(basis_value + 0.07, 1.06)
+lm_natural_spline <- lm(
+  rented_bike_count ~ ns(temperature, df = 5),
+  data = seoul_temp
+)
+
+cubic_spline_terms <- bs(seoul_temp$temperature, df = 5)
+spline_knots <- attr(cubic_spline_terms, "knots")
+temp_grid <- tibble(
+  temperature = seq(
+    min(seoul_temp$temperature),
+    max(seoul_temp$temperature),
+    length.out = 250
   )
-fitted_from_basis <- drop(coef(lm_bs)[1] +
-  basis_matrix %*% coef(lm_bs)[-1])
-basis_sum <- temp_grid |>
-  mutate(fitted_bikes = fitted_from_basis)
-
-basis_plot <- ggplot(basis_plot_data,
-                     aes(temperature, basis_value, colour = basis)) +
-  geom_line(linewidth = 0.9) +
-  geom_text(data = basis_labels,
-            aes(y = label_y, label = label), size = 3,
-            show.legend = FALSE, check_overlap = TRUE) +
-  scale_y_continuous(limits = c(0, 1.12), breaks = c(0, 0.5, 1)) +
-  labs(x = NULL, y = "Basis value",
-       title = "Five basis columns, labelled with their fitted coefficients") +
-  theme(legend.position = "none")
-sum_plot <- ggplot(seoul_temp,
-                   aes(temperature, rented_bike_count)) +
-  geom_point(alpha = 0.035, size = 0.4) +
-  geom_line(data = basis_sum,
-            aes(temperature, fitted_bikes),
-            colour = "blue3", linewidth = 1) +
-  labs(x = "Temperature (°C)", y = "Hourly rentals",
-       title = "Intercept + weighted basis functions = fitted mean")
-
-wrap_plots(basis_plot, sum_plot, ncol = 1,
-                      heights = c(1, 1))
+)
 ```
 
-The five coloured functions are the building blocks. Their coefficient-weighted sum, plus the intercept, is the fitted blue curve. Each basis function has a relatively local effect on the curve; `lm()` still fits an ordinary linear model in these transformed predictor columns.
+## Degrees of Freedom and Flexibility
 
-## Fitting Splines to the Seoul Data
+The animation holds the data and the cubic degree fixed. Only the degrees of freedom change: `df = 4, 5, 8, 10`. The dashed lines mark the internal knots. As `df` increases, the spline gains more knots and can adapt its curvature in more places.
 
-The same temperature data give different curves when we choose different building blocks. Here we compare the line, a cubic spline built with `bs()`, and a natural cubic spline built with `ns()`. Both spline calls use `df = 5`; they need not put their internal knots in the same places.
+```{r spline-df-animation, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
+spline_gif <- "../figures/lecture31/cubic-spline-df.gif"
+
+if (file.exists(spline_gif) && pandoc_to() %in% c("html", "html4", "html5")) {
+  cat(sprintf('<img src="%s" style="width:85%%;display:block;margin:auto;" alt="Animated cubic spline fits with increasing degrees of freedom">\n', spline_gif))
+} else {
+  spline_dfs <- c(4, 5, 8, 10)
+
+  spline_static <- purrr::map_dfr(spline_dfs, function(df_value) {
+    fit <- lm(
+      rented_bike_count ~ bs(temperature, df = df_value),
+      data = seoul_temp
+    )
+
+    grid <- temp_grid |>
+      mutate(
+        fitted = predict(fit, newdata = temp_grid),
+        df = factor(df_value, levels = spline_dfs)
+      )
+
+    grid
+  })
+
+  print(
+    ggplot(seoul_temp, aes(temperature, rented_bike_count)) +
+      geom_point(alpha = 0.035, size = 0.35) +
+      geom_line(
+        data = spline_static,
+        aes(y = fitted),
+        colour = "blue3",
+        linewidth = 0.9
+      ) +
+      facet_wrap(~df, ncol = 2, labeller = label_both) +
+      labs(
+        x = "Temperature (°C)",
+        y = "Hourly rented bike count",
+        title = "More spline degrees of freedom allow more local curvature"
+      )
+  )
+}
+```
+
+More flexibility is not automatically better. A larger `df` will usually follow the observed data more closely, but it also gives the fitted mean more opportunity to follow random variation.
+
+## Cubic and Natural Cubic Splines
+
+Now compare three mean functions for exactly the same temperature data: a straight line, an ordinary cubic spline, and a natural cubic spline. Both spline fits use `df = 5`.
 
 ```r
-lm_bs <- lm(rented_bike_count ~ bs(temperature, df = 5), data = seoul_temp)
-lm_ns <- lm(rented_bike_count ~ ns(temperature, df = 5), data = seoul_temp)
+lm_cubic_spline <- lm(
+  rented_bike_count ~ bs(temperature, df = 5),
+  data = seoul_temp
+)
+
+lm_natural_spline <- lm(
+  rented_bike_count ~ ns(temperature, df = 5),
+  data = seoul_temp
+)
 ```
+
+The two R functions use different constructions internally, so the same `df` does not imply identical internal knot locations. What matters here is the difference in the fitted curves, especially near the boundaries.
 
 ```{r spline-seoul-models, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5}
 predictions <- temp_grid |>
   mutate(
     linear = predict(lm_linear, newdata = temp_grid),
-    b_spline = predict(lm_bs, newdata = temp_grid),
-    natural_spline = predict(lm_ns, newdata = temp_grid)
+    cubic_spline = predict(lm_cubic_spline, newdata = temp_grid),
+    natural_spline = predict(lm_natural_spline, newdata = temp_grid)
   ) |>
   pivot_longer(-temperature, names_to = "model",
                values_to = "fitted_bikes") |>
   mutate(model = recode(model,
-    linear = "Linear", b_spline = "B-spline",
-    natural_spline = "Natural spline"))
+    linear = "Linear", cubic_spline = "Cubic spline",
+    natural_spline = "Natural cubic spline"))
 
 seoul_temp |>
   ggplot(aes(temperature, rented_bike_count)) +
@@ -274,14 +330,14 @@ seoul_temp |>
         linetype = model), linewidth = 1
   ) +
   scale_colour_manual(values = c(
-    Linear = "red", "B-spline" = "blue",
-    "Natural spline" = "forestgreen"
+    Linear = "red", "Cubic spline" = "blue",
+    "Natural cubic spline" = "forestgreen"
   )) +
   labs(
     x = "Temperature (°C)", y = "Hourly rented bike count",
     colour = "Model", linetype = "Model",
     title = "Three mean functions for the same temperature data",
-    caption = "Dashed guides mark B-spline knots. The natural spline uses different internal knots at df = 5."
+    caption = "Dashed guides mark cubic spline knots. The natural spline uses different internal knots at df = 5."
   )
 ```
 
@@ -305,13 +361,13 @@ extended_grid <- tibble(temperature = seq(
 ))
 tail_predictions <- extended_grid |>
   mutate(
-    b_spline = suppressWarnings(predict(lm_bs, newdata = extended_grid)),
-    natural_spline = predict(lm_ns, newdata = extended_grid)
+    cubic_spline = suppressWarnings(predict(lm_cubic_spline, newdata = extended_grid)),
+    natural_spline = predict(lm_natural_spline, newdata = extended_grid)
   ) |>
   pivot_longer(-temperature, names_to = "model",
                values_to = "fitted_bikes") |>
   mutate(model = recode(model,
-    b_spline = "B-spline", natural_spline = "Natural spline"))
+    cubic_spline = "Cubic spline", natural_spline = "Natural cubic spline"))
 outside_bands <- tibble(
   xmin = c(temperature_limits[1] - 4, temperature_limits[2]),
   xmax = c(temperature_limits[1], temperature_limits[2] + 4)
@@ -328,7 +384,7 @@ ggplot(tail_predictions,
              colour = "grey45", linetype = "dashed") +
   geom_line(linewidth = 1) +
   scale_colour_manual(values = c(
-    "B-spline" = "blue", "Natural spline" = "forestgreen"
+    "Cubic spline" = "blue", "Natural cubic spline" = "forestgreen"
   )) +
   labs(
     x = "Temperature (°C)", y = "Fitted hourly bike count",
@@ -339,7 +395,7 @@ ggplot(tail_predictions,
   )
 ```
 
-The blue B-spline fit can continue curving; the natural spline is straight beyond each boundary. Linear tails prevent one kind of unstable extension, but they do not provide information about bike demand at unobserved temperatures. A flexible curve will also tend to fit the observed data more closely, which alone does not make it the better model.
+The ordinary cubic spline can continue curving; the natural spline is straight beyond each boundary. Linear tails prevent one kind of unstable extension, but they do not provide information about bike demand at unobserved temperatures. A flexible curve will also tend to fit the observed data more closely, which alone does not make it the better model.
 
 ## Where Does the Flexibility Come From?
 
@@ -348,13 +404,13 @@ The blue B-spline fit can continue curving; the natural spline is straight beyon
 | Straight line | $1,x$ | One slope everywhere |
 | Cubic polynomial | $1,x,x^2,x^3$ | One global cubic curve |
 | Piecewise linear | Line plus hinge terms | Slope changes at knots |
-| Cubic spline (bs) | Smooth piecewise cubic basis | Mainly around knots |
-| Natural spline (ns) | Cubic spline with linear tails | Mainly around knots; straight beyond boundaries |
+| Cubic spline | Smooth piecewise cubic basis | Mainly around knots |
+| Natural cubic spline | Cubic spline with linear tails | Mainly around knots; straight beyond boundaries |
 | LOESS | Repeated distance-weighted regressions | Local neighbourhoods |
 
 ## Six Curves, One Temperature Dataset
 
-Every model below uses the same hourly Seoul observations, and every panel uses the same axes. The piecewise fit uses the two marked B-spline knots; the LOESS fit uses `span = 0.45`. The polynomial is cubic, and both spline fits use `df = 5`.
+Every model below uses the same hourly Seoul observations, and every panel uses the same axes. The piecewise fit uses the same two knot locations as the `df = 5` cubic spline; the LOESS fit uses `span = 0.45`. The polynomial is cubic, and both spline fits use `df = 5`.
 
 ```{r seoul-six-curves, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=5.2}
 piecewise_data <- seoul_temp |>
@@ -386,8 +442,8 @@ comparison_curves <- temp_grid |>
     linear = predict(lm_linear, newdata = temp_grid),
     cubic_polynomial = predict(lm_cubic, newdata = temp_grid),
     piecewise_linear = predict(lm_piecewise, newdata = piecewise_grid),
-    cubic_spline = predict(lm_bs, newdata = temp_grid),
-    natural_spline = predict(lm_ns, newdata = temp_grid),
+    cubic_spline = predict(lm_cubic_spline, newdata = temp_grid),
+    natural_spline = predict(lm_natural_spline, newdata = temp_grid),
     loess = predict(loess_compare, newdata = temp_grid)
   ) |>
   pivot_longer(-temperature, names_to = "model",
@@ -396,13 +452,13 @@ comparison_curves <- temp_grid |>
     linear = "Straight line",
     cubic_polynomial = "Cubic polynomial",
     piecewise_linear = "Piecewise linear",
-    cubic_spline = "Cubic spline (bs)",
-    natural_spline = "Natural spline (ns)",
+    cubic_spline = "Cubic spline",
+    natural_spline = "Natural cubic spline",
     loess = "LOESS"
   )) |>
   mutate(model = factor(model, levels = c(
     "Straight line", "Cubic polynomial", "Piecewise linear",
-    "Cubic spline (bs)", "Natural spline (ns)", "LOESS"
+    "Cubic spline", "Natural cubic spline", "LOESS"
   )))
 
 ggplot() +
@@ -441,6 +497,6 @@ seoul_hourly |>
 
 We have changed the shape allowed for the mean response. A polynomial gives us one global curve. Piecewise regression lets the slope change at knots. Cubic splines keep the piecewise construction but join the pieces smoothly, and natural splines restrict the tails to straight lines. LOESS takes a different route: it repeatedly fits a distance-weighted local regression.
 
-None of these choices removes the question of how much flexibility the data support. For LOESS, that choice is mainly the span. For the cubic spline fits here, it is the number and placement of knots, controlled in R through the basis degrees of freedom. A close fit to these observations is not, by itself, evidence that a curve will predict new observations well.
+None of these choices removes the question of how much flexibility the data support. For LOESS, that choice is mainly the span. For a cubic spline, it is the number and placement of knots, which we control in R through the degrees of freedom. A close fit to these observations is not, by itself, evidence that the curve will predict new observations well.
 
-LOESS helps us inspect the shape of a relationship. A spline basis lets us put a flexible temperature effect into a regression model alongside other predictors. In the next lecture, time enters the mean model too: first through a seasonal indicator in ski sales, then through trend and seasonal terms for daily Seoul bike demand. We will later ask whether observations close together in time can still be treated as independent.
+LOESS is useful when we want to inspect the shape of a relationship without committing to one global equation. Cubic splines let us put that flexibility directly into a regression model alongside other predictors. In the next lecture, time itself enters the mean model: first through a seasonal indicator in ski sales, then through trend and seasonal terms for daily Seoul bike demand. Later we will ask whether observations close together in time can still be treated as independent.
