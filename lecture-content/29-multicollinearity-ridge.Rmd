@@ -138,7 +138,7 @@ electric = read_csv("../data/electric.csv")
 A correlation matrix is a useful first check.
 
 
-```{r electric-pairs-29, fig.height=7, fig.width=9, message=FALSE, warning=FALSE, include=FALSE}
+```{r electric-pairs-29, fig.height=7, fig.width=9, message=FALSE, warning=FALSE, echo=FALSE}
 library(GGally)
 
 ggpairs(
@@ -348,7 +348,7 @@ seoul_weather <- seoul_hourly |>
   drop_na()
 ```
 
-```{r seoul-pairs-29, fig.height=7, fig.width=8, message=FALSE, warning=FALSE, include=FALSE}
+```{r seoul-pairs-29, fig.height=7, fig.width=8, message=FALSE, warning=FALSE, echo=FALSE}
 ggpairs(
   seoul_weather |>
     select(temperature, humidity, dew_point_temperature, solar_radiation),
