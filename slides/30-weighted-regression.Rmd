@@ -2,7 +2,6 @@
 title: "Lecture 30: Weighted regression"
 subtitle: "161.251 Regression Modelling"
 author: "Nick Knowlton"
-date: "`r format(Sys.Date(), '%Y')`"
 output:
   slidy_presentation:
     slide_level: 2

@@ -11,7 +11,7 @@ By the end of this lecture, students should be able to:
 4. Explain the difference between ordinary and natural splines.
 5. Explain how degrees of freedom control the flexibility of a regression spline.
 
-### Running Example: Hourly Bike Demand
+## Running Example: Hourly Bike Demand
 
 `r xfun::embed_file("../data/seoul_bike_hourly.csv")`
 

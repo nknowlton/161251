@@ -42,7 +42,6 @@ for (i in seq_len(nrow(meta))) {
     sprintf("title: %s", yaml_quote(sprintf("Lecture %d: %s", no, title))),
     "subtitle: \"161.251 Regression Modelling\"",
     sprintf("author: %s", yaml_quote(presenter)),
-    "date: \"`r format(Sys.Date(), '%Y')`\"",
     "output:",
     "  slidy_presentation:",
     "    slide_level: 2",
