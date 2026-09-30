@@ -403,7 +403,7 @@ No. Adding horsepower slightly reduces adjusted R-squared, barely changes residu
 
 So `a4` is the compact Auto MPG model to carry forward to diagnostics.
 
-## Note: What if prediction is the goal?
+## What if prediction is the goal?
 
 ### Separate model fit from prediction
 

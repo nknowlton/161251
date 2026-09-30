@@ -338,7 +338,7 @@ Discuss: Does horsepower earn its place after model year has been added?
 
 Before moving on, choose the compact Auto MPG model you would carry forward to diagnostics and justify the choice using adjusted R-squared, residual standard error, AIC and the partial F test.
 
-## Note: What if prediction is the goal?
+## What if prediction is the goal?
 
 ### Separate model fit from prediction
 
