@@ -312,8 +312,7 @@ Each row in the magazine data is the mean number of magazines read for one age a
 mags <- read_csv("https://knowlton.co.nz/161251/data/AveMags.csv") |>
   mutate(
     Sex = factor(Sex, levels = c(0, 1), labels = c("Male", "Female")),
-    Older = as.integer(Age >= 50),
-    precision_weight = N / StDev^2
+    Older = as.integer(Age >= 50)
   )
 
 glimpse(mags)
@@ -367,7 +366,7 @@ Discuss: What broad age pattern does this unweighted model capture? What does th
 
 Compute each group's precision weight as `N/StDev^2` and list the groups from highest to lowest weight.
 
-For a mean based on (N_i) independent people with within-group standard deviation (SD_i), its sampling variance is proportional to
+For a mean based on $N_i$ independent people with within-group standard deviation $SD_i$, its sampling variance is proportional to
 
 \[
 \frac{SD_i^2}{N_i}.
@@ -378,6 +377,11 @@ We therefore use inverse-variance weights proportional to
 \[
 w_i = \frac{N_i}{SD_i^2}.
 \]
+
+```{r magazine-weights}
+mags <- mags |>
+  mutate(precision_weight = N / StDev^2)
+```
 
 ```{r inspect-magazine-weights}
 mags |>
@@ -482,9 +486,7 @@ ggplot(residual_comparison, aes(x = Age, y = residual, colour = Sex)) +
 
 Discuss: Which fitted contrasts change? What assumption about the precision of a group mean justifies the weights? Why do the two residual panels have different scales?
 
-**Solution.** The weighted residuals are scaled by the square root of their precision weights, so the panels are on different scales. A small weighted residual means the discrepancy is small relative to the assumed standard deviation of that group mean; it does not by itself show that the group is unimportant.
-
-**Solution.** The ordinary residual plot treats every group mean as equally precise even though the sample sizes and standard deviations differ considerably. The weighted residuals rescale each discrepancy by the information behind that row. A raw discrepancy from a precise group mean matters more; the same discrepancy from a noisy group mean matters less.
+**Solution.** The ordinary residual plot treats every group mean as equally precise even though the sample sizes and standard deviations differ considerably. The weighted residuals rescale each discrepancy by the square root of its precision weight, so the two panels are on different scales. A raw discrepancy from a precise group mean matters more; the same discrepancy from a noisy group mean matters less.
 
 We should not compare the vertical magnitudes across the two panels as if they were in identical units. The useful comparison is whether the residual structure is reasonable on the error scale assumed by each fit. Some variation and individual large residuals remain, but the weighted analysis no longer asks the low-information teenage rows to influence the fit as much as the large, more precise older groups.
 
