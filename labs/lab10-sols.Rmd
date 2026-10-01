@@ -77,7 +77,7 @@ ggplot(wage, aes(x = age, y = wage, colour = education)) +
   )
 ```
 
-Discuss: How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
+ How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
 
 Wage rises roughly linearly from age 20 to about 25, then the pattern levels off. Darker colours are more common at the lower end of the point cloud, and wages tend to be a bit higher with more education. No single pattern dominates this combined plot.
 
@@ -103,7 +103,7 @@ wage |>
   labs(x = "Age (years)", y = "Wage (US$1,000s)")
 ```
 
-Discuss: What is this model assuming about the education groups?
+ What is this model assuming about the education groups?
 
 It assumes one common age-wage relationship for all education groups. Education is not in the model.
 
@@ -121,7 +121,7 @@ wage |>
   labs(x = "Age (years)", y = "Wage (US$1,000s)")
 ```
 
-Discuss: What changed from the one-line model? What is still being held the same across education groups?
+ What changed from the one-line model? What is still being held the same across education groups?
 
 Education can shift the fitted lines vertically, but the age slope is common across groups.
 
@@ -139,7 +139,7 @@ wage |>
   labs(x = "Age (years)", y = "Wage (US$1,000s)")
 ```
 
-Discuss: What changed from the parallel-lines model? Which term in the formula allows that change?
+ What changed from the parallel-lines model? Which term in the formula allows that change?
 
 The interaction allows the age slopes to differ across education groups.
 
@@ -171,7 +171,7 @@ ggplot(auto, aes(x = weight, y = mpg, colour = origin)) +
   )
 ```
 
-Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
+ How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
 
 Fuel economy falls as weight increases. The origins occupy different parts of the weight range, and the fitted relationship may differ in both position and slope.
 
@@ -203,7 +203,7 @@ auto |>
   labs(x = "Weight (lb)", y = "Fuel economy (miles per gallon)")
 ```
 
-Discuss: What is this model assuming about the origin groups?
+ What is this model assuming about the origin groups?
 
 It assumes one common weight-MPG relationship across all origins.
 
@@ -221,7 +221,7 @@ auto |>
   labs(x = "Weight (lb)", y = "Fuel economy (miles per gallon)")
 ```
 
-Discuss: What changed from `a1`? What is still being held the same across origins? Do the lines have the same length?
+ What changed from `a1`? What is still being held the same across origins? Do the lines have the same length?
 
 Origin can shift the fitted lines vertically, but the weight slope is common. The plotted lines cover only the weight range observed for each origin. Be careful about extrapolating beyond a group's observed range, even if another group has data there.
 
@@ -239,7 +239,7 @@ auto |>
   labs(x = "Weight (lb)", y = "Fuel economy (miles per gallon)")
 ```
 
-Discuss: What changed from `a2`? Which term allows the weight slopes to differ?
+ What changed from `a2`? Which term allows the weight slopes to differ?
 
 The `weight:origin` interaction allows the slopes to differ.
 
@@ -334,7 +334,7 @@ bind_rows(
 anova(w3, w4)
 ```
 
-Discuss: Do adjusted R-squared, residual standard error, AIC and the partial F test all favour adding year? How large is the improvement?
+ Do adjusted R-squared, residual standard error, AIC and the partial F test all favour adding year? How large is the improvement?
 
 All four favour `w4`, although the changes in the fit measures are modest. Adjusted R-squared rises from about 0.260 to 0.263, residual standard error falls slightly, AIC falls by about 9.5, and the partial F test gives P about 0.0007.
 
@@ -353,7 +353,7 @@ bind_rows(
 anova(w4, w5)
 ```
 
-Discuss: Does job class still earn its place after year has been added?
+ Does job class still earn its place after year has been added?
 
 The changes are small but point in the same direction. Adjusted R-squared rises slightly, residual standard error falls slightly, AIC falls by about 8.8, and the partial F test gives P about 0.001. Within this candidate set, keeping job class is reasonable.
 
@@ -378,7 +378,7 @@ bind_rows(
 anova(a3, a4)
 ```
 
-Discuss: Does model year earn its place?
+ Does model year earn its place?
 
 Yes. Adjusted R-squared rises from about 0.703 to 0.830, residual standard error falls from about 4.25 to 3.22 MPG, AIC falls by more than 200, and the partial F test gives P below 0.001.
 
@@ -397,7 +397,7 @@ bind_rows(
 anova(a4, a5)
 ```
 
-Discuss: Does horsepower earn its place after model year has been added?
+Does horsepower earn its place after model year has been added?
 
 No. Adding horsepower slightly reduces adjusted R-squared, barely changes residual standard error, raises AIC, and gives a partial F-test P-value of about 0.38.
 
@@ -409,7 +409,7 @@ So `a4` is the compact Auto MPG model to carry forward to diagnostics.
 
 Everything so far has been calculated on the same observations used to fit the models.
 
-Discuss: What could be done to assess prediction for cars that were not used to fit the model? Why are adjusted R-squared, residual standard error and AIC not direct estimates of that prediction error?
+What could be done to assess prediction for cars that were not used to fit the model? Why are adjusted R-squared, residual standard error and AIC not direct estimates of that prediction error?
 
 Use validation data or cross-validation so predictions are assessed on observations that did not fit the model. The in-sample measures above are not direct estimates of prediction error for new cars.
 
@@ -441,7 +441,7 @@ wage |>
   labs(x = "Age (years)", y = "Residual (US$1,000s)")
 ```
 
-Discuss: What pattern should be visible if the straight-line age effect is adequate? What pattern is actually present?
+What pattern should be visible if the straight-line age effect is adequate? What pattern is actually present?
 
 The residuals should have no systematic relationship with age. Instead, there is a broad curve, so the straight-line age term is missing structure in the mean.
 
@@ -479,7 +479,7 @@ wage |>
   labs(x = "Age (years)", y = "Residual (US$1,000s)")
 ```
 
-Discuss: Has the broad age pattern been reduced? What concerns remain?
+Has the broad age pattern been reduced? What concerns remain?
 
 The broad age curve is reduced, although other departures remain. I would say this plot is "better" and would be happy keeping the age squared term in.
 
@@ -503,7 +503,7 @@ auto |>
   labs(x = "Weight (lb)", y = "Residual (mpg)")
 ```
 
-Discuss: Is there a systematic pattern left in the mean?
+ Is there a systematic pattern left in the mean?
 
 There is clear curvature in the residuals against weight, so the mean structure still needs work. Try fitting a squared weight term. Hint: use `I(weight^2)` in the formula for `a6`.
 
@@ -535,7 +535,7 @@ auto |>
   labs(x = "Weight (lb)", y = "Residual (mpg)")
 ```
 
-Discuss: What improved? What still needs attention?
+What improved? What still needs attention?
 
 The broad U-shaped pattern is substantially reduced. Some tail and spread concerns remain, but overall a much better model.
 

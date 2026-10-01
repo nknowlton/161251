@@ -76,7 +76,7 @@ ggplot(wage, aes(x = age, y = wage, colour = education)) +
   )
 ```
 
-Discuss: How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
+ How does wage vary with age? Do the education groups appear to have similar vertical positions and slopes?
 
 Now fit the three models.
 
@@ -100,7 +100,7 @@ wage |>
   labs(x = "Age (years)", y = "Wage (US$1,000s)")
 ```
 
-Discuss: What is this model assuming about the education groups?
+ What is this model assuming about the education groups?
 
 #### Parallel lines
 
@@ -116,7 +116,7 @@ wage |>
   labs(x = "Age (years)", y = "Wage (US$1,000s)")
 ```
 
-Discuss: What changed from the one-line model? What is still being held the same across education groups?
+ What changed from the one-line model? What is still being held the same across education groups?
 
 #### Separate lines
 
@@ -132,7 +132,7 @@ wage |>
   labs(x = "Age (years)", y = "Wage (US$1,000s)")
 ```
 
-Discuss: What changed from the parallel-lines model? Which term in the formula allows that change?
+ What changed from the parallel-lines model? Which term in the formula allows that change?
 
 ```text
 education * age = education + age + education:age
@@ -156,7 +156,7 @@ First plot `mpg` against `weight`, with `origin` shown by colour.
 # Plot mpg against weight, with origin shown by colour.
 ```
 
-Discuss: How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
+ How does fuel economy vary with weight? Do the origin groups appear to have similar vertical positions and slopes?
 
 Fit the three models below.
 
@@ -178,7 +178,7 @@ Plot the fitted values from `a1`.
 # Add predict(a1) as fitted values and plot the common fitted line.
 ```
 
-Discuss: What is this model assuming about the origin groups?
+ What is this model assuming about the origin groups?
 
 #### Parallel lines
 
@@ -188,7 +188,7 @@ Plot the fitted values from `a2`.
 # Add predict(a2) as fitted values and plot one line for each origin.
 ```
 
-Discuss: What changed from `a1`? What is still being held the same across origins? Do the lines have the same length?
+ What changed from `a1`? What is still being held the same across origins? Do the lines have the same length?
 
 #### Separate lines
 
@@ -198,15 +198,13 @@ Plot the fitted values from `a3`.
 # Add predict(a3) as fitted values and plot one line for each origin.
 ```
 
-Discuss: What changed from `a2`? Which term allows the weight slopes to differ?
+ What changed from `a2`? Which term allows the weight slopes to differ?
 
 #### Let's look at the separate-lines coefficients
 
 ```{r auto-read-interaction, eval=FALSE}
 # Run summary(a3).
 ```
-
-Discuss: Which coefficient is the USA weight slope? Which coefficients change the intercepts for Europe and Japan? Which coefficients change their slopes? Why are the origin main-effect coefficients not overall origin differences?
 
 ## Do the groups improve the model?
 
@@ -222,23 +220,17 @@ Let's complete the set of nested comparisons to see what structure is justified 
 anova(w1, w2)
 ```
 
-Discuss: How many parameters were added? What does the P-value say about moving from one common line to parallel education lines?
-
 #### Do the age slopes differ by education?
 
 ```{r compare-wage-slopes}
 anova(w2, w3)
 ```
 
-Discuss: Which terms were added? What does the P-value say about whether the age slope varies across education groups?
-
 #### What does the full comparison test?
 
 ```{r compare-full-wage}
 anova(w1, w3)
 ```
-
-Discuss: How many parameters are added? What does this joint test establish?
 
 ### Auto MPG: repeat the complete comparison set
 
@@ -250,23 +242,17 @@ Now answer the same three questions using `a1`, `a2` and `a3`.
 # Compare a1 with a2 using anova().
 ```
 
-Discuss: How many parameters were added? What does the P-value say about moving from one common line to parallel origin lines?
-
 #### Do the weight slopes differ by origin?
 
 ```{r compare-auto-slopes, eval=FALSE}
 # Compare a2 with a3 using anova().
 ```
 
-Discuss: Which terms were added? What does the P-value say about whether the weight slope varies across origins?
-
 #### What does the full comparison test?
 
 ```{r compare-full-auto, eval=FALSE}
 # Compare a1 with a3 using anova().
 ```
-
-Discuss: How many parameters are added? What does this joint test establish?
 
 ## Adding more terms
 
@@ -291,7 +277,7 @@ bind_rows(
 anova(w3, w4)
 ```
 
-Discuss: Do adjusted R-squared, residual standard error, AIC and the partial F test all favour adding year? How large is the improvement?
+ Do adjusted R-squared, residual standard error, AIC and the partial F test all favour adding year? How large is the improvement?
 
 Now add `jobclass`.
 
@@ -308,7 +294,7 @@ bind_rows(
 anova(w4, w5)
 ```
 
-Discuss: Does job class still earn its place after year has been added?
+ Does job class still earn its place after year has been added?
 
 Before moving on, make a decision: which wage model would you carry forward to diagnostics, and why?
 
@@ -324,7 +310,7 @@ Start from `a3`. Add `model_year` and call the model `a4`.
 # Compare a3 with a4 using anova().
 ```
 
-Discuss: Does model year earn its place?
+ Does model year earn its place?
 
 Now add `horsepower` to `a4` and call the model `a5`.
 
@@ -334,7 +320,7 @@ Now add `horsepower` to `a4` and call the model `a5`.
 # Compare a4 with a5 using anova().
 ```
 
-Discuss: Does horsepower earn its place after model year has been added?
+Does horsepower earn its place after model year has been added?
 
 Before moving on, choose the compact Auto MPG model you would carry forward to diagnostics and justify the choice using adjusted R-squared, residual standard error, AIC and the partial F test.
 
@@ -344,7 +330,7 @@ Before moving on, choose the compact Auto MPG model you would carry forward to d
 
 Everything so far has been calculated on the same observations used to fit the models.
 
-Discuss: What could be done to assess prediction for cars that were not used to fit the model? Why are adjusted R-squared, residual standard error and AIC not direct estimates of that prediction error?
+What could be done to assess prediction for cars that were not used to fit the model? Why are adjusted R-squared, residual standard error and AIC not direct estimates of that prediction error?
 
 Do not implement cross-validation here. That comes next week.
 
@@ -376,7 +362,7 @@ wage |>
   labs(x = "Age (years)", y = "Residual (US$1,000s)")
 ```
 
-Discuss: What pattern should be visible if the straight-line age effect is adequate? What pattern is actually present?
+What pattern should be visible if the straight-line age effect is adequate? What pattern is actually present?
 
 The curve suggests that the mean structure still needs work. Quadratic regression was introduced earlier in the course, so let's add `I(age^2)` while keeping the linear age term. Keeping the existing terms means the models remain nested, so we can compare them as before.
 
@@ -412,7 +398,7 @@ wage |>
   labs(x = "Age (years)", y = "Residual (US$1,000s)")
 ```
 
-Discuss: Has the broad age pattern been reduced? What concerns remain?
+Has the broad age pattern been reduced? What concerns remain?
 
 ### Auto MPG: repeat the diagnose-and-revise workflow
 
@@ -425,7 +411,7 @@ First run the standard diagnostic plots and plot the residuals against `weight`.
 # Plot residuals(a4) against weight.
 ```
 
-Discuss: Is there a systematic pattern left in the mean?
+ Is there a systematic pattern left in the mean?
 
 If there is, try fitting a squared weight term. Hint: use `I(weight^2)` in the formula for `a6`.
 
@@ -438,7 +424,7 @@ Compare `a4` with `a6`, then repeat the standard diagnostic plots and the residu
 # Plot residuals(a6) against weight.
 ```
 
-Discuss: What improved? What still needs attention?
+What improved? What still needs attention?
 
 ## Wrapping up
 
