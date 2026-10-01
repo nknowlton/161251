@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# Render the unified Lab 12 student and solution pages.
+# Render the student and worked solution pages for Lab 12.
 # Usage: Rscript scripts/render-lab12.R (from the repository root)
 
 repo_root <- getwd()
