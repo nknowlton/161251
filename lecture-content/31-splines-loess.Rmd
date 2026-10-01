@@ -76,6 +76,43 @@ The distinction between these distance weights and Lecture 30's precision weight
 
 ## LOESS: Span
 
+### Seoul Bike Data
+
+We have already fitted polynomials and piecewise regression models. A polynomial uses one global curve, so changing its coefficients can alter the fit across the entire range. A piecewise model lets the shape change at selected predictor values. Here LOESS gives us another view of the relationship between temperature and bike demand before we commit to a particular regression formula.
+
+```{r loess-seoul, warning=FALSE, message=FALSE}
+seoul_hourly |>
+  ggplot(aes(x = temperature, y = rented_bike_count)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.15,
+    se = FALSE,
+    linewidth = 1,
+    aes(colour = "Span = 0.15", alpha = "Span = 0.15")
+  ) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.45,
+    se = FALSE,
+    linewidth = 1,
+    aes(colour = "Span = 0.45", alpha = "Span = 0.45")
+  ) +
+  scale_colour_manual(values = c("Span = 0.15" = "green4", "Span = 0.45" = "blue")) +
+  scale_alpha_manual(values = c("Span = 0.15" = 0.8, "Span = 0.45" = 0.8)) +
+  labs(
+    x = "Temperature (C)",
+    y = "Hourly rented bike count",
+    colour = "LOESS span",
+    alpha = "LOESS span",
+    title = "LOESS span controls the smoothness of the fitted curve"
+  )
+```
+
+The smaller span follows local changes more closely, including random fluctuations. The larger span smooths those fluctuations but may miss a sharp change in the mean. Let's check which features persist across both curves before choosing a regression formula.
+
 The animation keeps the observations fixed and changes only the span. Watch what happens to the smaller local features as each fit borrows information from farther away.
 
 ```{r loess-span-animation, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
@@ -129,44 +166,7 @@ if (file.exists(loess_gif) && pandoc_to() %in% c("html", "html4", "html5", "slid
 }
 ```
 
-The span is therefore a direct flexibility choice. Smaller values let the curve react to more local structure; larger values smooth over more of it.
 
-### LOESS with the Seoul Bike Data
-
-We have already fitted polynomials and piecewise regression models. A polynomial uses one global curve, so changing its coefficients can alter the fit across the entire range. A piecewise model lets the shape change at selected predictor values. Here LOESS gives us another view of the relationship between temperature and bike demand before we commit to a particular regression formula.
-
-```{r loess-seoul, warning=FALSE, message=FALSE}
-seoul_hourly |>
-  ggplot(aes(x = temperature, y = rented_bike_count)) +
-  geom_point(alpha = 0.05) +
-  geom_smooth(
-    method = "loess",
-    formula = y ~ x,
-    span = 0.15,
-    se = FALSE,
-    linewidth = 1,
-    aes(colour = "Span = 0.15", alpha = "Span = 0.15")
-  ) +
-  geom_smooth(
-    method = "loess",
-    formula = y ~ x,
-    span = 0.45,
-    se = FALSE,
-    linewidth = 1,
-    aes(colour = "Span = 0.45", alpha = "Span = 0.45")
-  ) +
-  scale_colour_manual(values = c("Span = 0.15" = "green4", "Span = 0.45" = "blue")) +
-  scale_alpha_manual(values = c("Span = 0.15" = 0.8, "Span = 0.45" = 0.8)) +
-  labs(
-    x = "Temperature (C)",
-    y = "Hourly rented bike count",
-    colour = "LOESS span",
-    alpha = "LOESS span",
-    title = "LOESS span controls the smoothness of the fitted curve"
-  )
-```
-
-The smaller span follows local changes more closely, including random fluctuations. The larger span smooths those fluctuations but may miss a sharp change in the mean. Let's check which features persist across both curves before choosing a regression formula.
 
 ## From Piecewise Lines to Cubic Splines
 
@@ -345,8 +345,6 @@ $$
 
 The middle of the fitted curve can still bend. The boundary rule limits what happens at the edges, where the data give us the least guidance.
 
-## Seeing the Boundary Constraint
-
 ```{r spline-boundary, echo=FALSE, warning=FALSE, message=FALSE, fig.height=4.8}
 temperature_limits <- range(seoul_temp$temperature)
 extended_grid <- tibble(temperature = seq(
@@ -402,11 +400,11 @@ The ordinary cubic spline can continue curving; the natural cubic spline is stra
 | Natural cubic spline | Smoothly joined cubic pieces with linear tails | Curvature can change around knots; straight beyond boundaries |
 | LOESS | Repeated distance-weighted regressions | Local neighbourhoods |
 
-## Six Curves, One Temperature Dataset
+## Comparing Models
 
 Every model below uses the same hourly Seoul observations, and every panel uses the same axes. The piecewise fit uses the same two knot locations as the `df = 5` cubic spline; the LOESS fit uses `span = 0.45`. The polynomial is cubic, and both spline fits use `df = 5`.
 
-```{r seoul-six-curves, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=5.2}
+```{r seoul-six-curves, echo=FALSE, warning=FALSE, message=FALSE, fig.width=12, fig.height=8}
 piecewise_data <- seoul_temp |>
   mutate(
     hinge_1 = pmax(temperature - spline_knots[1], 0),
@@ -487,7 +485,7 @@ seoul_hourly |>
   )
 ```
 
-## What Have We Changed?
+## What Have We Changed? What has stayed the same?
 
 We have changed the shape allowed for the mean response. A polynomial gives us one global curve. Piecewise regression lets the slope change at knots. Cubic splines keep the piecewise construction but join the pieces smoothly, and natural splines restrict the tails to straight lines. LOESS takes a different route: it repeatedly fits a distance-weighted local regression.
 
