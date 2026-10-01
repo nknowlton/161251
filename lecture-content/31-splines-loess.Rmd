@@ -308,9 +308,13 @@ predictions <- temp_grid |>
   ) |>
   pivot_longer(-temperature, names_to = "model",
                values_to = "fitted_bikes") |>
-  mutate(model = dplyr::recode(model,
-    linear = "Linear", cubic_spline = "Cubic spline",
-    natural_spline = "Natural cubic spline"))
+  mutate(model = recode_values(
+    model,
+    "linear" ~ "Linear",
+    "cubic_spline" ~ "Cubic spline",
+    "natural_spline" ~ "Natural cubic spline",
+    unmatched = "error"
+  ))
 
 seoul_temp |>
   ggplot(aes(temperature, rented_bike_count)) +
@@ -358,8 +362,12 @@ tail_predictions <- extended_grid |>
   ) |>
   pivot_longer(-temperature, names_to = "model",
                values_to = "fitted_bikes") |>
-  mutate(model = dplyr::recode(model,
-    cubic_spline = "Cubic spline", natural_spline = "Natural cubic spline"))
+  mutate(model = recode_values(
+    model,
+    "cubic_spline" ~ "Cubic spline",
+    "natural_spline" ~ "Natural cubic spline",
+    unmatched = "error"
+  ))
 outside_bands <- tibble(
   xmin = c(temperature_limits[1] - 4, temperature_limits[2]),
   xmax = c(temperature_limits[1], temperature_limits[2] + 4)
@@ -440,13 +448,15 @@ comparison_curves <- temp_grid |>
   ) |>
   pivot_longer(-temperature, names_to = "model",
                values_to = "fitted_bikes") |>
-  mutate(model = dplyr::recode(model,
-    linear = "Straight line",
-    cubic_polynomial = "Cubic polynomial",
-    piecewise_linear = "Piecewise linear",
-    cubic_spline = "Cubic spline",
-    natural_spline = "Natural cubic spline",
-    loess = "LOESS"
+  mutate(model = recode_values(
+    model,
+    "linear" ~ "Straight line",
+    "cubic_polynomial" ~ "Cubic polynomial",
+    "piecewise_linear" ~ "Piecewise linear",
+    "cubic_spline" ~ "Cubic spline",
+    "natural_spline" ~ "Natural cubic spline",
+    "loess" ~ "LOESS",
+    unmatched = "error"
   )) |>
   mutate(model = factor(model, levels = c(
     "Straight line", "Cubic polynomial", "Piecewise linear",
