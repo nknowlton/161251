@@ -308,7 +308,7 @@ predictions <- temp_grid |>
   ) |>
   pivot_longer(-temperature, names_to = "model",
                values_to = "fitted_bikes") |>
-  mutate(model = recode(model,
+  mutate(model = dplyr::recode(model,
     linear = "Linear", cubic_spline = "Cubic spline",
     natural_spline = "Natural cubic spline"))
 
@@ -358,7 +358,7 @@ tail_predictions <- extended_grid |>
   ) |>
   pivot_longer(-temperature, names_to = "model",
                values_to = "fitted_bikes") |>
-  mutate(model = recode(model,
+  mutate(model = dplyr::recode(model,
     cubic_spline = "Cubic spline", natural_spline = "Natural cubic spline"))
 outside_bands <- tibble(
   xmin = c(temperature_limits[1] - 4, temperature_limits[2]),
@@ -440,7 +440,7 @@ comparison_curves <- temp_grid |>
   ) |>
   pivot_longer(-temperature, names_to = "model",
                values_to = "fitted_bikes") |>
-  mutate(model = recode(model,
+  mutate(model = dplyr::recode(model,
     linear = "Straight line",
     cubic_polynomial = "Cubic polynomial",
     piecewise_linear = "Piecewise linear",
