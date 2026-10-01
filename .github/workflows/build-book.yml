@@ -110,6 +110,10 @@ jobs:
             _site/labs/lab12.html
             _site/labs/lab12-sols.Rmd
             _site/labs/lab12-sols.html
+            _site/labs/lab13.Rmd
+            _site/labs/lab13.html
+            _site/labs/lab13-sols.Rmd
+            _site/labs/lab13-sols.html
           )
 
           for file in "${required[@]}"; do
@@ -123,6 +127,7 @@ jobs:
           test "$(grep -c 'class=\"slide-link\"' _site/slides/index.html)" -eq "$expected_slides"
           grep -q 'href="slides/"' _site/index.html
           grep -q 'href="lab12.html"' _site/labs/index.html
+          grep -q 'href="lab13.html"' _site/labs/index.html
           ! grep -Eq -- 'lab12[AB]\.' _site/labs/index.html
 
       - uses: actions/upload-pages-artifact@v5
