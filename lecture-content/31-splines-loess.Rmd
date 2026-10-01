@@ -58,36 +58,30 @@ The coefficients depend on $x_0$. We choose them to minimise the weighted sum of
 
 $$\sum_{i=1}^n w_i(x_0)\left\{y_i-\beta_0(x_0)-\beta_1(x_0)(x_i-x_0)-\beta_2(x_0)(x_i-x_0)^2\right\}^2.$$
 
-```{r loess-model-slide-break, echo=FALSE, results='asis'}
-if (pandoc_to() %in% c("beamer", "slidy")) cat("\n## LOESS: Local Weights\n\n")
-```
+### Local Weights
 
-Observations close to $x_0$ receive more weight, while observations outside its neighbourhood receive none. Because we have centred the predictor at $x_0$, the fitted value there is $\hat f(x_0)=\hat\beta_0(x_0)$. Repeat the calculation at other values of $x_0$ and those fitted values form the curve. There is no single set of quadratic coefficients for the whole predictor range.
+Observations close to $x_0$ receive more weight, while observations outside its neighbourhood or `span` receive none. Because we have centred the predictor at $x_0$, the fitted value there is $\hat f(x_0)=\hat\beta_0(x_0)$. Repeat the calculation at other values of $x_0$ and those fitted values form the curve. There is no single set of quadratic coefficients for the whole predictor range.
 
-These are distance weights. In the previous lecture, we used weights to account for differences in precision; here the weights decide which observations matter for a *local* fit.
-
-```{r loess-weight-slide-break, echo=FALSE, results='asis'}
-if (pandoc_to() %in% c("beamer", "slidy")) cat("\n## LOESS: Tricube Weights\n\n")
-```
-
-For an observation inside the neighbourhood of $x_0$, the usual tricube weight is
+These are distance weights. In the previous lecture, we used weights to account for differences in precision; here the weights decide which observations matter for a *local* fit. For an observation inside the neighbourhood of $x_0$, the usual tricube weight is
 
 $$
 w_i(x_0)=\left[1-\left(\frac{|x_i-x_0|}{d(x_0)}\right)^3\right]^3,
 $$
 
-with weight zero outside the neighbourhood. Here $d(x_0)$ is the distance to its edge. The nearest observations receive the largest weights. **The weight formula is not examinable**; the distinction between these distance weights and Lecture 30's precision weights is.
+with weight zero outside the neighbourhood. Here $d(x_0)$ is the distance to its edge. The nearest observations receive the largest weights. 
 
-## LOESS: Choosing the Span
+The distinction between these distance weights and Lecture 30's precision weights is `span` sets the proportion of X% 'closest' points. Therefore a span of 1 is all points in a neighbourhood around $x_0$ and .25 is a quarter of the points closest to $x_0$. Therefore, a small span gives a flexible curve that can follow random fluctuations. A larger span borrows from farther away, producing a smoother curve that may miss a sharp change in the mean.
 
-`span` sets the size of each neighbourhood as a proportion of the observations. A small span gives a flexible curve that can follow random fluctuations. A larger span borrows from farther away, producing a smoother curve that may miss a sharp change in the mean.
+**The weight formula is not examinable**; 
+
+## LOESS: Span
 
 The animation keeps the observations fixed and changes only the span. Watch what happens to the smaller local features as each fit borrows information from farther away.
 
 ```{r loess-span-animation, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 loess_gif <- "../graphics/lecture31/loess-span.gif"
 
-if (file.exists(loess_gif) && pandoc_to() %in% c("html", "html4", "html5")) {
+if (file.exists(loess_gif) && pandoc_to() %in% c("html", "html4", "html5", "slidy")) {
   cat(sprintf('<img src="%s" style="width:85%%;display:block;margin:auto;" alt="Animated LOESS fits with increasing span">\n', loess_gif))
 } else {
   loess_spans <- c(0.15, 0.30, 0.45, 0.60)
@@ -246,7 +240,7 @@ The animation holds the data and the cubic degree fixed. Only the degrees of fre
 ```{r spline-df-animation, echo=FALSE, results='asis', warning=FALSE, message=FALSE}
 spline_gif <- "../graphics/lecture31/cubic-spline-df.gif"
 
-if (file.exists(spline_gif) && pandoc_to() %in% c("html", "html4", "html5")) {
+if (file.exists(spline_gif) && pandoc_to() %in% c("html", "html4", "html5", "slidy")) {
   cat(sprintf('<img src="%s" style="width:85%%;display:block;margin:auto;" alt="Animated cubic spline fits with increasing degrees of freedom">\n', spline_gif))
 } else {
   spline_dfs <- c(4, 5, 8, 10)
