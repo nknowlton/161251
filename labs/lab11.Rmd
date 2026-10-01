@@ -17,13 +17,17 @@ library(glmnet)
 
 # Computer Laboratory 11: Search, Shrinkage, and Weighting
 
-Last week we built and compared several Auto MPG models by hand. This week we let the candidate set become larger, then look at what happens when several predictors carry nearly the same information. In the second part, we change the problem: the magazine data contain group means with different levels of precision.
+Last week we built and compared several Auto MPG models by hand. That worked because the candidate set was still manageable.
+
+This week we keep the same data but make the problem harder. We first automate part of the model search, then look at what happens when several predictors carry almost the same information. In the second part, the problem changes: the magazine data contain group means with very different levels of precision.
 
 The lab uses [auto_mpg.csv](https://knowlton.co.nz/161251/data/auto_mpg.csv) and [AveMags.csv](https://knowlton.co.nz/161251/data/AveMags.csv). The downloadable R Markdown file reads both datasets directly from the course site.
 
+# Part A: Auto MPG
+
 ## Search from both ends
 
-The null model contains only an intercept. The full candidate model contains the seven predictors we are willing to consider. Fit both models, then run forward search from the null model and backward search from the full model using the same AIC scope. Print each search path and final formula.
+Let's start with the same response and candidate predictors from Lab 10. The null model contains only an intercept; the full model contains the seven predictors we are willing to consider. We will run the search from both ends and see whether the two paths finish in the same place.
 
 ```{r import-auto, message=FALSE}
 auto <- read_csv("https://knowlton.co.nz/161251/data/auto_mpg.csv") |>
@@ -82,6 +86,8 @@ AIC(full_model, forward_search, backward_search)
 
 ## Keep `origin` in every candidate model
 
+The first search allowed every candidate term to be removed. Now repeat the same idea after making one modelling decision in advance: `origin` must stay in the model.
+
 Fit a lower-bound model containing `origin`, then repeat backward search with that model as the lower scope limit. Print the selected formula.
 
 ```{r forced-origin, eval=FALSE}
@@ -94,7 +100,7 @@ Discuss: What decision did we make before the search? Why could an automatic AIC
 
 ## How much do the numerical predictors overlap?
 
-Make a correlation matrix for `cylinders`, `displacement`, `horsepower`, `weight`, `acceleration` and `model_year`. Then compute the VIFs or adjusted GVIFs for the full model.
+The search has given us a candidate formula, but several of these predictors describe related features of a car. Start with the pairwise correlations among `cylinders`, `displacement`, `horsepower`, `weight`, `acceleration` and `model_year`. Then use VIFs to ask how strongly each term overlaps with the remaining predictors in the full model.
 
 ```{r correlation-matrix}
 auto |>
@@ -116,9 +122,11 @@ auto |>
 
 Discuss: Which conditional coefficients might be hard to estimate separately? Why would a high VIF alone be an inadequate reason to delete one of them?
 
-## Simple associations and conditional coefficients
+## What happens to the coefficients?
 
-Fit separate simple regressions for `cylinders`, `displacement`, `horsepower` and `weight`. Compare each slope with the corresponding coefficient in the full model.
+The VIFs tell us that some coefficients are difficult to separate. Now look at what that does to the estimates themselves.
+
+Fit separate simple regressions for `cylinders`, `displacement`, `horsepower` and `weight`. Compare each simple slope with the corresponding coefficient in the full model.
 
 ```{r coefficient-comparison, eval=FALSE}
 # Fit one simple regression for each predictor.
@@ -130,7 +138,9 @@ Discuss: Which signs or magnitudes changed? Describe the full-model coefficient 
 
 ## Ridge and lasso on the same folds
 
-Build the model matrix shown below. Use one fold assignment for both `cv.glmnet()` fits. Plot both coefficient paths and both CV curves. Extract coefficients at `lambda.min` and `lambda.1se`.
+We have now seen the problem with trying to separate strongly overlapping predictors using ordinary least squares. Ridge and lasso take a different approach: keep the larger predictor set, then control the coefficient sizes with a penalty.
+
+Build the model matrix below and use one fold assignment for both `cv.glmnet()` fits. Keeping the folds fixed matters here because we want the difference between ridge and lasso to come from the penalty, not from a different random split.
 
 ```{r glmnet-data}
 X <- model.matrix(
@@ -161,6 +171,10 @@ lasso_cv <- cv.glmnet(
 )
 ```
 
+### Compare the coefficient paths
+
+Plot the ridge and lasso coefficient paths. As the penalty becomes stronger, what happens to the coefficients under each method?
+
 ```{r coefficient-paths, fig.width=9, fig.height=5}
 par(mfrow = c(1, 2))
 plot(ridge_cv$glmnet.fit, xvar = "lambda", label = TRUE)
@@ -169,6 +183,10 @@ plot(lasso_cv$glmnet.fit, xvar = "lambda", label = TRUE)
 title("Lasso coefficient paths")
 par(mfrow = c(1, 1))
 ```
+
+### Choose the penalty by cross-validation
+
+Now compare the cross-validation curves. The two vertical reference values answer slightly different questions: `lambda.min` minimises the estimated cross-validation error, while `lambda.1se` deliberately accepts stronger regularisation while staying within one standard error of that minimum.
 
 ```{r cv-curves, fig.width=9, fig.height=5}
 par(mfrow = c(1, 2))
@@ -187,7 +205,9 @@ penalty_choices <- tibble(
 knitr::kable(penalty_choices, digits = 4)
 ```
 
-What trade-off is made by choosing `lambda.1se` rather than `lambda.min`?
+Discuss: What trade-off is made by choosing `lambda.1se` rather than `lambda.min`?
+
+### Which coefficients remain?
 
 ```{r penalised-coefficients}
 round(as.matrix(coef(ridge_cv, s = "lambda.min")), 4)
@@ -199,17 +219,24 @@ round(as.matrix(coef(lasso_cv, s = "lambda.1se")), 4)
 
 Discuss: Which coefficients are exactly zero under lasso? What trade-off does `lambda.1se` make? Why is a zero dummy coefficient for one `origin` level different from removing the `origin` term as a whole?
 
-## Which magazine means are most precise?
+# Part B: Weighted regression for magazine readership
 
-Each row in the magazine data is a mean number of magazines read for one age and sex group. The columns `N` and `StDev` give the group size and within-group standard deviation. Plot `Avemags` against `Age`, marking `Sex`, group size `N` and within-group standard deviation `StDev`. Compute `N/StDev^2` and list the groups with the highest and lowest precision weights.
+So far we have been changing how predictors enter the mean model. Weighted regression solves a different problem. Here each row is already a group mean, and some of those means are estimated much more precisely than others.
+
+Each row in the magazine data is the mean number of magazines read for one age and sex group. The columns `N` and `StDev` give the group size and within-group standard deviation.
+
+## Start with the mean model
+
+Plot `Avemags` against `Age`, marking `Sex`, group size `N` and within-group standard deviation `StDev`.
 
 ```{r import-magazines, message=FALSE}
 mags <- read_csv("https://knowlton.co.nz/161251/data/AveMags.csv") |>
   mutate(
     Sex = factor(Sex, levels = c(0, 1), labels = c("Male", "Female")),
-    Older = as.integer(Age >= 50),
-    precision_weight = N / StDev^2
+    Older = as.integer(Age >= 50)
   )
+
+glimpse(mags)
 ```
 
 ```{r magazine-data-plot}
@@ -224,6 +251,50 @@ ggplot(mags, aes(x = Age, y = Avemags)) +
   theme_minimal()
 ```
 
+Before changing the weights, keep the mean structure fixed. The supplied variable `Adult` separates the teenage rows from the adult rows, and `Older` marks ages 50 and above. We will allow the age slope to change across those ranges while keeping the sex difference additive.
+
+```{r magazine-mean-model}
+magazine_unweighted <- lm(
+  Avemags ~ Age * Adult + Age * Older + Sex,
+  data = mags
+)
+```
+
+The teenage slope is the coefficient of `Age`. The adult slope adds the `Age:Adult` coefficient, and the older-adult slope also adds `Age:Older`. The main effects for `Adult` and `Older` allow level changes at the boundaries, so the fitted pieces are not forced to meet exactly.
+
+```{r magazine-unweighted-fit}
+mags |>
+  mutate(fitted = fitted(magazine_unweighted)) |>
+  ggplot(aes(x = Age, y = Avemags, colour = Sex)) +
+  geom_point() +
+  geom_line(aes(y = fitted)) +
+  labs(x = "Age", y = "Mean number of magazines") +
+  theme_minimal()
+```
+
+Discuss: What broad age pattern does this unweighted model capture? What does the absence of an age-by-sex interaction assume about the fitted sex difference?
+
+## Which magazine means are most precise?
+
+For a mean based on $N_i$ independent people with within-group standard deviation $SD_i$, the sampling variance is proportional to
+
+$
+\frac{SD_i^2}{N_i}.
+$
+
+So the inverse-variance weight is proportional to
+
+$
+w_i = \frac{N_i}{SD_i^2}.
+$
+
+Compute the precision weights and list the groups from highest to lowest weight.
+
+```{r magazine-weights}
+mags <- mags |>
+  mutate(precision_weight = N / StDev^2)
+```
+
 ```{r inspect-magazine-weights}
 mags |>
   select(Age, Sex, N, StDev, precision_weight) |>
@@ -234,14 +305,9 @@ Discuss: Why do both group size and within-group variation enter the weight?
 
 ## Hold the mean formula fixed and change the weights
 
-Fit the provided age-piece and sex formula once without weights and once with `weights = N/StDev^2`. Compare the fitted values and coefficients. Then plot ordinary residuals for the first fit and `sqrt(w_i) * (y_i - fitted_i)` for the weighted fit.
+Now change one thing: fit the same mean formula with `weights = precision_weight`. Compare its coefficients and fitted values with the unweighted model. Then compare ordinary residuals from the unweighted fit with $\sqrt{w_i}(y_i-\hat y_i)$ from the weighted fit.
 
-```{r magazine-models}
-magazine_unweighted <- lm(
-  Avemags ~ Age * Adult + Age * Older + Sex,
-  data = mags
-)
-
+```{r fit-weighted-model}
 magazine_weighted <- lm(
   Avemags ~ Age * Adult + Age * Older + Sex,
   data = mags,
@@ -309,3 +375,5 @@ Discuss: Which fitted contrasts change? What assumption about the precision of a
 ## Final decision
 
 In one short paragraph, state when you would use term-based search, ridge or lasso, and weighted regression in these two examples. Explain what you would need to assess before claiming the selected Auto MPG model predicts new cars well.
+
+Everything in this lab still assumes that we have chosen a sensible shape for the mean. In Lab 12 we relax that too: what do we do when a straight-line effect is not enough?
