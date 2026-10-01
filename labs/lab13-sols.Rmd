@@ -56,7 +56,7 @@ Keep the second-pair mean model from above. Plot its residuals against actual da
 The ordinary ACF and sequence tests assume equally spaced observations. For those diagnostics use the uninterrupted 131-day run from 1 December 2017 to 10 April 2018. Check the dates before treating lag 1 as one day. `DescTools::RunsTest()` splits a numerical sequence at its median; `lmtest::dwtest()` tests first-order correlation in regression residuals; `Box.test(..., type = "Ljung-Box")` tests several lags together. Use the time plot and ACF to interpret their small P-values rather than treating the tests as a diagnosis of the cause.
 
 ```{r seoul-dependence}
-seoul_residuals <- seoul_time |>
+seoul_residuals <- seoul |>
   mutate(residual = residuals(seoul_second))
 seoul_residuals |>
   ggplot(aes(date, residual)) +
