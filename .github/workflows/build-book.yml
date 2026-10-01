@@ -104,8 +104,13 @@ jobs:
             _site/labs/index.html
             _site/widget/index.html
             _site/labs/lab10.Rmd
-            _site/labs/lab11A.Rmd
-            _site/labs/lab11B.Rmd
+            _site/labs/lab10.html
+            _site/labs/lab10-sols.Rmd
+            _site/labs/lab10-sols.html
+            _site/labs/lab11.Rmd
+            _site/labs/lab11.html
+            _site/labs/lab11-sols.Rmd
+            _site/labs/lab11-sols.html
             _site/labs/lab12.Rmd
             _site/labs/lab12.html
             _site/labs/lab12-sols.Rmd
@@ -126,9 +131,15 @@ jobs:
           test "$actual_slides" -eq "$expected_slides"
           test "$(grep -c 'class=\"slide-link\"' _site/slides/index.html)" -eq "$expected_slides"
           grep -q 'href="slides/"' _site/index.html
+          grep -q 'href="lab10.html"' _site/labs/index.html
+          grep -q 'href="lab11.html"' _site/labs/index.html
           grep -q 'href="lab12.html"' _site/labs/index.html
           grep -q 'href="lab13.html"' _site/labs/index.html
-          ! grep -Eq -- 'lab12[AB]\.' _site/labs/index.html
+          ! find _site/labs -maxdepth 1 -type f -regextype posix-extended -regex '.*/lab(10|11|12|13)[A-Z].*' | grep -q .
+          for data_file in wage.csv auto_mpg.csv AveMags.csv seoul_bike_daily.csv motel.csv hp.csv; do
+            test -f "_site/data/$data_file"
+            grep -q "../data/$data_file" _site/labs/index.html
+          done
 
       - uses: actions/upload-pages-artifact@v5
         with:
