@@ -174,6 +174,8 @@ cat("  Rendering Lab 11 pages...\n")
 source(file.path(repo_root, "scripts", "render-lab11.R"), local = TRUE)
 cat("  Rendering Lab 12 pages...\n")
 source(file.path(repo_root, "scripts", "render-lab12.R"), local = TRUE)
+cat("  Rendering Lab 13 pages...\n")
+source(file.path(repo_root, "scripts", "render-lab13.R"), local = TRUE)
 
 cat("  Copying lab files...\n")
 labs_src <- file.path(repo_root, "labs")
@@ -183,7 +185,8 @@ copy_dir(file.path(repo_root, "build", "labs"), labs_dest)
 required_lab_files <- c(
   "lab10.Rmd", "lab10.html", "lab10-sols.Rmd", "lab10-sols.html",
   "lab11.Rmd", "lab11.html", "lab11-sols.Rmd", "lab11-sols.html",
-  "lab12.Rmd", "lab12.html", "lab12-sols.Rmd", "lab12-sols.html"
+  "lab12.Rmd", "lab12.html", "lab12-sols.Rmd", "lab12-sols.html",
+  "lab13.Rmd", "lab13.html", "lab13-sols.Rmd", "lab13-sols.html"
 )
 missing_lab_files <- required_lab_files[!file.exists(file.path(labs_dest, required_lab_files))]
 if (length(missing_lab_files) > 0) {
