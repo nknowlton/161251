@@ -256,3 +256,22 @@ if (dir.exists(student_rmd_dir)) {
 
 cat("\nSite assembled in:", site_dir, "\n")
 cat("Course entry point:", file.path(course_dir, "index.html"), "\n")
+
+
+# 10. Generate sitemap for public teaching pages
+cat("  Generating sitemap...\n")
+html_files <- list.files(course_dir, pattern = "\\.html$", recursive = TRUE, full.names = FALSE)
+html_files <- html_files[!grepl("(-sols|_guide|/solutions?/|/answers?/)", html_files, ignore.case = TRUE)]
+urls <- vapply(html_files, function(path) {
+  path <- gsub("\\\\", "/", path)
+  path <- sub("index\\.html$", "", path)
+  paste0("https://knowlton.co.nz/161251/", path)
+}, character(1))
+urls <- sort(unique(urls))
+sitemap <- c(
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+  sprintf("  <url><loc>%s</loc></url>", urls),
+  "</urlset>"
+)
+writeLines(sitemap, file.path(course_dir, "sitemap.xml"))
