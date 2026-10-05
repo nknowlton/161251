@@ -150,3 +150,5 @@ Plot `Perth` against `Quarter`. Fit `Perth ~ WtAve + Time` with `lm()`, plot its
 Discuss: Where does Perth's index move with `WtAve`, and where does time add information? Is there evidence of serial structure after OLS and after GLS? What changed in the estimated coefficients and their uncertainty? Explain why the overlap between `WtAve` and Perth limits the interpretation.
 
 We have now checked the shape of the mean and the dependence left after fitting it. If a clear pattern survives in the normalised residuals, what would you revisit first: the mean model, the AR(1) error model, or both? Give a reason from the plots rather than another P-value alone.
+
+[View the worked solutions online](https://knowlton.co.nz/161251/labs/lab13-sols.html).

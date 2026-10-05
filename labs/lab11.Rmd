@@ -416,3 +416,5 @@ Discuss: Why do the two residual panels have different vertical scales? What ass
 In one short paragraph, state when you would use term-based search, ridge or lasso, and weighted regression in these two examples. Explain what you would need to assess before claiming the selected Auto MPG model predicts new cars well.
 
 Everything in this lab still assumes that we have chosen a sensible shape for the mean. In Lab 12 we relax that too: what do we do when a straight-line effect is not enough?
+
+[View the worked solutions online](https://knowlton.co.nz/161251/labs/lab11-sols.html).

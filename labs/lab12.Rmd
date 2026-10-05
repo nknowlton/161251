@@ -111,3 +111,5 @@ We have changed the mean in two different ways. Splines let the relationship wit
 In one short paragraph, explain when you would use LOESS, a regression spline, and a trend plus Fourier terms. Then state what these mean-model choices still do **not** tell us about observations collected close together in time.
 
 That remaining question is the starting point for Lab 13: after fitting a reasonable mean, are the residuals still dependent?
+
+[View the worked solutions online](https://knowlton.co.nz/161251/labs/lab12-sols.html).
