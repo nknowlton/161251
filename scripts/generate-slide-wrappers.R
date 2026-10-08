@@ -8,6 +8,7 @@
 # provide Slidy and Beamer output formats without duplicating teaching content.
 
 repo_root <- getwd()
+source(file.path(repo_root, "shared", "lecture-metadata.R"))
 metadata_path <- file.path(repo_root, "course", "lectures.csv")
 if (!file.exists(metadata_path)) {
   stop("course/lectures.csv not found. Run this script from the repository root.")
@@ -39,7 +40,7 @@ for (i in seq_len(nrow(meta))) {
 
   content <- c(
     "---",
-    sprintf("title: %s", yaml_quote(sprintf("Lecture %d: %s", no, title))),
+    sprintf("title: %s", yaml_quote(lecture_heading(meta[i, ]))),
     "subtitle: \"161.251 Regression Modelling\"",
     sprintf("author: %s", yaml_quote(presenter)),
     "output:",

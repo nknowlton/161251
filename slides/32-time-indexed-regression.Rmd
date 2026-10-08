@@ -1,5 +1,5 @@
 ---
-title: "Lecture 32: Time-Indexed Regression: From Flexible Models to Trend"
+title: "Lectures 32/33: Time-Indexed Regression: Trend and Seasonality"
 subtitle: "161.251 Regression Modelling"
 author: "Nick Knowlton"
 output:

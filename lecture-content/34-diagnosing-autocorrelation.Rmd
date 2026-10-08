@@ -6,7 +6,7 @@ library(lmtest)
 
 ## Diagnosing Autocorrelated Errors
 
-In the last two lectures we concentrated on fitting the mean structure of a time series with regression. Now we ask whether the residuals behave independently after that mean structure has been removed.
+In Lectures 32/33 we concentrated on fitting the mean structure of a time series with regression. Now we ask whether the residuals behave independently after that mean structure has been removed.
 
 By the end of this lecture, students should be able to:
 
@@ -96,7 +96,7 @@ If this test rejects, we have evidence of residual autocorrelation across the la
 
 ## A Modern Comparison: Seoul Bike Residuals
 
-The same diagnostic logic applies to the daily bike model from the previous lecture.
+The same diagnostic logic applies to the richer daily bike model from Lectures 32/33, which combined two Fourier pairs with the time trend and weather predictors.
 
 `r xfun::embed_file("../data/seoul_bike_daily.csv")`
 

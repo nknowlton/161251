@@ -18,7 +18,8 @@ knitr::opts_chunk$set(
   fig.height = 6,
   fig.width = 7,
   fig.alt = "unlabelled",
-  tidy = TRUE,
+  # Code formatting is optional when knitting on a student computer.
+  tidy = requireNamespace("formatR", quietly = TRUE),
   cache = TRUE,
   warning = FALSE,
   message = FALSE

@@ -368,6 +368,8 @@ for (dir_name in c("lecture-content", "lectures", "book", "slides", "shared", "s
     grepl("\\.(Rmd|qmd|R|yml|yaml|css|html)$", tracked_files)
   ]
   files <- file.path(repo_root, tracked_files)
+  # git ls-files still lists worktree deletions until they are committed.
+  files <- files[file.exists(files)]
   for (f in files) {
     # Skip this validation script itself (it contains path-checking patterns)
     if (basename(f) == "validate-course.R") next

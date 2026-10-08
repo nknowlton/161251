@@ -9,6 +9,7 @@
 # it without also recreating this repository's directory structure.
 
 repo_root <- getwd()
+source(file.path(repo_root, "shared", "lecture-metadata.R"))
 metadata_file <- file.path(repo_root, "course", "lectures.csv")
 template_file <- file.path(repo_root, "templates", "student-lecture.Rmd")
 setup_file <- file.path(repo_root, "shared", "setup.R")
@@ -78,7 +79,7 @@ cat(sprintf("Generating student .Rmd files in %s\n", out_dir))
 for (i in seq_len(nrow(metadata))) {
   number <- metadata$LectureNo[i]
   slug <- metadata$Slug[i]
-  title <- metadata$LectureTitle[i]
+  title <- lecture_document_title(metadata[i, ])
   filename <- sprintf("%02d-%s.Rmd", number, slug)
   content_file <- file.path(content_dir, filename)
 

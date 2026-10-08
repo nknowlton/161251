@@ -19,6 +19,7 @@
 # The script does NOT delete unrelated course outputs.
 
 repo_root <- getwd()
+source(file.path(repo_root, "shared", "lecture-metadata.R"))
 
 site_dir <- file.path(repo_root, "build", "site")
 course_dir <- file.path(site_dir, "161251")
@@ -59,6 +60,25 @@ html_escape <- function(value) {
   value
 }
 
+write_combined_lecture_stub <- function(destination) {
+  # Always replace any cached full Lecture 33 standalone page.
+  output <- file.path(destination, "lectures", "trend-seasonality", "index.html")
+  dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
+  writeLines(c(
+    "<!doctype html>", '<html lang="en">', "<head>",
+    '  <meta charset="utf-8">',
+    '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+    "  <title>Lecture 33: Material Included in Lectures 32/33</title>",
+    "</head>", "<body>",
+    "  <h1>Lecture 33: Continue to Lectures 32/33</h1>",
+    "  <p>Lectures 32 and 33 are taught together this term. The trend and seasonality material is in the combined lecture.</p>",
+    '  <p><a href="/161251/notes/time-indexed-regression.html">Read Lectures 32/33: Time-Indexed Regression: Trend and Seasonality</a></p>',
+    '  <p><a href="/161251/slides/time-indexed-regression/32-time-indexed-regression.html">Open the Lectures 32/33 slides</a></p>',
+    "</body>", "</html>"
+  ), output)
+  invisible()
+}
+
 write_slide_index <- function(destination) {
   metadata_path <- file.path(repo_root, "course", "lectures.csv")
   if (!file.exists(metadata_path)) {
@@ -76,9 +96,9 @@ write_slide_index <- function(destination) {
       slug <- rows$Slug[i]
       filename <- sprintf("%02d-%s.html", no, slug)
       sprintf(
-        '      <li><a class="slide-link" href="%s/%s">Lecture %d: %s</a></li>',
-        html_escape(slug), html_escape(filename), no,
-        html_escape(rows$LectureTitle[i])
+        '      <li><a class="slide-link" href="%s/%s">%s</a></li>',
+        html_escape(slug), html_escape(filename),
+        html_escape(lecture_heading(rows[i, ]))
       )
     }, character(1))
   }
@@ -253,6 +273,9 @@ if (dir.exists(student_rmd_dir)) {
 } else {
   message("  WARNING: build/student-lectures/ not found. Run scripts/generate-student-rmd.R first.")
 }
+
+cat("  Writing the Lecture 33 standalone stub...\n")
+write_combined_lecture_stub(course_dir)
 
 cat("\nSite assembled in:", site_dir, "\n")
 cat("Course entry point:", file.path(course_dir, "index.html"), "\n")

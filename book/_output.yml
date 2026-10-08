@@ -1,7 +1,9 @@
 bookdown::gitbook:
+  number_sections: false
   css: [sandstone.css, style.css]
   split_by: chapter
   pandoc_args:
+    - "--lua-filter=filters/lecture-numbers.lua"
     - "--lua-filter=filters/remove-slide-pauses.lua"
   includes:
     in_header: ../shared/book-header.html

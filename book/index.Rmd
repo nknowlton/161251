@@ -25,6 +25,7 @@ Please ask for help if you don't understand the R code being demonstrated.
 ## Table of Contents {-}
 
 ```{r preface-toc, echo=FALSE, results='asis'}
+source("../shared/lecture-metadata.R")
 lectures <- read.csv("../course/lectures.csv", stringsAsFactors = FALSE)
 lectures <- lectures[lectures$IncludeInBook == "yes", ]
 lectures <- lectures[order(lectures$LectureNo), ]
@@ -48,8 +49,8 @@ for (i in seq_len(nrow(lectures))) {
   link <- make_link(lectures$LectureTitle[i], lectures$Slug[i])
   presenter <- if (lectures$Presenter[i] == "Nick Knowlton") " (NK)" else ""
   cat(sprintf(
-    "- [%d. %s%s](%s)\n",
-    lectures$LectureNo[i], lectures$LectureTitle[i], presenter, link
+    "- [%s. %s%s](%s)\n",
+    lecture_label(lectures[i, ]), lectures$LectureTitle[i], presenter, link
   ))
 }
 ```

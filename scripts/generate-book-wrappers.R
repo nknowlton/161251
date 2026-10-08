@@ -10,6 +10,7 @@
 # After running, commit the updated book/*.Rmd and book/_bookdown.yml files.
 
 repo_root <- getwd()
+source(file.path(repo_root, "shared", "lecture-metadata.R"))
 
 meta <- read.csv(file.path(repo_root, "course", "lectures.csv"),
                  stringsAsFactors = FALSE, strip.white = TRUE)
@@ -24,9 +25,13 @@ for (i in seq_len(nrow(meta))) {
   fname <- sprintf("%02d-%s.Rmd", no, slug)
   body_file <- sprintf("../lecture-content/%s", fname)
 
+  label_attributes <- if (lecture_label(meta[i, ]) != as.character(no)) {
+    sprintf(' data-lecture-no="%d" data-lecture-label="%s"', no, lecture_label(meta[i, ]))
+  } else ""
+
   content <- sprintf(
-    '# %s {#%s}\n\n```{r %s-chapter-setup, include=FALSE}\nsource("../shared/setup.R")\n\nknitr::opts_chunk$set(\n  fig.path = "_main_files/figure-html/%s-",\n  cache.path = "../build/cache/book/%s/"\n)\n```\n\n```{r child-%s, child="%s"}\n```\n',
-    title, slug, slug, slug, slug, slug, body_file
+    '# %s {#%s%s}\n\n```{r %s-chapter-setup, include=FALSE}\nsource("../shared/setup.R")\n\nknitr::opts_chunk$set(\n  fig.path = "_main_files/figure-html/%s-",\n  cache.path = "../build/cache/book/%s/"\n)\n```\n\n```{r child-%s, child="%s"}\n```\n',
+    title, slug, label_attributes, slug, slug, slug, slug, body_file
   )
 
   writeLines(content, file.path(book_dir, fname))

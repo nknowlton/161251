@@ -1,5 +1,5 @@
 ---
-title: "Regression Models for Trend and Seasonality"
+title: "Lecture 33: Material Included in Lectures 32/33"
 subtitle: "161.251 Regression Modelling"
 date: |
   `r format(Sys.Date(), '%Y')`
