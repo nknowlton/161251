@@ -11,11 +11,12 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(comment = "", dev = "png")
 library(tidyverse)
+library(broom)
 ```
 
 # Computer Laboratory 12: Curves, trend and seasonality
 
-This week we relax the shape of the mean model. We will use daily Seoul bike demand to compare LOESS, cubic B-splines and natural cubic splines, then let time itself enter the model through a trend and smooth seasonal terms.
+This week we relax the shape of the mean model. We will use daily Seoul bike demand to compare LOESS, cubic splines and natural cubic splines, then let time itself enter the model through a trend and smooth seasonal terms.
 
 The lab uses [seoul_bike_daily.csv](https://knowlton.co.nz/161251/data/seoul_bike_daily.csv). The downloadable R Markdown file reads the dataset directly from the course site.
 
@@ -47,7 +48,9 @@ ggplot(seoul, aes(mean_temperature, rented_bike_count)) +
   labs(x = "Mean temperature (°C)", y = "Daily rentals", colour = "LOESS")
 ```
 
-Now fit a line, a cubic B-spline and a natural cubic spline, using `df = 5` for both splines. Here `df` controls the size of the spline basis, not the degree of a single polynomial. The spline model is linear in its fitted coefficients, even though its curve bends with temperature. Predict on the same temperature grid to compare the curves directly.
+Now fit a straight line, a cubic spline and a natural cubic spline, using `df = 5` for both splines. The cubic spline joins cubic pieces smoothly. With the default settings in `bs()`, `df = 5` gives two internal knots, not a fifth-degree polynomial.
+
+The natural cubic spline adds the restriction that its tails are linear beyond the boundary knots. The same `df` does not imply the same internal knots in the two fits. Both models are still linear in their fitted coefficients, even though their curves bend with temperature. Predict on the same temperature grid to compare the curves directly.
 
 ```{r seoul-splines}
 seoul_line <- lm(rented_bike_count ~ mean_temperature, data = seoul)
@@ -59,8 +62,8 @@ temperature_grid <- tibble(mean_temperature = seq(
 curve_fits <- temperature_grid |>
   mutate(
     Line = predict(seoul_line, newdata = temperature_grid),
-    `B-spline` = predict(seoul_bs, newdata = temperature_grid),
-    `Natural spline` = predict(seoul_ns, newdata = temperature_grid)
+    `Cubic spline` = predict(seoul_bs, newdata = temperature_grid),
+    `Natural cubic spline` = predict(seoul_ns, newdata = temperature_grid)
   ) |>
   pivot_longer(-mean_temperature, names_to = "model", values_to = "fitted")
 ggplot(seoul, aes(mean_temperature, rented_bike_count)) +
@@ -70,7 +73,7 @@ ggplot(seoul, aes(mean_temperature, rented_bike_count)) +
   labs(x = "Mean temperature (°C)", y = "Daily rentals", colour = "Model")
 ```
 
-Plot the natural spline residuals against temperature to check for any remaining shape.
+Plot the natural cubic spline residuals against temperature to check for any remaining shape.
 
 ```{r seoul-spline-residuals}
 seoul |>
@@ -78,26 +81,120 @@ seoul |>
   ggplot(aes(mean_temperature, residual)) +
   geom_point(alpha = 0.4) +
   geom_hline(yintercept = 0, linetype = 2) +
-  labs(x = "Mean temperature (°C)", y = "Natural spline residual")
+  labs(x = "Mean temperature (°C)", y = "Natural cubic spline residual")
 ```
 
-Discuss: Where does a line miss the shape in the points? How does the LOESS span change the curve? Compare the B-spline and natural spline near the observed temperature limits. A natural spline becomes linear beyond its boundary knots, but does that make extrapolation safe? Would a more flexible fit to these observations by itself justify choosing that model?
+Discuss: Where does a line miss the shape in the points? How does the LOESS span change the curve? Compare the cubic spline and natural cubic spline near the observed temperature limits. A natural cubic spline becomes linear beyond its boundary knots, but does that make extrapolation safe? Would a more flexible fit to these observations by itself justify choosing that model?
 
 ## Can we separate trend from seasonality?
 
-### Seoul: fit a trend, then seasonal pairs
+Lectures 32/33 used sine and cosine together to describe an annual wave. Let's first leave cosine out and see why the pair matters. We choose a period of 365 days and keep the linear trend in every model.
 
-Plot rentals against the actual date. Fit a linear `day_index` trend; then add one annual sine and cosine pair. The pair can express a seasonal wave at any phase, rather than fixing its peak to the start of the calendar. Add a second pair for a sharper within-year shape. Both terms in each pair have to enter together. Use `anova()` for a joint, two-degree-of-freedom comparison of the first- and second-pair models.
+### Seoul: start with one sine term
+
+The coefficient of sine changes its height, and a negative coefficient flips it. On its own, sine restricts where the seasonal peak can fall. Fit the unshifted sine term alongside the trend and inspect the fitted mean over the actual dates. We use `tidy()` for the coefficient estimates and their uncertainty. `glance()` gives one row for the whole model, including R².
+
+```{r seoul-sine-model}
+seoul_time <- seoul |>
+  mutate(S1 = sin(2 * pi * day_index / 365))
+
+seoul_trend <- lm(rented_bike_count ~ day_index, data = seoul_time)
+seoul_sine <- lm(rented_bike_count ~ day_index + S1, data = seoul_time)
+
+tidy(seoul_sine)
+
+bind_rows(
+  Trend = glance(seoul_trend),
+  Sine = glance(seoul_sine),
+  .id = "Model"
+) |>
+  select(Model, r.squared) |>
+  knitr::kable(col.names = c("Model", "$R^2$"), digits = 3)
+```
+
+```{r seoul-sine-plot}
+seoul_time |>
+  ggplot(aes(x = date, y = rented_bike_count)) +
+  geom_line(aes(colour = "Observed rentals"), alpha = 0.6) +
+  geom_line(aes(y = fitted(seoul_trend), colour = "Trend only"), linewidth = 0.9) +
+  geom_line(aes(y = fitted(seoul_sine), colour = "Trend + sine"), linewidth = 0.9) +
+  scale_colour_manual(values = c(
+    "Observed rentals" = "grey60", "Trend only" = "forestgreen", "Trend + sine" = "blue"
+  )) +
+  labs(
+    x = "Date", y = "Daily rentals", colour = "Series",
+    title = "A trend with one unshifted annual sine term"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+Discuss: What does the trend alone miss? How much of the observed rise and fall does this sine term capture?
+
+### Seoul: move the origin by 90 days
+
+Now create `S1_shift = sin(2*pi*(day_index-90)/365)` and fit `seoul_sine_shift` with `day_index + S1_shift`. Keep the same observations, the original dates and the unshifted `day_index` trend. Move only the origin inside sine; the period is still 365 days.
+
+```{r seoul-sine-shift-model, eval=FALSE}
+# Add S1_shift to seoul_time.
+# Fit seoul_sine_shift using day_index and S1_shift.
+```
+
+Using `seoul-sine-plot` as a template, overlay the unshifted and shifted sine fits on the observed rentals. Show the fits by colour and give the graph a title and a titled legend. Use `tidy()` to compare the coefficients and `glance()` to build an R² table for both models, and calculate the largest absolute difference between their fitted values.
+
+```{r seoul-sine-shift-comparison, eval=FALSE}
+# Bind tidy(seoul_sine) and tidy(seoul_sine_shift) with .id = "Model".
+# Select Model, term, estimate, std.error and p.value.
+# Bind glance(seoul_sine) and glance(seoul_sine_shift) with .id = "Model".
+# Select Model and r.squared, then display with knitr::kable(), as above.
+# Calculate max(abs(fitted(seoul_sine) - fitted(seoul_sine_shift))).
+# Plot the observed rentals and both fitted means against date.
+```
+
+Discuss: What changed in the coefficients, R² and predicted rentals? Did moving the origin change the annual period, or where this single wave is allowed to peak?
+
+These two sine-only models are not nested, so do not use a partial F test between them. The comparison shows what happens when we change the restriction on the peak position. A closer fit within this year does not establish better prediction next year.
+
+### Seoul: keep sine and cosine together
+
+Let's add cosine to the unshifted model. The two coefficients now let the annual wave have its peak anywhere in the year.
+
+```{r seoul-first-pair-model}
+seoul_time <- seoul_time |>
+  mutate(C1 = cos(2 * pi * day_index / 365))
+
+seoul_first <- lm(
+  rented_bike_count ~ day_index + S1 + C1,
+  data = seoul_time
+)
+```
+
+Now repeat the 90-day shift with both terms. Add `C1_shift = cos(2*pi*(day_index-90)/365)`, reuse `S1_shift`, and fit `seoul_first_shift` with `day_index + S1_shift + C1_shift`. Both trigonometric predictors must use the same shift; leave the trend unchanged.
+
+Use `tidy()` to compare coefficients and `glance()` to compare R², overlay the two paired fits against the actual dates, and calculate `max(abs(fitted(seoul_first) - fitted(seoul_first_shift)))`.
+
+```{r seoul-pair-shift-comparison, eval=FALSE}
+# Add C1_shift to seoul_time and reuse S1_shift.
+# Fit seoul_first_shift with day_index + S1_shift + C1_shift.
+# Use tidy() for a coefficient table and glance() for an R² table, as above.
+# Calculate max(abs(fitted(seoul_first) - fitted(seoul_first_shift))).
+# Overlay both paired fits on the observed rentals.
+# Give the graph a title and a titled legend.
+```
+
+Discuss: Do the coefficients still change? Do the predicted rentals change? Why do we get a different result from shifting sine alone?
+
+### Seoul: add a second seasonal pair
+
+Keep the unshifted first pair and add `S2 = sin(4*pi*day_index/365)` and `C2 = cos(4*pi*day_index/365)`. This second pair allows a sharper within-year shape. Fit `seoul_second` using `day_index + S1 + C1 + S2 + C2`, then plot the trend-only, first-pair and second-pair fits over the observed rentals.
+
+Compare `seoul_first` and `seoul_second` with `anova()`. These models are nested: the partial F test jointly assesses the two additional coefficients under the usual independent-error assumptions.
 
 ```{r seoul-fourier, eval=FALSE}
-# Plot rented_bike_count against date.
-# Create S1 = sin(2*pi*day_index/365), C1 = cos(2*pi*day_index/365),
-# S2 = sin(4*pi*day_index/365), C2 = cos(4*pi*day_index/365).
-# Fit trend: rented_bike_count ~ day_index.
-# Fit first pair: rented_bike_count ~ day_index + S1 + C1.
-# Fit second pair: rented_bike_count ~ day_index + S1 + C1 + S2 + C2.
-# Plot the three fitted means over the actual dates.
-# Compare the nested first- and second-pair models with anova().
+# Add S2 and C2 to seoul_time.
+# Fit seoul_second using day_index + S1 + C1 + S2 + C2.
+# Plot the trend-only, first-pair and second-pair fits over the observed rentals.
+# Give the graph a title and a titled legend.
+# Compare anova(seoul_first, seoul_second).
 ```
 
 Discuss: What does the trend alone miss? Does the second pair change the fitted seasonal shape, and what does the partial F test say about its extra terms? We have only one year of Seoul data: what can we say about a pattern recurring next year?
