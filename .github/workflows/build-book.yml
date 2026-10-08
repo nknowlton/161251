@@ -130,6 +130,13 @@ jobs:
           actual_slides="$(find _site/slides -mindepth 2 -maxdepth 2 -type f -name '*.html' | wc -l)"
           test "$actual_slides" -eq "$expected_slides"
           test "$(grep -c 'class=\"slide-link\"' _site/slides/index.html)" -eq "$expected_slides"
+          for stub in _site/notes/trend-seasonality.html _site/slides/trend-seasonality/33-trend-seasonality.html _site/lectures/trend-seasonality/index.html; do
+            grep -q 'Lectures 32 and 33 are taught together this term' "$stub"
+            grep -q '/161251/notes/time-indexed-regression.html' "$stub"
+            ! grep -q 'http-equiv="refresh"' "$stub"
+          done
+          test -f _site/notes/downloads/32-time-indexed-regression.Rmd
+          test -f _site/notes/downloads/33-trend-seasonality.Rmd
           grep -q 'href="slides/"' _site/index.html
           grep -q 'href="lab10.html"' _site/labs/index.html
           grep -q 'href="lab11.html"' _site/labs/index.html

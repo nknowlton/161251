@@ -9,7 +9,7 @@ bookdown::gitbook:
     in_header: ../shared/book-header.html
   config:
     toc:
-      collapse: subsection
+      collapse: section
     toolbar:
       position: static
     edit: null

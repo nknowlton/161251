@@ -418,6 +418,8 @@ ggplot(ridge_cv, aes(x = log_lambda, y = cv_error)) +
 
 `lambda.1se` is the **largest** $\lambda$ whose estimated error is within one standard error of that minimum. It gives stronger regularisation while remaining close to the best estimated cross-validation performance.
 
+Note that the intercept is not penalised, but the slopes are. The penalty is applied to the coefficients of the model matrix, so it can cause the intercept to change as the slopes are shrunk.
+
 ## Ridge: `lambda.min` versus `lambda.1se`
 
 Let's look at both the min and 1se in an example dataset.
