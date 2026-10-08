@@ -2,7 +2,7 @@
 title: "Computer Laboratory 12: Curves, trend and seasonality : solutions"
 subtitle: "161.251 Regression Modelling"
 author: "Nick Knowlton nknowlton@massey.ac.nz"
-date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+date: "last updated 08 October 2026"
 output:
   html_document:
     code_download: true
@@ -86,7 +86,7 @@ seoul |>
 
 Discuss: Where does a line miss the shape in the points? How does the LOESS span change the curve? Compare the cubic spline and natural cubic spline near the observed temperature limits. A natural cubic spline becomes linear beyond its boundary knots, but does that make extrapolation safe? Would a more flexible fit to these observations by itself justify choosing that model?
 
-**Worked interpretation:** The low-span LOESS moves more with local fluctuations. A line misses the broad curved temperature relationship. The two spline fits can differ near the extremes, where data are thin. Natural cubic spline tails are constrained to be linear outside the boundary knots; that constraint does not supply new information outside the observed range. The residual plot is a check for remaining shape, and in-sample fit alone is not a measure of future prediction quality.
+The straight line misses the broad curve in the temperature relationship. With span 0.3, LOESS follows more of the local ups and downs than it does with span 0.9. Notice where the two splines differ near the temperature limits: we have fewer observations there to guide the fit. The natural cubic spline continues as a straight line beyond its boundary knots, but we still have no data out there to check it. We use the residual plot to look for shape that remains; a closer fit to these observations alone does not tell us which curve will predict new days better.
 
 ## Can we separate trend from seasonality?
 
@@ -132,7 +132,7 @@ seoul_time |>
 
 Discuss: What does the trend alone miss? How much of the observed rise and fall does this sine term capture?
 
-**Worked interpretation:** The trend gives a straight change across the year. The unshifted sine term adds a curve, but much of the observed rise and fall is still missed. R² increases from `r sprintf("%.3f", glance(seoul_trend)$r.squared)` for the trend to `r sprintf("%.3f", glance(seoul_sine)$r.squared)` with sine; the single wave is still constrained to peak at particular times.
+The trend can only give us a straight change across the year. Adding sine gives us a curve, but it still misses much of the rise and fall. Here R² increases from 0.377 to 0.416. We can change the height of that wave or flip it, but we cannot freely move its peak while the sine origin is fixed.
 
 ### Seoul: move the origin by 90 days
 
@@ -184,9 +184,7 @@ seoul_time |>
 
 Discuss: What changed in the coefficients, R² and predicted rentals? Did moving the origin change the annual period, or where this single wave is allowed to peak?
 
-These two sine-only models are not nested, so do not use a partial F test between them. The comparison shows what happens when we change the restriction on the peak position. A closer fit within this year does not establish better prediction next year.
-
-**Worked interpretation:** The unshifted sine fit has $R^2 = `r sprintf("%.3f", glance(seoul_sine)$r.squared)`$, compared with $`r sprintf("%.3f", glance(seoul_sine_shift)$r.squared)`$ after shifting the origin by 90 days. The largest difference in predicted rentals is about `r round(max(abs(fitted(seoul_sine) - fitted(seoul_sine_shift))))` rentals. We changed where sine is allowed to peak, so the regression fitted a different mean curve. We did not change the period or the data. This improvement in the observed year does not establish that the shifted model predicts future years better.
+R² changes from 0.416 to 0.601, and the largest difference between the two fitted counts is about 10,733 rentals. We have kept the same days and the same 365-day period. What changed is where sine is allowed to peak, so the model now fits a different curve. That curve follows this year more closely, but we have not checked whether it predicts next year better. These two sine-only models are not nested, so we cannot use a partial F test to compare them.
 
 ### Seoul: keep sine and cosine together
 
@@ -248,7 +246,7 @@ seoul_time |>
 
 Discuss: Do the coefficients still change? Do the predicted rentals change? Why do we get a different result from shifting sine alone?
 
-**Worked interpretation:** Both paired fits have $R^2 = `r sprintf("%.3f", glance(seoul_first)$r.squared)`$. The coefficient vectors change, but the predicted rentals agree to numerical precision, so the two fitted lines overlap. Moving the origin changes how sine and cosine share the annual wave. Keeping both lets either origin describe the same wave, so there is no need to shift time to find the peak. A large individual P-value is not enough to remove one component when the peak position is unknown; assess the pair jointly.
+Now both fits have $R^2 = 0.641$. The largest fitted-value difference is only about $6.55 \times 10^{-11}$ rentals, so the lines sit on top of each other. The coefficients change because sine and cosine share the wave differently after we move the origin. Together they can put the peak wherever the data suggest, so we do not need to search for a better origin. For the same reason, we keep the pair when the peak position is unknown and test it jointly; one large individual P-value does not justify dropping that component.
 
 ### Seoul: add a second seasonal pair
 
@@ -288,7 +286,7 @@ anova(seoul_first, seoul_second)
 
 Discuss: What does the trend alone miss? Does the second pair change the fitted seasonal shape, and what does the partial F test say about its extra terms? We have only one year of Seoul data: what can we say about a pattern recurring next year?
 
-**Worked interpretation:** The trend is a straight temporal change and cannot follow the observed within-year rise and fall. A complete sine/cosine pair allows the phase to be estimated. The second pair adds another frequency. For these 352 days, the partial comparison gives $F(2,346) = 21.79$, $p < 0.001$ under the usual independent-error assumptions; the two extra terms improve the fit within this sample. We will check those residual assumptions next. We have not observed whether the seasonal pattern recurs next year.
+The first pair lets us move the seasonal peak; the second pair lets the shape bend further by adding a wave with twice the frequency. For these 352 days, the partial F test gives $F(2,346) = 21.79$ and $p < 0.001$ under the usual independent-error assumptions. The two extra terms improve the fit here. We still need to check the residual assumptions, and one year cannot tell us whether this pattern repeats next year.
 
 A factor for calendar season or month gives each category its own offset. Sine and cosine give a smooth within-year pattern. The terms answer different questions; neither makes a one-year record into evidence about future years.
 
@@ -298,6 +296,6 @@ We have changed the mean in two different ways. Splines let the relationship wit
 
 In one short paragraph, explain when you would use LOESS, a regression spline, and a trend plus Fourier terms. Then state what these mean-model choices still do **not** tell us about observations collected close together in time.
 
-**Worked interpretation:** LOESS is useful for exploring nonlinear shape without committing to one global regression equation. A regression spline puts a flexible nonlinear effect directly into the regression model, with its flexibility controlled by the spline basis and degrees of freedom. Trend and Fourier terms describe systematic change through time and smooth periodic structure in the mean. None of these choices establishes that the remaining errors are independent. Observations close together in time may still have related residuals after the mean has been fitted.
+We can use LOESS to explore the shape before choosing a regression model. A spline then lets us put a curved relationship into that model and control how much it bends through its basis and degrees of freedom. For time, a trend describes an overall change, while Fourier terms add a repeating wave. All of these choices change the fitted mean. The residuals from nearby days may still be related, even after we have fitted that mean.
 
 That remaining question is the starting point for Lab 13: after fitting a reasonable mean, are the residuals still dependent?

@@ -2,7 +2,7 @@
 title: "Computer Laboratory 12: Curves, trend and seasonality"
 subtitle: "161.251 Regression Modelling"
 author: "Nick Knowlton nknowlton@massey.ac.nz"
-date: "last updated `r format(lubridate::today(), '%d %B %Y')`"
+date: "last updated 08 October 2026"
 output:
   html_document:
     code_download: true
