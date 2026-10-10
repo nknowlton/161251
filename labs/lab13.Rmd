@@ -126,7 +126,7 @@ Discuss: Which observed patterns belong to the mean model and which remain in th
 
 ### Quarterly house prices: make your own comparison
 
-Each row of `hp.csv` is one quarter. `Perth` is a relative house-price index and `WtAve` is the weighted index across eight Australian capitals. The indices use Darwin in the second quarter of 1986 as a reference value of 100. The published `WtAve` includes Perth itself, so describe an association with that average rather than an independent prediction from the other seven cities. `lubridate::my()` parses the month-year text as the quarter's first month.
+Each row of `hp.csv` is one quarter. `Perth` is a relative house-price index and `WtAve` is the weighted index across eight Australian capitals. The indices use the reference period 1989–90 = 100, so each city's index measures changes relative to its own prices in that period. The published `WtAve` includes Perth itself, so describe an association with that average rather than an independent prediction from the other seven cities. `lubridate::my()` parses the month-year text as the quarter's first month.
 
 ```{r perth-data, message=FALSE}
 hp <- read_csv("https://knowlton.co.nz/161251/data/hp.csv", show_col_types = FALSE) |>
