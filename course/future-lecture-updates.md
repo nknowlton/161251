@@ -24,3 +24,9 @@ This is a holding file for suggestions that should not be applied to the current
 ## Additional deferred suggestions
 
 Add future suggestions below using the same fields: lecture, status, suggested update, rationale and source.
+
+## 2027 Stream navigation
+
+- **Status:** proposed course-delivery change for 2027, not implemented in 2026.
+- **Suggested update:** provide a dated Stream index with direct lecture, recording, lab and assessment links, using Wild Caught Data as the design reference.
+- **Details:** [2027 course updates](2027-course-updates.md).
