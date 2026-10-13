@@ -1,4 +1,3 @@
-
 ```{r autoregressive-errors-setup, include=FALSE}
 library(nlme)
 library(broom.mixed)
@@ -6,7 +5,7 @@ library(broom.mixed)
 
 ## Regression with Autoregressive Errors
 
-The previous lecture showed how to diagnose autocorrelation in regression residuals. This lecture keeps the same mean structure ideas, but changes the model for the errors.
+In Lecture 34 we found that a regression can explain the mean quite well and still leave neighbouring residuals related. If this month's response is above the fitted mean, next month's deviation may also be positive. How can we account for that dependence when estimating the regression coefficients and their precision?
 
 By the end of this lecture, students should be able to:
 
@@ -15,25 +14,9 @@ By the end of this lecture, students should be able to:
 3. Fit a regression model with `gls()` and `corAR1()`.
 4. Check whether normalised residuals look closer to white noise.
 
-## Why Ordinary Least Squares Is Not Enough
-
-If the mean model is correctly specified and the errors average to zero given the predictors, correlated errors do not by themselves force the OLS slope to be biased. They do make the usual independent-error standard errors unreliable; the direction of the error is not fixed. We now keep the trend and seasonal predictors and model the dependence among the remaining errors.
-
-## The AR(1) Error Model
-
-A first-order autoregressive error model is
-$$\varepsilon_t = \phi \varepsilon_{t-1} + \eta_t,$$
-where $\eta_t$ is independent white noise with mean zero and constant variance.
-
-- If $\phi > 0$, nearby errors tend to move in the same direction.
-- If $\phi < 0$, nearby errors tend to alternate.
-- If $\phi = 0$, we are back to independent errors.
-
-For the process to be stationary, we require $|\phi| < 1$. Its lag-$k$ correlation is $\phi^k$, so dependence weakens as the time gap grows. These correlations describe the errors after we have accounted for the mean predictors.
-
 ## Main Worked Example: Tourism in Victoria
 
-These data are monthly room nights occupied in hotels, motels, and guesthouses in Victoria from January 1980 to December 1994.
+These data record monthly room nights occupied in hotels, motels, and guesthouses in Victoria from January 1980 to December 1994. We have 180 observations, one for each month.
 
 `r xfun::embed_file("../data/motel.csv")`
 
@@ -44,64 +27,154 @@ tourism <- read_csv("../data/motel.csv", show_col_types = FALSE) |>
     Time = round(time_length(Date - min(Date), unit = "month")),
     Month = factor(month(Date, label = TRUE), ordered = FALSE),
     Year = year(Date)
-  )
+  ) |>
+  arrange(Date)
 
-stopifnot(all(diff(tourism$Time) == 1))
-
-tourism |> head() |> kable()
+stopifnot(nrow(tourism) == 180, all(diff(tourism$Time) == 1))
 ```
 
-### Ordinary Regression First
+`Time` counts months from the start of the series. `Month` lets expected room nights differ between January, February, and so on.
+
+## Tourism: Fit the Mean First
+
+We allow a linear trend and a separate effect for each month:
 
 ```{r tourism-lm}
 tourism_lm <- lm(RoomNights ~ Time + Month, data = tourism)
-anova(tourism_lm)
-summary(tourism_lm)
 ```
 
-```{r tourism-lm-fit-plot}
+```{r tourism-lm-fit-plot, echo=FALSE, fig.width=8, fig.height=3.5, out.width="80%", fig.alt="Monthly tourism room nights and the OLS fitted trend with month effects"}
 augment(tourism_lm, tourism) |>
   ggplot(aes(x = Date)) +
-  geom_point(aes(y = RoomNights)) +
-  geom_line(aes(y = .fitted), colour = "blue") +
-  labs(title = "Trend and seasonality explain much of the tourism series")
+  geom_point(aes(y = RoomNights), colour = "grey55", size = 1) +
+  geom_line(aes(y = .fitted), colour = "#173f5f") +
+  labs(x = "Date", y = "Room nights", title = "OLS: trend and month effects")
 ```
 
-This is a sensible mean model, but the residuals may still be dependent.
+The fitted mean follows much of the growth and seasonal variation. Now check the deviations around it.
 
-```{r tourism-lm-residual-acf, fig.height=4.5}
-acf(resid(tourism_lm), main = "ACF of tourism residuals")
+## Tourism: What Remains Over Time?
+
+```{r tourism-lm-residual-plot, echo=FALSE, fig.width=8, fig.height=3.5, out.width="80%", fig.alt="OLS tourism residuals in chronological order with a reference line at zero"}
+tourism |>
+  mutate(residual = residuals(tourism_lm)) |>
+  ggplot(aes(Date, residual)) +
+  geom_line(colour = "#173f5f") +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(x = "Date", y = "Residual (room nights)")
 ```
 
-The residual ACF suggests positive autocorrelation, so AR(1) errors are a reasonable first correction.
+Follow the residuals in time order. Several consecutive months can sit on the same side of zero even after fitting trend and month effects. A seasonal pattern in the **mean** and dependence among the **errors** are different parts of the model.
+
+## Tourism: ACF Before GLS
+
+```{r tourism-lm-residual-acf, fig.width=8, fig.height=3.5, out.width="80%", fig.alt="ACF of OLS tourism residuals at lags through 24 months"}
+acf(resid(tourism_lm), lag.max = 24,
+    main = "OLS tourism residuals", xlab = "Lag (months)", ylim = c(-0.4, 1))
+```
+
+```{r tourism-ols-diagnostic-values, include=FALSE}
+tourism_ols_r <- as.numeric(acf(resid(tourism_lm), lag.max = 24, plot = FALSE)$acf)[-1]
+```
+
+Lag 1 is one month; lag 12 is one year. The lag-1 correlation is about `r round(tourism_ols_r[1], 3)`, with positive correlations at several nearby lags. An AR(1) error model is a reasonable first attempt to account for that persistence.
+
+## Why Ordinary Least Squares Is Not Enough
+
+If the mean model is correctly specified and the errors average to zero given the predictors, correlated errors do not by themselves make the OLS coefficients biased.
+
+The usual OLS standard errors still assume independent errors. When nearby deviations tend to move together, their contribution to precision differs from that calculation. Confidence intervals and tests based on it can therefore be unreliable.
+
+We will keep the same trend and month predictors and change the model for the errors. The direction and size of the standard-error change depend on the predictors and the dependence pattern.
+
+## The AR(1) Error Model
+
+A **first-order autoregressive**, or AR(1), error model is
+
+$$\varepsilon_t = \phi\varepsilon_{t-1} + \eta_t.$$
+
+The current error contains a contribution from the previous error, $\phi\varepsilon_{t-1}$, plus a new disturbance, $\eta_t$. We call $\eta_t$ the **innovation**: the part that was not carried forward from the past.
+
+We assume the innovations are independent of past errors and of one another, with mean zero and constant variance.
+
+- If $\phi>0$, nearby errors tend to move in the same direction.
+- If $\phi<0$, nearby errors tend to alternate.
+- If $\phi=0$, each error is just its new innovation.
+
+## AR(1): Put Numbers Into the Equation
+
+Suppose $\phi=0.4$ and last month's error was 1,000 room nights. The contribution carried into this month is
+
+$$\phi\varepsilon_{t-1}=0.4\times1{,}000=400.$$
+
+If this month's error is 500, the new disturbance must be
+
+$$\eta_t=\varepsilon_t-\phi\varepsilon_{t-1}=500-400=100.$$
+
+The model separates the 500 into 400 carried forward and 100 of new disturbance. Before observing this month's innovation, its expected error would be 400. The realised error can differ because a new disturbance arrives.
+
+These are illustrative errors. In real data we do not know the true errors, so we estimate the mean and work with residuals.
+
+## How Long Does the Dependence Last?
+
+For a stationary AR(1) process, the lag-$k$ error correlation is $\phi^k$. With $\phi=0.4$:
+
+| Time gap | Correlation |
+|:--|--:|
+| One month | $0.4$ |
+| Two months | $0.4^2=0.16$ |
+| Three months | $0.4^3=0.064$ |
+
+The previous error carries information about the next one, but that information weakens across longer gaps.
+
+We require $|\phi|<1$ for a stationary AR(1) error process. Here **stationary** means the error process has a stable mean and variance, and correlations depend on the time gap. The response itself can still have trend and seasonality through its mean model.
 
 ## Regression Model with AR(1) Errors
 
-For the tourism data we now write
+For the tourism data, our two model components are
+
 $$\begin{aligned}
-Y_t &= \beta_0 + \beta_1 \mathrm{Time} + \beta_2 z_{t,2} + \cdots + \beta_{12} z_{t,12} + \varepsilon_t, \\
-\varepsilon_t &= \phi \varepsilon_{t-1} + \eta_t.
+Y_t &= \beta_0 + \beta_1\mathrm{Time}_t + \beta_2z_{t,2} + \cdots + \beta_{12}z_{t,12} + \varepsilon_t, \\
+\varepsilon_t &= \phi\varepsilon_{t-1} + \eta_t.
 \end{aligned}$$
 
-The mean still depends on trend and month. The new ingredient is the correlation structure among the errors.
+The $z_{t,j}$ terms are the 11 month indicators, with January as the reference month.
 
-## Why GLS Works
+The first equation describes expected room nights given time and month. The second describes how deviations from that expectation persist. Adding AR(1) errors does not add last month's observed room nights as a predictor in the mean formula.
 
-Suppose
+## Why GLS Works: Compare Two Adjacent Times
+
+To see the calculation with one predictor, write the regression at times $t$ and $t-1$:
+
 $$\begin{aligned}
-y_t &= \beta_0 + \beta_1 x_t + \varepsilon_t, \\
-\varepsilon_t &= \phi \varepsilon_{t-1} + \eta_t.
+y_t &= \beta_0 + \beta_1x_t + \varepsilon_t, \\
+y_{t-1} &= \beta_0 + \beta_1x_{t-1} + \varepsilon_{t-1}.
 \end{aligned}$$
 
-Subtracting $\phi$ times the previous equation from the current one gives
-$$y_t - \phi y_{t-1}
-= \beta_0(1 - \phi) + \beta_1(x_t - \phi x_{t-1}) + \eta_t.$$
+Multiply the second equation by $\phi$. Subtracting it from the first leaves the error difference
 
-The transformation removes the AR(1) dependence, leaving the independent errors $\eta_t$. **Generalised least squares** uses this covariance structure when estimating the regression coefficients.
+$$\varepsilon_t-\phi\varepsilon_{t-1}=\eta_t.$$
+
+Under the AR(1) model, this difference is the new innovation. We have removed the contribution carried forward from the previous error.
+
+## Why GLS Works: Transform the Whole Regression
+
+Subtracting the two equations gives
+
+$$y_t-\phi y_{t-1}
+=\beta_0(1-\phi)+\beta_1(x_t-\phi x_{t-1})+\eta_t.$$
+
+- The response becomes $y_t-\phi y_{t-1}$.
+- The predictor becomes $x_t-\phi x_{t-1}$.
+- The intercept multiplier becomes $1-\phi$.
+
+We must transform the whole regression, including every predictor. Transforming only the response would describe a different mean model.
+
+**Generalised least squares (GLS)** uses the error covariance structure to estimate the regression coefficients. This adjacent-time calculation explains its mechanism for AR(1); the software also handles the first observation and estimates the unknown $\phi$.
 
 ## Fitting the AR(1) Model in R
 
-The `gls()` function from `nlme` uses the usual model formula plus an explicit correlation structure.
+`gls()` from `nlme` takes the usual mean formula plus a correlation structure:
 
 ```{r tourism-gls}
 tourism_gls <- gls(
@@ -109,46 +182,237 @@ tourism_gls <- gls(
   correlation = corAR1(form = ~ Time),
   data = tourism
 )
-anova(tourism_gls)
-summary(tourism_gls)
 ```
 
-`Time` is the integer covariate that defines correlation distance in `correlation = corAR1(form = ~ Time)`.
+`RoomNights ~ Time + Month` specifies the mean. `corAR1(form = ~ Time)` specifies how errors are related according to their separation in time.
 
-`Time` counts months, so observations one month apart have correlation $\phi$ and observations two months apart have correlation $\phi^2$ under this model. The regression formula still describes mean room nights. The `corAR1()` term describes the pattern left in the errors.
+`Time` must be integer-valued and counts months here. Observations two months apart have modelled error correlation $\phi^2$, rather than $\phi$.
 
-### Comparing OLS and GLS Standard Errors
+## Tourism: Interpret the Estimated Dependence
 
-```{r tourism-standard-error-comparison}
-list(
-  gls = tidy(tourism_gls),
-  lm = tidy(tourism_lm)
+```{r tourism-phi}
+tourism_phi <- unname(coef(
+  tourism_gls$modelStruct$corStruct, unconstrained = FALSE
+))
+```
+
+```{r tourism-phi-table, echo=FALSE}
+tibble(
+  `Gap (months)` = 1:3,
+  `Fitted error correlation` = tourism_phi^(1:3)
+) |> kable(digits = 3)
+```
+
+We estimate $\hat\phi\approx `r round(tourism_phi, 3)`$. After allowing for trend and month effects, errors one month apart have an estimated correlation of about `r round(tourism_phi, 2)` under this model.
+
+That estimate describes the **modelled dependence**. We still need to check whether the model accounts for the pattern in these data.
+
+## How Precisely Have We Estimated the Correlation?
+
+$\hat\phi$ is an estimate from `r nrow(tourism)` months of data, so it carries uncertainty of its own.
+
+```{r tourism-gls-intervals}
+intervals(tourism_gls)
+```
+
+The `Phi` row repeats our estimate and adds an approximate 95% interval for the error correlation. In Lab 13 you will read the same row for the Perth house-price data, where only 45 quarters are available and the interval is wider.
+
+The lesson to carry forward: an estimate of $\phi$ near zero does not by itself establish independence when the interval around it is wide.
+
+## Where Does the GLS Standard Error Come From?
+
+Lecture 34 wrote down the variance OLS reports when independence fails. GLS uses the fitted error model instead:
+
+$$\operatorname{Var}(\widehat{\boldsymbol\beta}_{\text{GLS}})
+=(X^\top\widehat\Sigma^{-1}X)^{-1}.$$
+
+$\widehat\Sigma$ is the estimated error covariance matrix. For AR(1) errors it is assembled from $\hat\phi$ and $\hat\sigma$, because this model fixes $\operatorname{Corr}(\varepsilon_s,\varepsilon_t)=\phi^{|s-t|}$. Here $\hat\sigma$ is the innovation standard deviation, the scale of the new disturbances $\eta_t$: `summary(tourism_gls)` reports it as the residual standard deviation, and the raw errors themselves have variance $\sigma^2/(1-\phi^2)$.
+
+Neither parameter is known in advance, so `gls()` estimates $\phi$ and $\sigma$ alongside the regression coefficients. When neighbouring errors carry overlapping information, $(X^\top\widehat\Sigma^{-1}X)^{-1}$ can give larger variances than the independent-errors formula, even with an almost unchanged mean fit. The comparison below is where that shows up.
+
+## Tourism: What Happens to the Trend and Its Precision?
+
+```{r tourism-standard-error-comparison, echo=FALSE}
+tourism_trend <- bind_rows(
+  tidy(tourism_lm) |> mutate(model = "OLS"),
+  tidy(tourism_gls) |> mutate(model = "GLS with AR(1)")
 ) |>
-  bind_rows(.id = "model") |>
   filter(term == "Time") |>
-  select(model, term, estimate, std.error)
+  select(model, estimate, std.error)
+
+tourism_trend |>
+  rename(Model = model, `Trend estimate` = estimate, `Standard error` = std.error) |>
+  kable(digits = 1)
+
+tourism_se_ratio <- tourism_trend$std.error[2] / tourism_trend$std.error[1]
 ```
 
-Compare the trend estimates *and* their standard errors. GLS may change the estimated trend as well as its precision because observations are no longer treated as providing independent information. The direction and size of the change are properties of these data and this fitted correlation model, not a universal correction factor.
+Holding month constant, expected room nights increase by about `r format(round(tourism_trend$estimate[2]), big.mark = ",")` for each additional month. The trend estimate barely changes between the two fits.
 
-### Checking the Normalized Residuals
+Its standard error increases by about `r round(100 * (tourism_se_ratio - 1))`%. A similar fitted mean can have a different precision calculation once we account for dependence. GLS can also change coefficient estimates; neither the direction nor the size of these changes is universal.
 
-```{r tourism-normalized-residual-acf}
-acf(
-  residuals(tourism_gls, type = "normalized"),
-  main = "ACF of normalized residuals after GLS"
+Selection inherits this change. Comparing models by AIC ranks them using the fitted error model, and judging a term by its t-statistic reads the standard errors shown here, so an error model can change which terms look worth keeping. Any such comparison between models with different mean formulas should be made with `method = "ML"` in `gls()`, since the default REML likelihood is intended for models sharing a mean structure.
+
+## Which GLS Residuals Should We Check?
+
+The raw GLS residual is still observed minus fitted:
+
+$$e_t=y_t-\widehat\mu_t.$$
+
+Our model allows these deviations to be correlated. We should therefore expect raw residuals to retain some of that correlation, even when the error model is reasonable.
+
+**Normalised residuals** account for the fitted correlation and rescale the residuals. For adjacent times in this AR(1) example, the calculation is based on $e_t-\hat\phi e_{t-1}$, followed by scaling. We check these for remaining dependence.
+
+The name *normalised* describes that transformation. It does not mean the residual distribution has been made normal. See the [`nlme` residual documentation](https://stat.ethz.ch/R-manual/R-devel/library/nlme/html/residuals.gls.html).
+
+## Tourism: Raw and Normalised Residuals
+
+```{r tourism-residual-types}
+tourism_raw <- residuals(tourism_gls, type = "response")
+tourism_normalised <- residuals(tourism_gls, type = "normalized")
+```
+
+```{r tourism-gls-diagnostic-values, include=FALSE}
+stopifnot(length(tourism_raw) == nrow(tourism),
+          length(tourism_normalised) == nrow(tourism))
+tourism_raw_r <- as.numeric(acf(tourism_raw, lag.max = 24, plot = FALSE)$acf)[-1]
+tourism_normalised_r <- as.numeric(acf(tourism_normalised, lag.max = 24, plot = FALSE)$acf)[-1]
+```
+
+```{r tourism-residual-type-comparison, echo=FALSE}
+tibble(
+  Residuals = c("OLS", "GLS: raw", "GLS: normalised"),
+  `Lag-1 correlation` = c(tourism_ols_r[1], tourism_raw_r[1], tourism_normalised_r[1]),
+  `Lag-12 correlation` = c(tourism_ols_r[12], tourism_raw_r[12], tourism_normalised_r[12])
+) |> kable(digits = 3)
+```
+
+The raw GLS residuals have much the same lag-1 correlation as the OLS residuals. After accounting for the fitted dependence, the normalised residuals have much less lag-1 correlation. The lag-12 value still needs attention.
+
+## Tourism: Residual Patterns Before and After GLS
+
+```{r tourism-residual-time-comparison, echo=FALSE, fig.width=8, fig.height=4, out.width="80%", fig.alt="Time plots comparing standardised OLS residuals and GLS normalised residuals on the same scale"}
+bind_rows(
+  tibble(Date = tourism$Date, Residual = resid(tourism_lm) / sigma(tourism_lm),
+         Model = "OLS: standardised residuals"),
+  tibble(Date = tourism$Date, Residual = tourism_normalised,
+         Model = "GLS: normalised residuals")
+) |>
+  mutate(Model = factor(Model, levels = c("OLS: standardised residuals", "GLS: normalised residuals"))) |>
+  ggplot(aes(Date, Residual)) +
+  geom_line(colour = "#173f5f") +
+  geom_hline(yintercept = 0, linetype = 2) +
+  facet_wrap(~ Model, ncol = 1) +
+  labs(x = "Date", y = "Residual (scaled units)")
+```
+
+Both plots use the same months. The OLS residuals are divided by their estimated residual standard deviation to put them on a comparable scale. Look for persistence in the sequence, as well as large individual deviations.
+
+## Tourism: ACF Before and After GLS
+
+```{r tourism-normalized-residual-acf, echo=FALSE, fig.width=9, fig.height=3.5, out.width="90%", fig.alt="Matched ACF panels through 24 months showing reduced lag-1 correlation but remaining lag-12 correlation after GLS normalisation"}
+tourism_acf_comparison <- tibble(
+  Lag = rep(1:24, 2),
+  Correlation = c(tourism_ols_r, tourism_normalised_r),
+  Model = factor(rep(c("OLS residuals", "GLS normalised residuals"), each = 24),
+                 levels = c("OLS residuals", "GLS normalised residuals"))
+)
+tourism_acf_limit <- qnorm(0.975) / sqrt(nrow(tourism))
+
+ggplot(tourism_acf_comparison, aes(Lag, Correlation)) +
+  geom_hline(yintercept = 0, colour = "grey55") +
+  geom_hline(yintercept = c(-tourism_acf_limit, tourism_acf_limit),
+             linetype = 2, colour = "#267f8b") +
+  geom_segment(aes(xend = Lag, yend = 0), colour = "#173f5f") +
+  facet_wrap(~ Model, nrow = 1) +
+  scale_x_continuous(breaks = c(1, 6, 12, 18, 24)) +
+  coord_cartesian(ylim = c(-0.4, 0.6)) +
+  labs(x = "Lag (months)", y = "ACF")
+```
+
+Lag 0 is omitted because it is always 1. The panels have identical axes. Lag 1 falls from `r round(tourism_ols_r[1], 3)` to `r round(tourism_normalised_r[1], 3)`, but lag 12 remains positive at `r round(tourism_normalised_r[12], 3)`.
+
+The dashed lines are approximate pointwise white-noise reference limits. They guide inspection; they do not prove independence or form a simultaneous band across all lags.
+
+## Tourism: Repeat Ljung-Box Across One Year
+
+The ACF shows *where* correlation remains. Ljung-Box combines the correlations across a chosen set of lags. Use lags 1 through 12 to include gaps of up to one year:
+
+$$H_0:\rho_1=\cdots=\rho_{12}=0.$$
+
+```{r tourism-ljung-box}
+tourism_lb_ols <- Box.test(
+  resid(tourism_lm), lag = 12, type = "Ljung-Box", fitdf = 0
+)
+tourism_lb_gls <- Box.test(
+  tourism_normalised, lag = 12, type = "Ljung-Box", fitdf = 1
 )
 ```
 
-We want much less remaining structure in the normalised residuals than in the OLS residuals. A quieter ACF makes AR(1) a more plausible working error model; it does not prove independence or rule out a missing part of the mean.
+We chose 12 using the monthly time scale, rather than searching for a lag that gives a preferred P-value.
+
+## Tourism: Has the Dependence Been Accounted For?
+
+```{r tourism-ljung-box-comparison, echo=FALSE}
+tibble(
+  Residuals = c("OLS", "GLS: normalised"),
+  `Statistic Q` = c(unname(tourism_lb_ols$statistic), unname(tourism_lb_gls$statistic)),
+  `Reference df` = c(unname(tourism_lb_ols$parameter), unname(tourism_lb_gls$parameter)),
+  `Approximate P-value` = format.pval(c(tourism_lb_ols$p.value, tourism_lb_gls$p.value),
+                                    digits = 3, eps = 0.0001)
+) |> kable(digits = 2)
+```
+
+The statistic is smaller after normalisation, and the lag-1 correlation is much reduced. The remaining small P-value and lag-12 ACF bar still give evidence of dependence across these lags.
+
+
+## Tourism: What Would We Investigate Next?
+
+The month indicators already allow the *average* January mean to differ from the average February mean. They do not necessarily account for changing seasonal effects or dependence between deviations one year apart.
+
+I would check whether the trend or seasonal mean is missing structure, then consider whether the errors need a richer model for seasonal dependence. The lag-12 bar identifies a time gap to investigate; it does not identify the correct replacement model.
+
+Correlation magnitude tells us how large a particular sample relationship is. A P-value measures evidence against a reference hypothesis. A larger P-value, or a smaller Ljung-Box statistic, would not establish that all dependence had been resolved.
+
+## Work Through the AR(1) Calculation
+
+Suppose $\phi=0.6$, the previous error is $-200$, and the current error is $-50$. What is the innovation?
+
+. . .
+
+The contribution carried forward is $0.6\times(-200)=-120$. Therefore
+
+$$\eta_t=-50-(-120)=70.$$
+
+The new disturbance is positive even though the current error is negative. It partly offsets the negative contribution from the past.
+
+## Which Residuals Answer Our Diagnostic Question?
+
+After fitting AR(1) errors, the raw GLS residuals still have positive lag-1 correlation. Does that alone show the model failed?
+
+. . .
+
+No. The model allows raw deviations from the fitted mean to be correlated. We inspect **normalised residuals** to ask whether dependence remains after accounting for the fitted error structure.
+
+A large estimated $\phi$ and a small normalised lag-1 correlation can occur together: the model has estimated substantial dependence and accounted for much of it.
+
+## Interpret the Before-and-After ACF
+
+Lag-1 correlation is close to zero after normalisation, but lag-12 correlation remains large. What conclusion can we draw?
+
+. . .
+
+AR(1) has accounted for much of the neighbouring-month dependence. It has left a pattern at a one-year gap, so we should investigate the mean and the error model further.
+
+Checking only lag 1 would miss that remaining pattern. We need the time plot, the wider ACF and a joint diagnostic, rather than a single numerical verdict.
 
 ## A Short Comparison: Seoul Bike with AR(1) Errors
 
-The same modelling pattern can be used for the daily Seoul bike data once we have already chosen a reasonable mean structure.
+Return to the daily Seoul bike model from Lectures 32/33. Its mean includes the time trend, two Fourier pairs and weather predictors. We now fit both OLS and GLS to all functioning days.
 
 `r xfun::embed_file("../data/seoul_bike_daily.csv")`
 
-```{r read-seoul-daily-gls, message=FALSE}
+```{r read-seoul-daily-gls, include=FALSE}
 seoul_daily <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE) |>
   mutate(date = as.Date(date)) |>
   arrange(date) |>
@@ -159,57 +423,123 @@ seoul_daily <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE) 
     S2 = sin(4 * pi * day_index / 365),
     C2 = cos(4 * pi * day_index / 365)
   )
+stopifnot(nrow(seoul_daily) == 352, all(diff(seoul_daily$day_index) > 0),
+          !anyDuplicated(seoul_daily$date))
+```
 
+```{r seoul-mean-model}
 seoul_lm <- lm(
   rented_bike_count ~ day_index + S1 + C1 + S2 + C2 +
     mean_temperature + total_rainfall + total_solar_radiation,
   data = seoul_daily
 )
+```
 
+`S1`, `C1`, `S2` and `C2` are the same annual seasonal terms used earlier. The mean formula is held constant for the comparison.
+
+## Seoul: Fit AR(1) Using Actual Day Distances
+
+```{r seoul-gls}
 seoul_gls <- gls(
   rented_bike_count ~ day_index + S1 + C1 + S2 + C2 +
     mean_temperature + total_rainfall + total_solar_radiation,
   correlation = corAR1(form = ~ day_index),
   data = seoul_daily
 )
+```
 
+```{r seoul-gls-values, include=FALSE}
+seoul_phi <- unname(coef(seoul_gls$modelStruct$corStruct, unconstrained = FALSE))
 seoul_normalized_residuals <- residuals(seoul_gls, type = "normalized")
 seoul_diagnostics <- seoul_daily |>
-  mutate(normalized_residual = seoul_normalized_residuals)
+  mutate(ols_residual = resid(seoul_lm),
+         normalized_residual = seoul_normalized_residuals)
 ```
 
-The Seoul models use all 352 functioning days, and `day_index` retains its original values after the 13 outage days are removed. `corAR1(form = ~ day_index)` uses the integer distance between days, so a gap of several days is not treated as one step.
+Both models use all `r nrow(seoul_daily)` functioning days. We retain the original `day_index` after removing the 13 outage days. A gap of three days therefore has modelled error correlation $\phi^3$, rather than being treated as one step.
 
-```{r seoul-full-series-plot}
-augment(seoul_lm, seoul_daily) |>
-  ggplot(aes(x = date)) +
-  geom_line(aes(y = rented_bike_count), colour = "grey55") +
-  geom_line(aes(y = .fitted), colour = "red") +
-  labs(x = "Actual date", y = "Daily rented bike count", title = "Seoul demand and fitted mean on functioning days")
-```
+Here $\hat\phi\approx `r round(seoul_phi, 3)`$. The next question is whether the normalised residuals show less dependence.
 
-```{r seoul-gls-comparison}
-list(
-  gls = tidy(seoul_gls),
-  lm = tidy(seoul_lm)
+## Seoul: Compare Estimates and Standard Errors
+
+```{r seoul-gls-comparison, echo=FALSE}
+seoul_trend <- bind_rows(
+  tidy(seoul_lm) |> mutate(model = "OLS"),
+  tidy(seoul_gls) |> mutate(model = "GLS with AR(1)")
 ) |>
-  bind_rows(.id = "model") |>
   filter(term == "day_index") |>
-  select(model, term, estimate, std.error)
+  select(model, estimate, std.error)
+
+seoul_trend |>
+  rename(Model = model, `Trend estimate` = estimate, `Standard error` = std.error) |>
+  kable(digits = 2)
 ```
 
-```{r seoul-normalized-residual-acf}
-seoul_run_normalized <- seoul_diagnostics |>
-  filter(date >= as.Date("2017-12-01"), date <= as.Date("2018-04-10")) |>
-  pull(normalized_residual)
+The day-index coefficient is the change in expected daily rentals per additional day, holding the seasonal and weather predictors constant. Its estimate changes from `r round(seoul_trend$estimate[1], 2)` to `r round(seoul_trend$estimate[2], 2)`, while its standard error increases.
 
-acf(seoul_run_normalized, main = "ACF of normalised Seoul residuals: consecutive days")
+As in tourism, accounting for dependence changes the precision calculation. Here it also makes a more visible difference to the trend estimate.
+
+## Seoul: Make a Matched Diagnostic Comparison
+
+An ordinary ACF assumes equally spaced observations. Use the uninterrupted period from 1 December 2017 to 10 April 2018 for **both** residual sequences:
+
+```{r seoul-diagnostic-window}
+seoul_run <- seoul_diagnostics |>
+  filter(date >= as.Date("2017-12-01"),
+         date <= as.Date("2018-04-10"))
+
+stopifnot(nrow(seoul_run) == 131,
+          all(diff(seoul_run$day_index) == 1),
+          all(as.numeric(diff(seoul_run$date)) == 1))
 ```
 
-We want much less remaining structure in the normalised residuals than in the OLS residuals. A quieter ACF makes AR(1) a more plausible working error model; it does not prove independence or rule out a missing part of the mean.
+Both models were fitted on 352 days; these plots examine their residuals on the same 131-day window. **Lecture 34 refitted the mean model on that window.** Its residuals therefore differ from the full-year OLS residuals compared here.
 
-The daily Seoul example uses the same distinction between a model for expected demand and a model for residual dependence. We retain the actual day index after removing system outages so a gap of several days is not treated as one AR(1) step. We should not read an ordinary ACF of the shortened residual vector as though every retained row were exactly one day apart.
+## Seoul: ACF Before and After GLS
 
-## Final Comment
+```{r seoul-normalized-residual-acf, echo=FALSE, fig.width=9, fig.height=3.5, out.width="90%", fig.alt="Matched ACFs over the same 131 consecutive Seoul days from full-year OLS and GLS fits"}
+seoul_run_ols_r <- as.numeric(acf(seoul_run$ols_residual, lag.max = 14, plot = FALSE)$acf)[-1]
+seoul_run_normalised_r <- as.numeric(acf(seoul_run$normalized_residual, lag.max = 14, plot = FALSE)$acf)[-1]
+seoul_acf_limit <- qnorm(0.975) / sqrt(nrow(seoul_run))
 
-AR(1) gives us a first model for the dependence. If the normalised residuals still show a pattern, we need to reconsider the mean or the error model. Fitting a trend and seasonal terms does not finish the job; we also need to check what remains in the residuals.
+tibble(
+  Lag = rep(1:14, 2),
+  Correlation = c(seoul_run_ols_r, seoul_run_normalised_r),
+  Model = factor(rep(c("OLS residuals", "GLS normalised residuals"), each = 14),
+                 levels = c("OLS residuals", "GLS normalised residuals"))
+) |>
+  ggplot(aes(Lag, Correlation)) +
+  geom_hline(yintercept = 0, colour = "grey55") +
+  geom_hline(yintercept = c(-seoul_acf_limit, seoul_acf_limit),
+             linetype = 2, colour = "#267f8b") +
+  geom_segment(aes(xend = Lag, yend = 0), colour = "#173f5f") +
+  facet_wrap(~ Model, nrow = 1) +
+  scale_x_continuous(breaks = c(1, 4, 7, 10, 14)) +
+  coord_cartesian(ylim = c(-0.4, 0.6)) +
+  labs(x = "Lag (days)", y = "ACF")
+```
+
+Lag-1 correlation falls from `r round(seoul_run_ols_r[1], 3)` to `r round(seoul_run_normalised_r[1], 3)`. There is much less neighbouring-day dependence in this window, although the lag-14 bar still stands out.
+
+These plots do not establish adequacy across the whole year. We have not treated the gappy 352-row series as equally spaced, or applied a formal Ljung-Box test to this selected window.
+
+## What Would You Check After Fitting GLS?
+
+Keep the mean and error questions separate. A plausible trend and seasonal mean can still leave dependence, and a fitted AR(1) parameter does not establish that the error model is adequate.
+
+Inspect normalised residuals in time order, compare their ACF with the original residual ACF, and interpret a joint diagnostic where appropriate. Check longer gaps as well as lag 1.
+
+For tourism, we have accounted for much of the short-term persistence, while seasonal dependence remains worth investigating. For Seoul, the matched window shows a substantial improvement, with conclusions limited to that period. In each case, the next modelling decision comes from what remains in the residuals.
+
+## Looking Forward
+
+We stop at AR(1) errors: the simplest model we could write for dependence between neighbouring observations. The same move, choosing a structure for $\Sigma$ and estimating it alongside the mean, is the working heart of several fields this course does not reach.
+
+::: incremental
+- **ARIMA models**: the standard forecasting toolkit. Differencing removes a trend before fitting, and autoregressive and moving-average terms let the errors carry longer memory than our single $\phi$. Used for short-term forecasts of demand, energy and economic series, each issued with a prediction interval.
+- **GARCH models**: for returns and other series where volatility itself is correlated. Today's variance is written as a function of yesterday's squared innovations, so calm stretches follow calm and wild follow wild. Banks and insurers build risk measures on it.
+- **Mixed models**: for grouped data such as repeated measurements on the same patient, plot or school. Each group receives its own coefficient drawn from a shared distribution, which builds a block structure into $\Sigma$. The workhorse of longitudinal and clinical studies.
+- **Gaussian processes**: replace the fixed $\phi^k$ decay with a covariance function of distance. The joint distribution of fitted values then gives prediction intervals that widen away from the data. This is kriging in geostatistics and the surrogate behind Bayesian optimisation in machine learning.
+:::
+
+All four reuse the move we made today: model the covariance, estimate it with the mean, and let the residuals say whether more structure is needed.

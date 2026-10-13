@@ -17,15 +17,19 @@ library(broom.mixed)
 
 # Computer Laboratory 13: Autocorrelation and GLS
 
-Last week we concentrated on the mean: flexible curves, a time trend and seasonal Fourier terms. This week we hold that mean structure in place and ask a different question: after accounting for the mean, do nearby observations still behave as though they are independent?
+In Lab 12 we fitted a time trend and seasonal curves to daily bike rentals in Seoul. That gave us a model for expected demand on each day. But suppose rentals are higher than expected today. Do they also tend to be higher than expected tomorrow?
 
-We will start with the Seoul bike model from Lab 12, then work through monthly tourism data and finish by repeating the full OLS-to-GLS workflow on quarterly Perth house prices.
+Let's start by checking the residuals from that model. Then we'll use monthly tourism data to fit a model with correlated errors, before you repeat the comparison for quarterly Perth house prices. Throughout the lab, keep asking two questions: what has the mean model explained, and what pattern remains in the errors?
 
 The lab uses [seoul_bike_daily.csv](https://knowlton.co.nz/161251/data/seoul_bike_daily.csv), [motel.csv](https://knowlton.co.nz/161251/data/motel.csv) and [hp.csv](https://knowlton.co.nz/161251/data/hp.csv). The downloadable R Markdown file reads all three datasets directly from the course site.
 
-## Start from last week's Seoul mean model
+## Do unusually busy or quiet days occur together in Seoul?
 
-Recreate the second-pair trend and seasonal model from Lab 12. We keep the original dates and `day_index` values after removing non-functioning days, so gaps in service remain gaps in time.
+### Return to the model from Lab 12
+
+Each row in the Seoul data represents one calendar day. `rented_bike_count` is the number of rentals that day, and `day_index` counts days from the original time origin. We remove the 13 days when the service was not fully functioning, leaving 352 days. Keep their original dates and day indices so a gap in service remains a gap in time.
+
+Recreate `seoul_second` from Lab 12. The `day_index` term describes a linear trend, while `S1`, `C1`, `S2` and `C2` are the two sine/cosine pairs that let the seasonal curve bend through the year.
 
 ```{r seoul-mean-model, message=FALSE}
 seoul <- read_csv("https://knowlton.co.nz/161251/data/seoul_bike_daily.csv", show_col_types = FALSE) |>
@@ -45,34 +49,58 @@ seoul_second <- lm(
 )
 ```
 
-The fitted mean already includes trend and seasonal shape. Lab 13 is about what remains in the residuals.
+### Look at the residuals in time order
 
-## What is left in the residuals?
+A positive residual means more rentals than the model predicted; a negative residual means fewer. If busy or quiet days occur together even after adjusting for trend and seasonality, we should see stretches of residuals on the same side of zero.
 
-### Seoul: check the sequence before choosing an error model
-
-Keep the second-pair mean model from above. Plot its residuals against actual dates and check for long stretches on one side of zero. A missing part of the mean can also create a pattern in the residuals, so inspect the mean model before assuming that dependence alone is the problem.
-
-The ordinary ACF and sequence tests assume equally spaced observations. For those diagnostics use the uninterrupted 131-day run from 1 December 2017 to 10 April 2018. Check the dates before treating lag 1 as one day. `DescTools::RunsTest()` splits a numerical sequence at its median; `lmtest::dwtest()` tests first-order correlation in regression residuals; `Box.test(..., type = "Ljung-Box")` tests several lags together. Use the time plot and ACF to interpret their small P-values rather than treating the tests as a diagnosis of the cause.
+Plot the residuals from `seoul_second` against the actual dates and add a horizontal line at zero.
 
 ```{r seoul-dependence, eval=FALSE}
-# Plot residuals from the second-pair model against date with a zero line.
-# Filter those residuals to 2017-12-01 through 2018-04-10.
-# Check n = 131 and consecutive dates.
-# Run DescTools::RunsTest() on that residual sequence.
-# Plot its ACF, then use Box.test(..., lag = 14, type = "Ljung-Box").
-# For a Durbin-Watson check on a regression fitted to consecutive dates,
-# refit the same mean formula on that run and use lmtest::dwtest(...,
-# alternative = "greater") for positive autocorrelation.
+# Create seoul_residuals with a residual column from seoul_second.
+# Plot residual against date and add a horizontal line at zero.
 ```
 
-Discuss: What do the time plot, median runs and lag-1 ACF show? A small Durbin-Watson or Ljung-Box P-value indicates what kind of departure? Could a missed mean pattern produce some of it? Why must we not feed the gappy 352-day residual vector into an ordinary daily ACF?
+Discuss: Do the residuals switch back and forth around zero, or are there stretches when the model repeatedly overpredicts or underpredicts rentals?
 
-## Does AR(1) change the tourism analysis?
+### Check dependence over consecutive days
 
-### Victoria tourism: work through the full comparison
+For a daily ACF, lag 1 must mean one day apart. An ordinary `acf()` call uses row order and does not inspect the dates. Passing it all 352 retained residuals would treat observations on either side of a service gap as adjacent days.
 
-Each row in `motel.csv` is a month from January 1980 to December 1994. `RoomNights` counts occupied room nights. `Time` increases one step per month and `Month` is a calendar-month factor. We can compare an indicator model for the seasonal mean with an AR(1) model for dependence left in its errors. In an AR(1) model, $\varepsilon_t = \phi\varepsilon_{t-1} + \eta_t$ with $|\phi| < 1$, and errors $k$ months apart have correlation $\phi^k$.
+Use the uninterrupted run from 1 December 2017 to 10 April 2018. Select those residuals from the model fitted to all functioning days, then check that there are 131 observations with no gaps. Plot their ACF and run the two tests below:
+
+- `DescTools::RunsTest()` counts runs above and below the sequence's median. Too few runs suggest unusually long stretches on the same side of the median.
+- `Box.test(..., lag = 14, type = "Ljung-Box")` checks for autocorrelation across the first 14 lags together.
+
+The runs test uses the ordering; the equally spaced dates let us interpret the ACF and Ljung-Box lags in days.
+
+```{r seoul-run-checks, eval=FALSE}
+# Filter seoul_residuals to 2017-12-01 through 2018-04-10 as seoul_run.
+# Check nrow(seoul_run) == 131 and that consecutive dates differ by one day.
+# Run DescTools::RunsTest(seoul_run$residual).
+# Plot the ACF of those residuals.
+# Use Box.test(seoul_run$residual, lag = 14, type = "Ljung-Box").
+```
+
+Discuss: What do the number of runs and the lag-1 ACF tell us about neighbouring days? What does the Ljung-Box result add? Why would an ordinary ACF of all 352 residuals be misleading as a daily ACF?
+
+For a Durbin-Watson check, refit the same mean formula on those 131 consecutive days as `seoul_run_lm`, then use `lmtest::dwtest(seoul_run_lm, alternative = "greater")`. Here `"greater"` specifies positive first-order autocorrelation.
+
+This check uses residuals from the model refitted to the shorter run. They are different from the subset of full-model residuals used above.
+
+```{r seoul-durbin-watson, eval=FALSE}
+# Fit seoul_run_lm using the seoul_second formula and data = seoul_run.
+# Run lmtest::dwtest(seoul_run_lm, alternative = "greater").
+```
+
+Discuss: What does the Durbin-Watson result suggest? Do these tests establish that AR(1) errors are the right model, or could a missed part of the mean explain some of the pattern?
+
+## How is tourism demand changing in Victoria?
+
+Seoul showed us that a model for the mean can leave dependence in the residuals. Let's now work through what happens when we model that dependence. We want to estimate how tourism demand changes over time after allowing for differences between calendar months. Does accounting for related errors change the estimated trend, its uncertainty, or both?
+
+Each row in `motel.csv` is one month, from January 1980 to December 1994. `RoomNights` counts occupied room nights in hotels, motels and guesthouses in Victoria: one room occupied for one night contributes one room night. `Time` starts at zero and increases by one each month. `Month` is a factor identifying the calendar month.
+
+### Fit a trend and allow for seasonal differences
 
 ```{r tourism-data, message=FALSE}
 tourism <- read_csv("https://knowlton.co.nz/161251/data/motel.csv", show_col_types = FALSE) |>
@@ -86,7 +114,7 @@ stopifnot(identical(tourism$Date,
                     seq.Date(min(tourism$Date), max(tourism$Date), by = "month")))
 ```
 
-Plot room nights, fit `RoomNights ~ Time + Month` by OLS, plot the fitted mean and the residuals over time, and inspect the residual ACF. Then fit the same mean by GLS with `corAR1(form = ~ Time)`. Compare the `Time` estimates and their standard errors, extract $\phi$ and check the ACF of the *normalised* GLS residuals. Normalising accounts for the fitted variance and correlation structure before checking what remains.
+Plot room nights over time, then fit `RoomNights ~ Time + Month` by ordinary least squares (OLS). `Time` gives us a common linear trend, and `Month` allows each calendar month to sit above or below that trend by a different amount. Plot the fitted mean over the observed series to see what this model accounts for.
 
 ```{r tourism-models}
 ggplot(tourism, aes(Date, RoomNights)) +
@@ -99,6 +127,15 @@ tourism |>
   geom_line(colour = "grey60") +
   geom_line(aes(y = fitted_mean), colour = "blue") +
   labs(x = "Month", y = "Room nights")
+```
+
+Discuss: How does the fitted mean describe the long-term movement and the repeating monthly pattern? What does the `Time` coefficient measure after allowing for `Month`?
+
+### Do nearby months still have related residuals?
+
+Plot the OLS residuals against `Date` and inspect their ACF. We are now looking at departures from the fitted trend and monthly means. If consecutive months tend to lie above or below that fitted mean together, the usual independent-error standard errors may be unreliable.
+
+```{r tourism-ols-diagnostics}
 tourism |>
   mutate(residual = residuals(tourism_lm)) |>
   ggplot(aes(Date, residual)) +
@@ -106,27 +143,59 @@ tourism |>
 acf(residuals(tourism_lm), main = "Tourism OLS residuals")
 ```
 
+Discuss: Do the time plot and ACF suggest that the mean model has accounted for all the time structure?
+
+### Keep the mean formula and fit AR(1) errors
+
+An AR(1) model relates this month's error to the previous month's error:
+
+$$\varepsilon_t = \phi\varepsilon_{t-1} + \eta_t,$$
+
+where $\eta_t$ is independent noise with mean zero and constant variance, and $|\phi| < 1$. Errors $k$ months apart have correlation $\phi^k$. A positive $\phi$ allows a month above its expected demand to tend to be followed by another month above its expected demand.
+
+Fit the same mean formula using generalised least squares (GLS). `corAR1(form = ~ Time)` tells `gls()` to use the number of months between observations when modelling their error correlation. The formula for the mean stays the same, although its fitted coefficients can change.
+
 ```{r tourism-gls}
 tourism_gls <- gls(RoomNights ~ Time + Month,
                    correlation = corAR1(form = ~ Time), data = tourism)
 summary(tourism_gls)
+```
+
+Compare the two `Time` estimates and their standard errors. The `coef()` call below extracts the estimated error correlation $\hat\phi$; `unconstrained = FALSE` returns it on the correlation scale.
+
+```{r tourism-comparison}
 bind_rows(
   broom::tidy(tourism_lm) |> filter(term == "Time") |> mutate(model = "OLS"),
   broom::tidy(tourism_gls) |> filter(term == "Time") |> mutate(model = "GLS AR(1)")
 ) |>
   select(model, estimate, std.error)
 coef(tourism_gls$modelStruct$corStruct, unconstrained = FALSE)
+```
+
+Discuss: How much did the estimated trend change? What happened to its standard error? What does the estimated $\phi$ say about neighbouring months after adjusting for trend and seasonality?
+
+Correlated errors do not by themselves bias OLS coefficients when the conditional mean is correctly specified and errors have mean zero given the predictors. They do make the usual OLS standard errors unreliable; these can be too small or too large.
+
+### Has AR(1) accounted for the remaining dependence?
+
+Check the ACF of the *normalised* GLS residuals. These residuals are transformed using the fitted variance and correlation structure. If that structure describes the errors adequately, little serial pattern should remain.
+
+```{r tourism-gls-diagnostics}
 acf(residuals(tourism_gls, type = "normalized"),
     main = "Tourism normalised GLS residuals")
 ```
 
-Discuss: Which observed patterns belong to the mean model and which remain in the errors? What does the estimated $\phi$ imply about nearby months? Did GLS change the `Time` estimate, its standard error, or both? Does the normalised residual ACF look quieter? Correlated errors make ordinary OLS standard errors unreliable, but do not by themselves force a correctly specified OLS slope to be biased.
+Discuss: Is the ACF less pronounced than before? Look particularly at lag 12. What would a remaining correlation between months a year apart suggest checking?
 
-## Does the same workflow hold for Perth?
+## How does Perth move with the capital-city house-price index?
 
-### Quarterly house prices: make your own comparison
+Now repeat the comparison for quarterly house prices. How does Perth's index relate to the weighted index across Australian capital cities after allowing for time? Does accounting for related errors change that association or how precisely we can estimate it?
 
-Each row of `hp.csv` is one quarter. `Perth` is a relative house-price index and `WtAve` is the weighted index across eight Australian capitals. The indices use the reference period 1989–90 = 100, so each city's index measures changes relative to its own prices in that period. The published `WtAve` includes Perth itself, so describe an association with that average rather than an independent prediction from the other seven cities. `lubridate::my()` parses the month-year text as the quarter's first month.
+Each row of `hp.csv` is one quarter. `Perth` is Perth's relative house-price index, and `WtAve` is the weighted index across eight Australian capitals. The reference period is 1989–90 = 100, so these are index points, not dollar prices. Each city's index measures changes relative to its own prices in that period.
+
+`WtAve` includes Perth itself. Keep that overlap in mind when interpreting the association: this is not a comparison with an independent index of the other seven cities.
+
+`lubridate::my()` converts each month-year quarter label to a date. After sorting, `Time` counts quarters from zero. Check the first and last dates and confirm that observations are three months apart.
 
 ```{r perth-data, message=FALSE}
 hp <- read_csv("https://knowlton.co.nz/161251/data/hp.csv", show_col_types = FALSE) |>
@@ -138,17 +207,53 @@ stopifnot(identical(hp$Quarter,
 hp |> select(Quarter, Time) |> slice(c(1, n()))
 ```
 
-Plot `Perth` against `Quarter`. Fit `Perth ~ WtAve + Time` with `lm()`, plot its residuals against the quarter and inspect their ACF. Fit that same mean with `gls()` and `corAR1(form = ~ Time)`, compare all coefficient estimates and standard errors, and inspect the normalised residual time plot and ACF. Use `intervals()` to inspect the interval for $\phi$. All operations have appeared in the Seoul or tourism blocks.
+### Fit the mean and inspect the OLS residuals
+
+Plot `Perth` against `Quarter`, then fit `Perth ~ WtAve + Time` as `hp_lm`. The `WtAve` coefficient describes the association with the weighted index, holding time fixed. The `Time` coefficient asks whether there is an additional linear trend in Perth's index after allowing for `WtAve`.
+
+Print the model summary, plot its residuals against `Quarter` and inspect their ACF.
 
 ```{r perth-analysis, eval=FALSE}
-# Make the time plot, fit the OLS and AR(1) GLS models, and print summaries.
-# Plot OLS residuals against Quarter and inspect their ACF.
-# Compare term estimates and standard errors from both models.
-# Inspect intervals(hp_gls) and the time plot and ACF of normalised GLS residuals.
+# Plot Perth against Quarter.
+# Fit hp_lm with Perth ~ WtAve + Time and print its summary.
+# Plot the OLS residuals against Quarter and inspect their ACF.
 ```
 
-Discuss: Where does Perth's index move with `WtAve`, and where does time add information? Is there evidence of serial structure after OLS and after GLS? What changed in the estimated coefficients and their uncertainty? Explain why the overlap between `WtAve` and Perth limits the interpretation.
+Discuss: Is Perth positively associated with `WtAve` after allowing for time? Is there evidence of an additional time trend? What do the residual plots suggest about treating quarters as independent?
 
-We have now checked the shape of the mean and the dependence left after fitting it. If a clear pattern survives in the normalised residuals, what would you revisit first: the mean model, the AR(1) error model, or both? Give a reason from the plots rather than another P-value alone.
+### Compare the coefficients after allowing for AR(1) errors
+
+Fit the same mean with `gls()` and `corAR1(form = ~ Time)` as `hp_gls`. Print the summary and compare all coefficient estimates and standard errors with OLS. Here one unit of `Time` means one quarter, so $\phi$ describes the error correlation between consecutive quarters.
+
+```{r perth-gls, eval=FALSE}
+# Fit hp_gls with the same mean formula and corAR1(form = ~ Time).
+# Print its summary.
+# Use broom::tidy() and bind_rows() to compare the coefficient estimates
+# and standard errors from hp_lm and hp_gls.
+```
+
+Discuss: Which coefficient estimates changed, and what happened to their standard errors? Does the comparison alter your interpretation of the association with `WtAve` or the additional time trend?
+
+Use `intervals(hp_gls)` to obtain approximate 95% confidence intervals for the fitted GLS parameters. In the correlation-structure output, find the `Phi` row and read its `lower`, `est.` and `upper` entries.
+
+```{r perth-correlation-interval, eval=FALSE}
+# Run intervals(hp_gls) and find the interval for Phi.
+```
+
+Discuss: What does the estimated $\phi$ imply about consecutive quarters? How precisely have we estimated that correlation?
+
+### Check what remains after GLS
+
+Plot the normalised GLS residuals against `Quarter` and inspect their ACF. Compare these with the OLS residual plots.
+
+```{r perth-gls-diagnostics, eval=FALSE}
+# Extract residuals(hp_gls, type = "normalized").
+# Plot them against Quarter with a horizontal line at zero.
+# Inspect their ACF and compare it with the OLS residual ACF.
+```
+
+Discuss: Has the strong relationship between neighbouring residuals been reduced? Do the plots justify treating AR(1) as a reasonable working model?
+
+The tourism and Perth examples need not end with the same decision. If a clear pattern survives in normalised residuals, would you revisit the mean model, the AR(1) error model, or both? Give a reason from the plots in these examples.
 
 [View the worked solutions online](https://knowlton.co.nz/161251/labs/lab13-sols.html).

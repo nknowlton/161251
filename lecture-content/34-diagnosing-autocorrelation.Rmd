@@ -6,18 +6,43 @@ library(lmtest)
 
 ## Diagnosing Autocorrelated Errors
 
-In Lectures 32/33 we concentrated on fitting the mean structure of a time series with regression. Now we ask whether the residuals behave independently after that mean structure has been removed.
+In Lectures 32/33 we used trend, seasonal terms and weather predictors to explain the mean response through time. A fitted curve can follow the data quite closely and still leave several consecutive observations above it, followed by several below it.
+
+If today's response is higher than the model predicts, does that tell us anything about tomorrow's deviation? If it does, treating those observations as independent gives us the wrong calculation of precision.
 
 By the end of this lecture, students should be able to:
 
-1. Explain what autocorrelation means in regression residuals.
-2. Describe why autocorrelation makes ordinary standard errors unreliable.
-3. Use residual plots, runs tests, Durbin-Watson, ACF plots, and Ljung-Box tests.
+1. Define lagged autocorrelation and distinguish errors from residuals.
+2. Use a variance calculation to explain why dependence changes precision.
+3. Explain and use residual plots, runs tests, Durbin-Watson, ACF plots, and Ljung-Box tests.
 4. Recognise when dependence remains after a reasonable mean model has been fitted.
 
 ## What Is Autocorrelation?
 
-A time predictor can explain a pattern in the *mean* while nearby deviations from that mean remain related. Positive residual autocorrelation means a positive residual tends to be followed by another positive residual, and likewise for negative residuals. A negative correlation at lag one tends to produce alternation. The usual independent-error calculations then give unreliable conventional standard errors. Depending on the regressors and the dependence pattern, they can be too small or too large. If the conditional mean is correctly specified and the errors have mean zero given the predictors, autocorrelation alone need not bias the OLS coefficients. It can, however, make the apparent precision and tests wrong.
+Write our regression model as
+
+$$Y_t = \mu_t + \varepsilon_t, \qquad \mu_t = \mathbf{x}_t^\top\boldsymbol{\beta}.$$
+
+The predictors in $\mathbf{x}_t$ describe the mean. Autocorrelation describes a relationship between errors at different times, after accounting for that mean.
+
+We cannot observe $\varepsilon_t$, because we do not know the true mean. We work with the fitted residuals
+
+$$e_t = y_t - \widehat{\mu}_t.$$
+
+A high $R^2$ describes how closely the fitted values track the responses. It does not tell us whether the remaining deviations are related through time.
+
+## What Does a Lag Mean?
+
+**Lag $k$** means a separation of $k$ observation intervals. For quarterly data, lag 1 is one quarter and lag 4 is one year. The observations must be equally spaced for this interpretation.
+
+Suppose the errors have constant variance $\sigma^2$ and their covariance depends on the time gap, rather than the calendar date. Then
+
+$$\rho_k = \operatorname{Corr}(\varepsilon_t,\varepsilon_{t-k})
+= \frac{\operatorname{Cov}(\varepsilon_t,\varepsilon_{t-k})}{\sigma^2}.$$
+
+- $\rho_1 > 0$: nearby errors tend to have the same sign, producing persistent runs.
+- $\rho_1 < 0$: nearby errors tend to alternate in sign.
+- Independent errors have $\rho_k = 0$ for every $k > 0$. Zero correlation alone does not establish independence.
 
 ## A Classical Example: Consumer Expenditure and Money Stock
 
@@ -25,80 +50,231 @@ This example studies consumer expenditure (`ConsExp`) and the stock of money (`M
 
 `r xfun::embed_file("../data/MoneyStock.csv")`
 
+:::: {.columns .money-stock-layout}
+::: {.column style="width: 100%;"}
+
 ```{r read-money-stock}
 MoneyStock <- read.csv("../data/MoneyStock.csv", header = TRUE)
 MoneyStock |> head() |> kable()
 ```
 
+:::
+
+::: {.column style="width: 100%;"}
+
 ```{r money-stock-pairs}
 pairs(MoneyStock[3:5])
 ```
 
-### Fit the Regression Model
+:::
+::::
+
+## Fit the Regression Model
+
+For quarter $t$, we fit
+
+$$\mathrm{ConsExp}_t = \beta_0 + \beta_1\mathrm{MoneyStk}_t + \varepsilon_t.$$
 
 ```{r money-stock-regression}
 MoneyStock_lm1 <- lm(ConsExp ~ MoneyStk, data = MoneyStock)
 summary(MoneyStock_lm1)
 ```
 
-`MoneyStk` and `ConsExp` have a strong linear association, and the regression output gives a precise-looking estimate of the slope. Before trusting that precision, we need to check whether the residuals are independent.
+`MoneyStk` and `ConsExp` have a strong linear association: $R^2$ is about 0.96. The reported slope also looks precise. That precision calculation assumes that knowing the error in one quarter tells us nothing about another quarter's error.
 
-### Residual Plot Over Time
+## Residual Plot Over Time
+
+Before running a test, follow the residuals from left to right. Look for stretches above or below zero, alternation, and any remaining trend or seasonal pattern.
 
 ```{r money-stock-residual-plot}
 plot(residuals(MoneyStock_lm1), type = "b", ylab = "Residuals", xlab = "Quarter")
 abline(h = 0, lty = 2)
 ```
 
-The residuals show the long, slow wandering pattern typical of positive autocorrelation. Extended sequences of positive or negative residuals should not be common if the errors are independent.
+The residuals wander slowly above and below zero. Adjacent quarters often have deviations in the same direction. Some runs occur by chance even with independent errors; we need to judge whether this much persistence is plausible.
+
+## Why Dependence Changes Precision
+
+Start with a simpler calculation. Suppose two observations measure the same mean $\mu$, each with error variance $\sigma^2$ and correlation $\rho$. Their average has variance
+
+$$\begin{aligned}
+\operatorname{Var}\left(\frac{Y_1+Y_2}{2}\right)
+&= \frac{1}{4}\left[\operatorname{Var}(Y_1)+\operatorname{Var}(Y_2)
+  +2\operatorname{Cov}(Y_1,Y_2)\right] \\
+&= \frac{\sigma^2}{2}(1+\rho).
+\end{aligned}$$
+
+With independent errors, $\rho=0$ and averaging halves the variance. With $\rho=0.8$, the variance is $0.9\sigma^2$: the second observation adds little precision because the two errors tend to move together.
+
+The standard error is then $\sqrt{1.8}\approx1.34$ times the value calculated under independence. Counting two observations does not give us two independent pieces of information.
+
+## What Changes in Regression?
+
+Remember the matrix form $\mathbf{Y}=X\boldsymbol{\beta}+\boldsymbol{\varepsilon}$. Treating $X$ as fixed, let $\Sigma=\operatorname{Var}(\boldsymbol{\varepsilon}\mid X)$. The OLS estimate still satisfies
+
+$$\widehat{\boldsymbol{\beta}}=\boldsymbol{\beta}+(X^\top X)^{-1}X^\top\boldsymbol{\varepsilon}.$$
+
+Its variance is
+
+$$\operatorname{Var}(\widehat{\boldsymbol{\beta}}\mid X)
+=(X^\top X)^{-1}X^\top\Sigma X(X^\top X)^{-1}.$$
+
+Independent errors with equal variance give $\Sigma=\sigma^2 I$, reducing this to $\sigma^2(X^\top X)^{-1}$. Autocorrelation introduces non-zero off-diagonal covariances into $\Sigma$.
+
+If $E(\boldsymbol{\varepsilon}\mid X)=\mathbf{0}$, OLS remains unbiased. The usual standard errors can still be wrong, so the reported confidence intervals and tests become unreliable. For regression coefficients, the direction of that error depends on both the predictors and the dependence pattern.
 
 ## Diagnostic Tools
 
-### Runs Test
+We have seen a pattern that could make our precision calculation unreliable. Each diagnostic summarises a different feature of that pattern.
 
-The default `RunsTest()` for a numerical vector divides residuals above and below their median and counts how often the sequence switches sides. A long run is a reason to look more closely at the time plot; the test does not tell us which time process produced it.
+| Diagnostic | Question about the ordered residuals |
+|:--|:--|
+| Runs test | Do residuals stay on the same side of their median unusually long, or switch sides unusually often? |
+| Durbin-Watson | How different is each residual from the one immediately before it? |
+| ACF | How strong is the correlation at each time gap? |
+| Ljung-Box | Is there evidence of correlation across a chosen group of lags? |
+
+Keep the time order. Rearranging observations leaves the fitted regression unchanged but changes these diagnostics. Also check the mean model: a missing trend or seasonal term can produce a residual pattern of its own.
+
+## Runs Test
+
+A **run** is an uninterrupted sequence on the same side of a threshold. For example, $+++\;--\;++\;-$ contains four runs, although it contains eight observations.
+
+The default [`RunsTest()`](https://andrisignorell.github.io/DescTools/reference/RunsTest.html) divides numerical residuals at their median. Write $n_+$ for the number above the median and $n_-$ for the number at or below it. Under random ordering, the expected number of runs is
+
+$$E(R)=1+\frac{2n_+n_-}{n_++n_-}.$$
+
+Too few runs indicate clustering on the same side; too many indicate excessive alternation. The test compares the observed count with its distribution under random ordering.
+
+## Runs in the MoneyStock Residuals
+
+There are ten residuals on each side of the median, so under random ordering we expect
+
+$$E(R)=1+\frac{2(10)(10)}{20}=11\text{ runs}.$$
 
 ```{r money-stock-runs-test}
 RunsTest(residuals(MoneyStock_lm1))
 ```
 
-A small P-value suggests the sequence of observations above and below its median does not look random under this test. It does not identify the source of any pattern.
+We observe only five runs, with $P\approx0.009$. This supports the impression of long stretches on the same side. The default test is two-sided, so it can detect either unusually few or unusually many runs. It does not measure the size of the residuals or identify the process producing them.
 
-### Durbin-Watson Test
+## Durbin-Watson Test
 
-The Durbin-Watson test is a classical test for first-order autocorrelation in regression residuals.
+Runs use only which side each residual falls on. Durbin-Watson uses the sizes of the changes between neighbouring residuals:
+
+$$d=\frac{\sum_{t=2}^{n}(e_t-e_{t-1})^2}{\sum_{t=1}^{n}e_t^2}.$$
+
+The denominator measures the overall residual variation. The numerator measures how much residuals change from one observation to the next.
+
+- Positive autocorrelation gives small neighbouring differences, so $d$ tends towards 0.
+- With no lag-1 autocorrelation, $d$ is typically near 2.
+- Negative autocorrelation gives larger neighbouring differences, so $d$ tends towards 4.
+
+These values guide interpretation; they are not significance cut-offs.
+
+## Durbin-Watson for MoneyStock
+
+We test $H_0:\rho_1=0$ against $H_A:\rho_1>0$. The one-sided alternative targets the positive autocorrelation suggested by the time plot.
 
 ```{r money-stock-durbin-watson}
 dwtest(MoneyStock_lm1, alternative = "greater")
 ```
 
-Here the one-sided alternative reflects the suspicion of **positive** autocorrelation.
+The statistic is $d\approx0.33$, with a very small P-value. The residuals change much less between adjacent quarters than we would expect from their overall variation.
 
-### ACF Plot
+In [`dwtest()`](https://stat.ethz.ch/CRAN/web/packages/lmtest/lmtest.pdf), `alternative = "greater"` refers to correlation greater than zero. Evidence for that alternative comes from a **small** value of $d$. The test's reference distribution accounts for the regression predictors; we do not simply declare every value below 2 significant.
 
-The autocorrelation function (ACF) shows the correlation between residuals separated by different time lags.
+## Measuring Correlation at Each Lag
+
+Durbin-Watson focuses on neighbouring observations. The autocorrelation function (ACF) lets us examine longer gaps as well. The [sample autocorrelation](https://www.itl.nist.gov/div898/handbook/eda/section3/eda35c.htm) at lag $k$ is
+
+$$r_k=\frac{\sum_{t=k+1}^{n}(e_t-\bar e)(e_{t-k}-\bar e)}
+{\sum_{t=1}^{n}(e_t-\bar e)^2}.$$
+
+The numerator pairs residuals $k$ observations apart. Products are positive when both deviations from $\bar e$ have the same sign, and negative when they have opposite signs. The denominator puts the result on a correlation scale. Lag 0 is always 1.
+
+For OLS with an intercept, $\bar e=0$ apart from numerical rounding. Expanding the squared differences in Durbin-Watson then gives
+
+$$d=2(1-r_1)-\frac{e_1^2+e_n^2}{\sum_{t=1}^{n}e_t^2}
+\approx2(1-r_1).$$
+
+The approximation drops the two endpoint terms. It can be noticeably different in a short series, so use it to understand the direction of $d$, rather than to replace the calculation.
+
+## ACF Plot
 
 ```{r money-stock-acf, fig.width=8, fig.height=4}
 acf(residuals(MoneyStock_lm1), main = "ACF of MoneyStock residuals")
 ```
 
-Let's check how long the pattern lasts. A large lag-1 value means neighbouring residuals are strongly correlated. If the ACF decays slowly, the relationship extends over several time lags. We should also check whether a missing time trend could explain part of this pattern.
+The lag-1 value is about 0.75, and positive correlation persists across several quarters. This agrees with the slow movement in the time plot. We should also check whether a missing time trend could explain part of it.
 
-### Ljung-Box Test
+## Reading the ACF Reference Lines
 
-The Ljung-Box test checks several autocorrelations at once rather than focusing only on lag 1.
+Under an uncorrelated white-noise reference model, the default approximate 95% reference limits at an individual non-zero lag are
+
+$$\pm\frac{1.96}{\sqrt n}.$$
+
+Here $n=20$, giving limits of about $\pm0.44$. The lag-1 correlation is well outside them. A sequence of large correlations deserves more attention than one isolated bar just beyond a line.
+
+These are approximate, pointwise limits, not a simultaneous 95% band for the whole plot. With many lags, some bars can cross by chance. Fitting the regression also affects the behaviour of its residuals, so treat the lines as a visual reference. The [`acf()` plotting documentation](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/plot.acf.html) describes the white-noise assumption behind them.
+
+## Ljung-Box Test
+
+If several ACF bars look large, we can combine them. For a chosen maximum lag $m$, the hypotheses are
+
+$$H_0:\rho_1=\cdots=\rho_m=0, \qquad
+H_A:\text{at least one of these correlations is non-zero}.$$
+
+The [Ljung-Box statistic](https://www.itl.nist.gov/div898/handbook/pmc/section4/pmc4481.htm) is
+
+$$Q=n(n+2)\sum_{k=1}^{m}\frac{r_k^2}{n-k}.$$
+
+Squaring prevents positive and negative correlations from cancelling. Larger correlations give a larger $Q$ and more evidence against the null hypothesis. Choose $m$ using the time scale and the available sample size, before inspecting a collection of P-values.
+
+## Ljung-Box for MoneyStock
+
+Here we use $m=10$, combining correlations over gaps from one to ten quarters.
 
 ```{r money-stock-ljung-box}
 Box.test(residuals(MoneyStock_lm1), lag = 10, type = "Ljung-Box")
 ```
 
-If this test rejects, we have evidence of residual autocorrelation across the lags tested. It does not tell us which change to the model will address it.
+We obtain $Q\approx64.4$ and a very small P-value. With the default `fitdf = 0`, [`Box.test()`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/box.test.html) compares this with an approximate $\chi^2_{10}$ distribution.
+
+There are only 20 observations here, and the residuals come from an estimated regression, so treat that P-value as an approximate diagnostic summary. The time plot, runs test and Durbin-Watson already give substantial evidence of persistence. This result does not establish that every lag is correlated or tell us which change to the model will address it.
+
+## Work Through the Diagnostics
+
+**1.** If $d=0.6$, what lag-1 correlation does $d\approx2(1-r_1)$ suggest?
+
+. . .
+
+Rearranging gives $r_1\approx1-d/2=0.7$, suggesting strong positive correlation between neighbours. This is an approximation, not a P-value.
+
+. . .
+
+**2.** If $r_1=0$ but $r_4$ is large, which diagnostic displays that pattern, and which can test a group of lags containing it?
+
+. . .
+
+The ACF displays the lag-4 correlation. Ljung-Box with $m\geq4$ includes it in a joint test; a lag-1 diagnostic alone can miss it.
+
+. . .
+
+**3.** Why would shuffling complete rows of MoneyStock leave the coefficients and $R^2$ unchanged but alter the residual diagnostics?
+
+. . .
+
+OLS minimises the same sum of squares after reordering. Runs, neighbouring differences and lagged products depend on which observations follow one another, so the diagnostics need the actual time order.
 
 ## A Modern Comparison: Seoul Bike Residuals
 
 The same diagnostic logic applies to the richer daily bike model from Lectures 32/33, which combined two Fourier pairs with the time trend and weather predictors.
 
 `r xfun::embed_file("../data/seoul_bike_daily.csv")`
+
+:::: {.columns .seoul-residual-layout}
+::: {.column style="width: 100%;"}
 
 ```{r read-seoul-daily-diagnostics, message=FALSE}
 seoul_daily <- read_csv("../data/seoul_bike_daily.csv", show_col_types = FALSE) |>
@@ -122,34 +298,145 @@ seoul_diagnostics <- seoul_daily |>
   mutate(residual = residuals(seoul_mean))
 ```
 
-```{r seoul-residual-plot}
+:::
+
+::: {.column style="width: 100%;"}
+
+```{r seoul-residual-plot, echo=FALSE, out.width="100%"}
 ggplot(seoul_diagnostics, aes(x = date, y = residual)) +
   geom_line() +
   geom_hline(yintercept = 0, linetype = 2) +
   labs(x = "Actual date", y = "Residual", title = "Seoul bike residuals on functioning days")
 ```
 
-We fitted the mean model to all 352 functioning days. The dates remain visible here, including the gaps left by 13 outage days. For the sequence-based summaries below, use only the longest uninterrupted run, from 1 December 2017 through 10 April 2018. Otherwise, an ordinary ACF would treat consecutive retained rows as though they were always one day apart.
+:::
+::::
+
+We fitted the mean model to all 352 functioning days. The dates remain visible here, including the gaps left by 13 outage days.
+
+## Seoul: One Uninterrupted Period
+
+For the daily diagnostics, select the longest uninterrupted period: 1 December 2017 through 10 April 2018. Otherwise, an ordinary ACF would treat consecutive retained rows as though they were always one day apart.
+
+Refit the **same mean formula** on these 131 consecutive days. All four diagnostics below use residuals from this refitted model, so the Durbin-Watson test and the other summaries refer to the same observations and fit.
 
 ```{r seoul-diagnostic-tests}
-seoul_run_residuals <- seoul_diagnostics |>
-  filter(date >= as.Date("2017-12-01"), date <= as.Date("2018-04-10")) |>
-  pull(residual)
+seoul_run_data <- seoul_daily |>
+  filter(date >= as.Date("2017-12-01"), date <= as.Date("2018-04-10"))
 
-RunsTest(seoul_run_residuals)
-Box.test(seoul_run_residuals, lag = 14, type = "Ljung-Box")
+seoul_run_model <- update(seoul_mean, data = seoul_run_data)
+seoul_run_residuals <- residuals(seoul_run_model)
 ```
 
-```{r seoul-acf, fig.width=8, fig.height=4}
-acf(seoul_run_residuals, main = "ACF of Seoul bike residuals: consecutive days")
+```{r seoul-diagnostic-calculations, include=FALSE}
+seoul_n <- length(seoul_run_residuals)
+seoul_median <- median(seoul_run_residuals)
+seoul_above <- seoul_run_residuals > seoul_median
+seoul_runs_observed <- length(rle(seoul_above)$lengths)
+seoul_n_above <- sum(seoul_above)
+seoul_n_below <- sum(!seoul_above)
+seoul_runs_expected <- 1 + 2 * seoul_n_above * seoul_n_below / seoul_n
+
+seoul_dw_numerator <- sum(diff(seoul_run_residuals)^2)
+seoul_dw_denominator <- sum(seoul_run_residuals^2)
+seoul_acf_values <- acf(seoul_run_residuals, lag.max = 14, plot = FALSE)
+seoul_acf_limit <- qnorm(0.975) / sqrt(seoul_n)
 ```
 
-The diagnostics describe the residual sequence on those 131 consecutive days. They do not establish that the mean model is complete or that the errors are independent over the entire gappy year.
+## Seoul: Runs Above and Below the Median
+
+Divide the residuals at their median, `r round(seoul_median, 1)` bikes. Each uninterrupted colour block is one run.
+
+```{r seoul-runs-strip, echo=FALSE, fig.width=8, fig.height=1.3, out.width="85%", fig.alt="Sequence of Seoul residuals above and at or below their median, with each colour block marking one run"}
+seoul_run_data |>
+  mutate(side = if_else(seoul_above, "Above median", "At or below median")) |>
+  ggplot(aes(x = date, y = 1, fill = side)) +
+  geom_tile(width = 1, height = 0.6) +
+  scale_fill_manual(values = c("Above median" = "#173f5f", "At or below median" = "#d4863b")) +
+  labs(x = NULL, y = NULL, fill = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.position = "bottom"
+  )
+```
+
+There are `r seoul_n_above` residuals above the median and `r seoul_n_below` at or below it. Compare the actual run count with $E(R)=1+2n_+n_-/n$.
+
+```{r seoul-runs-test}
+seoul_runs <- RunsTest(seoul_run_residuals)
+```
+
+```{r seoul-runs-summary, echo=FALSE}
+tibble(
+  `Observed runs` = seoul_runs_observed,
+  `Expected runs` = round(seoul_runs_expected, 1),
+  `Test statistic z` = round(unname(seoul_runs$statistic), 2),
+  `P-value` = format.pval(seoul_runs$p.value, digits = 3)
+) |> kable()
+```
+
+The count is **`r seoul_runs_observed` runs**; $z$ standardises its departure from the expected count, with a continuity correction. The two-sided P-value is just above 0.05. This test uses only the median-side sequence, so it can miss dependence visible in the residual magnitudes.
+
+## Seoul: Durbin-Watson
+
+Use the sizes of the changes between consecutive daily residuals:
+
+$$d=\frac{\sum_{t=2}^{n}(e_t-e_{t-1})^2}{\sum_{t=1}^{n}e_t^2}
+=\frac{`r sprintf("%.0f", seoul_dw_numerator)`}{`r sprintf("%.0f", seoul_dw_denominator)`}
+\approx `r round(seoul_dw_numerator / seoul_dw_denominator, 2)`.$$
+
+```{r seoul-durbin-watson}
+seoul_dw <- dwtest(seoul_run_model, alternative = "greater")
+seoul_dw
+```
+
+The statistic is below 2, with strong evidence against $H_0:\rho_1=0$ in favour of positive autocorrelation. Unlike the runs test, Durbin-Watson uses how far neighbouring residuals move, as well as their direction.
+
+## Seoul: ACF of the Daily Residuals
+
+```{r seoul-acf, fig.width=8, fig.height=3, out.width="85%"}
+acf(seoul_run_residuals, main = "ACF of Seoul residuals: refitted on consecutive days")
+```
+
+The lag-1 correlation is $r_1\approx `r round(seoul_acf_values$acf[2], 3)`$. The approximate pointwise reference limits are
+
+$$\pm\frac{1.96}{\sqrt{`r seoul_n`}}\approx\pm `r round(seoul_acf_limit, 3)`.$$
+
+Neighbouring daily residuals remain positively correlated after refitting the mean. Read the other lags from the plot as well; the reference lines are approximate and do not form a simultaneous band.
+
+## Seoul: Ljung-Box Across Two Weeks
+
+Combine the correlations at lags 1 through 14, rather than testing only neighbouring days:
+
+$$Q=n(n+2)\sum_{k=1}^{14}\frac{r_k^2}{n-k}.$$
+
+```{r seoul-ljung-box}
+seoul_ljung_box <- Box.test(seoul_run_residuals, lag = 14, type = "Ljung-Box")
+```
+
+```{r seoul-ljung-box-summary, echo=FALSE}
+tibble(
+  `Statistic Q` = round(unname(seoul_ljung_box$statistic), 2),
+  `Reference df` = unname(seoul_ljung_box$parameter),
+  `P-value` = format.pval(seoul_ljung_box$p.value, digits = 3)
+) |> kable()
+```
+
+The small P-value gives evidence of remaining autocorrelation across these lags. It does not imply that every lag is correlated. This is an approximate diagnostic on fitted regression residuals, using the default `fitdf = 0`.
+
+The runs test gave weaker evidence because it discarded residual magnitudes. Taken together, the time plot, Durbin-Watson, ACF and Ljung-Box suggest that refitting the mean has not removed the dependence. These results concern the 131-day fit, rather than establishing adequacy over the entire gappy year.
 
 ## Diagnostic Summary
 
-We start with the residuals plotted against actual time, then inspect their ACF. A test can support what we see, but several small P-values do not identify the correct error model. First ask whether a missing trend, seasonal term or outage explains the pattern. If a reasonable mean model still leaves dependence, the next lecture changes the error model itself.
+The time plot comes first, then the ACF. The runs test, Durbin-Watson and Ljung-Box each summarise a different feature of the ordered residuals, so a collection of small P-values supports what we can already see in the plots. None of them identifies the error process that produced the pattern.
+
+Before changing the error model, check the mean: a missing trend, seasonal term or outage can leave a residual pattern of its own. For both MoneyStock and Seoul we fitted reasonable mean models and the dependence remained, so we treat it as part of the errors and model it directly.
 
 ## Looking Ahead
 
-Next we will fit a regression with AR(1) errors using generalised least squares, then check whether it accounts for the dependence we found.
+Every model we have fitted this semester assumed independent errors. Flexible curves, factors and weights changed the mean or the variance; the correlation between errors never entered the model. After this lecture we know how to detect that correlation, and in MoneyStock and Seoul it is clearly there.
+
+Next lecture we model it. An AR(1) error model, fitted by generalised least squares (GLS), keeps the mean formula and adds a correlation structure to the errors instead. We will fit the tourism model with `gls()` and `corAR1()`, compare the standard errors with the ordinary fit, and check whether the normalised residuals look closer to white noise.

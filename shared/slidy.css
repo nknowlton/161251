@@ -333,6 +333,26 @@ div.slide img {
   max-height: 56vh;
 }
 
+/* Lecture 34: pair data/model code with its plot in slides.
+   Full-width columns in the source keep the notes sequential. */
+div.slide .money-stock-layout,
+div.slide .seoul-residual-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25em;
+  align-items: start;
+}
+
+div.slide .money-stock-layout > .column,
+div.slide .seoul-residual-layout > .column {
+  min-width: 0;
+}
+
+div.slide .seoul-residual-layout pre {
+  font-size: 0.62em !important;
+  white-space: pre-wrap;
+}
+
 /* Links */
 a:link,
 a:visited {
