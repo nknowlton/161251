@@ -1,0 +1,796 @@
+WEBVTT
+
+00:00:00.320 --> 00:00:07.840
+Hello, welcome to lecture 30, weighted regression. So this is kind of a cool topic. It's used,
+
+00:00:07.840 --> 00:00:12.560
+it's used in a lot of different places and so you'll notice a common theme near the end of this
+
+00:00:12.560 --> 00:00:19.600
+course where a lot of things I'll introduce here will use what we used, what we learned earlier in
+
+00:00:19.600 --> 00:00:24.880
+the course to add on to it. So weighted regression, we learn about it here and then we're going to
+
+00:00:25.440 --> 00:00:31.520
+link it back to stuff we learned much earlier in the course back in week three or four. We're going
+
+00:00:31.520 --> 00:00:37.760
+to stick it all back together and essentially keep expanding our toolbox of regression models we can
+
+00:00:37.760 --> 00:00:50.720
+build. So to date we've had a pretty simple premise that is every data point that we've modeled is
+
+00:00:50.720 --> 00:00:58.960
+just as good as every other data point. That isn't always the case. You can imagine what,
+
+00:00:58.960 --> 00:01:04.240
+so what makes up a data point? So we've said it's a single person, it could be something like a
+
+00:01:04.240 --> 00:01:10.720
+classroom. And if my classroom has 10 students and your classroom has 100 students, do you trust
+
+00:01:10.720 --> 00:01:17.840
+my variability estimate less than yours? I mean you might, I probably would because one has 100
+
+00:01:17.840 --> 00:01:25.360
+students behind it. And so is there a way to take that into account? So we can do that a couple of
+
+00:01:25.360 --> 00:01:29.280
+ways. We can do it directly just by the number of students you have and say oh you've got 100
+
+00:01:29.280 --> 00:01:33.440
+students you must, your data must be better. Or we can come up with some other metric and say
+
+00:01:33.440 --> 00:01:38.880
+you use a different tool to measure your students and therefore it's more accurate. Maybe you used
+
+00:01:38.880 --> 00:01:45.280
+some sort of laser measuring device and you measured the heights of all your students and I
+
+00:01:45.280 --> 00:01:51.200
+used a tape measure. You know mine's probably pretty good but yours is more precise. And so
+
+00:01:51.200 --> 00:01:56.880
+can we use that to figure out the average height of students and does it matter? And so we can we
+
+00:01:56.880 --> 00:02:06.000
+can look at that. And so here one of the things we typically use is we call this tau oftentimes.
+
+00:02:06.000 --> 00:02:10.480
+So when you look at weighted regression you start asking LLMs about it, oftentimes they'll start
+
+00:02:10.480 --> 00:02:17.360
+talking about this tau and you're like what is tau? One over the variance is tau. So basically
+
+00:02:17.360 --> 00:02:22.000
+the more precise the observation the more weight it gets and then we're going to start going through
+
+00:02:22.000 --> 00:02:28.720
+a few different examples. And so the the obvious one is weighting by sample size. So there's this
+
+00:02:28.720 --> 00:02:35.760
+data set the CPS-5 you can download by clicking there. Also it's on the website you can download
+
+00:02:35.760 --> 00:02:44.960
+it. And so it's the education and hourly wage of 520 employees. Goldberger averages wages within
+
+00:02:44.960 --> 00:02:51.440
+each education level from 6 to 18 then regresses the group means on education. Now notice we're
+
+00:02:51.440 --> 00:03:00.480
+regressing a mean so it already has some some sort of it is not data in and of itself there's other
+
+00:03:00.480 --> 00:03:05.760
+data that kind of underlies it. It says most employees had 12, 14, or 16 years of education.
+
+00:03:05.760 --> 00:03:13.520
+This makes sense from a U.S. perspective. So this would be high school associate's degree,
+
+00:03:13.520 --> 00:03:20.480
+bachelor's degree. Each row here is an hourly wage for one level, not a person. This is the trick.
+
+00:03:20.480 --> 00:03:26.560
+And so the individual wages within the educated group have a common variance. And so this is the
+
+00:03:26.560 --> 00:03:30.640
+assumption we have to make that lets us do the regression on it. So we're assuming the
+
+00:03:30.640 --> 00:03:37.200
+relationship and there's a common variance. The mean is based on n sub j people that have
+
+00:03:37.200 --> 00:03:43.680
+variance sigma. So the sigma squared over n sub j. So inverse weighting, this weight is
+
+00:03:43.680 --> 00:03:48.080
+proportional. That's what this means, proportional to n sub j. This explains why the group containing
+
+00:03:48.080 --> 00:03:51.840
+three people should have less influence than the group containing many more. So this is kind of a
+
+00:03:51.840 --> 00:03:57.440
+long way of saying we're looking at means of people, group 6. I've had six years of education,
+
+00:03:57.440 --> 00:04:04.400
+that's not very much. And this is their hourly wage, $4 an hour. And the wage varies about 0.79.
+
+00:04:04.400 --> 00:04:09.040
+There's a standard deviation, and there's an n. And so you can see the standard error of the mean
+
+00:04:09.040 --> 00:04:15.680
+drops as you get more, so 0.2. So it's really good. The standard deviation is still high for 12.
+
+00:04:15.680 --> 00:04:19.760
+But the error of the mean is so precise because you have so many hands, right? It's divided by
+
+00:04:19.760 --> 00:04:26.720
+the square root of n. And so what does this look like? We just do our standard gg plot on it. And
+
+00:04:26.720 --> 00:04:31.200
+we're also going to plot the size here, because we really want to know. So three, six years,
+
+00:04:31.200 --> 00:04:39.520
+and there's 31 that have 18 years, I guess that would be, I don't know, masters or PhD,
+
+00:04:39.520 --> 00:04:43.360
+I think they probably did plus, you know, those of us that have never really left.
+
+00:04:46.000 --> 00:04:50.240
+And so I'm looking at this, and I'm thinking that looks, if each of these points are,
+
+00:04:50.240 --> 00:04:55.520
+so this is a smooth, so this is a standard linear regression,
+
+00:04:55.520 --> 00:05:01.280
+we are not doing anything different. And it looks okay.
+
+00:05:01.280 --> 00:05:09.120
+Overall, I mean, if I didn't know there was different ends, I'd say, yeah, that fits the data
+
+00:05:09.120 --> 00:05:17.360
+well. So the group progression summary. So we actually fit the model. Let's look at it. Yeah,
+
+00:05:17.360 --> 00:05:23.040
+residuals look good. Estimates 0.72. It's highly significant. Intercept is roughly zero,
+
+00:05:23.040 --> 00:05:32.880
+which makes sense. No education, no money. R square 0.90. Wow, that's a really well-fitting
+
+00:05:32.880 --> 00:05:37.120
+model, right? But notice we only have one in 11, so 12 degrees of freedom total.
+
+00:05:37.120 --> 00:05:45.120
+But we have measured 528 employees. And so we've reduced it to means and we've regressed on it,
+
+00:05:45.120 --> 00:05:52.640
+which you can do, it's totally valid. And we say it fits really well. So the problem here is that
+
+00:05:52.640 --> 00:05:58.720
+some of these points are much bigger than others, right? Like this point here, the largest one,
+
+00:05:58.720 --> 00:06:05.120
+at 12 years of education, is outside the confidence interval of the line,
+
+00:06:05.120 --> 00:06:14.480
+and it likely will pull the whole average wage down if we account for it. We're anchoring to
+
+00:06:14.480 --> 00:06:20.240
+this guy here at the bottom, and we're treating him or her as having as much information as this
+
+00:06:20.240 --> 00:06:33.840
+one, which isn't really the case. So how can we fix that? So now we're going to look at this data
+
+00:06:33.840 --> 00:06:39.200
+with individual values, and we'll see kind of what the difference is, and then we'll weight it.
+
+00:06:39.200 --> 00:06:46.080
+So the individual values, so this is education, and there's a bunch of other things. And there's
+
+00:06:46.080 --> 00:06:48.880
+your wage at the end. So this is a bunch of other things that are measured in this
+
+00:06:48.880 --> 00:06:53.760
+CPS5. You can Google the set. It's a pretty popular data set.
+
+00:06:53.760 --> 00:07:04.560
+So this should have 526 or whatever it was, 596 people. And so data, it's X is education,
+
+00:07:04.560 --> 00:07:11.440
+Y is wage. It's a point, we smooth it, line. That line goes right through these clouds of points.
+
+00:07:11.440 --> 00:07:16.720
+And notice what you see is some of these clouds are, there is some outliers that we totally miss.
+
+00:07:16.720 --> 00:07:22.800
+So when we look at a measure of central tendency in just a variance, we don't get these outliers.
+
+00:07:22.800 --> 00:07:30.960
+We've kind of, by compressing it to summary statistics, we've lost some of the information
+
+00:07:30.960 --> 00:07:36.320
+about the data set. But overall, I mean, it looks like a reasonable regression.
+
+00:07:36.320 --> 00:07:43.040
+And what did we have before? Minus 1.6. Okay, so this goes a bit lower, because before we were
+
+00:07:43.040 --> 00:07:48.000
+just about at zero, but this is also zero. So that's fine. This is 0.81. So that's a bit higher.
+
+00:07:48.000 --> 00:07:57.120
+The slope still significant. What? So now our multiple R squared is only 0.15. We had what,
+
+00:07:57.120 --> 00:08:02.640
+0.9 before. So we went from a really good model explaining lots of stuff to one that only explains
+
+00:08:02.640 --> 00:08:12.000
+15% of the variability in wage from education. It's night and day, right? So I mean, this,
+
+00:08:12.000 --> 00:08:14.080
+yeah, there's some notes here that might be a typo.
+
+00:08:14.080 --> 00:08:20.320
+So there's a lot more variation inside the individual data than in the means.
+
+00:08:20.320 --> 00:08:28.800
+And so why do these regressions differ? So we aren't going to be tested on this,
+
+00:08:28.800 --> 00:08:32.560
+but it's good to kind of listen through to see what's going on. So
+
+00:08:35.120 --> 00:08:41.680
+let's consider we have a regression of y of x individuals. And so the means are y bar x bar.
+
+00:08:41.680 --> 00:08:48.000
+Everyone has an education, has the same education value. So x of i, j, we can essentially just
+
+00:08:48.000 --> 00:08:52.640
+average across all of them. The equivalence below depends on that condition. So basically,
+
+00:08:52.640 --> 00:08:57.600
+we're using this to simplify everything out. And so if we minimize the sum square error,
+
+00:08:57.600 --> 00:09:02.400
+and so we've got the value minus a beta minus a beta 1 x squared. So this is what we've been
+
+00:09:02.400 --> 00:09:10.720
+working with all term from 1 to n. The regression for averages treats all m groups as being of
+
+00:09:10.720 --> 00:09:17.120
+equal worth. So instead of n, now we've got m, y sub j. So now this is the groups,
+
+00:09:17.120 --> 00:09:21.600
+beta 1 and x bar of the j of the groups.
+
+00:09:21.600 --> 00:09:31.200
+It's the computations. So the computations will try and fit from the-- it says try is hard,
+
+00:09:31.200 --> 00:09:36.400
+but basically, yeah, since it's given an equal weight, they can really sway things.
+
+00:09:36.400 --> 00:09:43.600
+So how do I go from one to the other? If we take the sums in one and reorder it into
+
+00:09:43.600 --> 00:09:48.160
+education level groups. And so now we're back to the i's and j's.
+
+00:09:48.160 --> 00:09:58.320
+So we've got i's and j's, beta 0, beta 1 of x, i, j. And then we're going to sum this up for all
+
+00:09:58.960 --> 00:10:06.640
+n individuals in all m groups. And now if we pretend that all yij's are from the same group
+
+00:10:06.640 --> 00:10:13.520
+mean, y bar sub j, the sum on the right-hand side drops down. Essentially, you can get rid of--
+
+00:10:13.520 --> 00:10:20.000
+you can pull an n sub j out. And so basically, instead of summing up all this,
+
+00:10:20.000 --> 00:10:25.040
+since you say the mean is there, you're just going to pull those out. And then it's y bar
+
+00:10:26.160 --> 00:10:31.760
+the group minus beta 0 minus beta 1 x of j. So the difference between these two
+
+00:10:31.760 --> 00:10:36.400
+is a multiplier by n, and that's the number of people. And we call this the weight.
+
+00:10:36.400 --> 00:10:41.680
+And the way you think of it is just the amount of information represented by the data point.
+
+00:10:41.680 --> 00:10:45.920
+So you don't have to be able to rederive this, but it's worth taking some time to think about
+
+00:10:45.920 --> 00:10:48.960
+what it's doing and plug in some values and see if you agree with how this works.
+
+00:10:48.960 --> 00:10:52.400
+It does work, but plug in some values to prove to yourself.
+
+00:10:53.200 --> 00:11:06.880
+But in reality, y sub ij are not equal. And so we'll show you a little bit more theory on the
+
+00:11:06.880 --> 00:11:14.320
+decomposition. So you remember, if we add and subtract y bar sub j. So we add and subtract a
+
+00:11:14.320 --> 00:11:18.480
+mean of the group. And since we're adding and subtracting, essentially, this is going to be 0,
+
+00:11:18.480 --> 00:11:22.240
+right? And so now we have the individual points minus the average of the group plus the average
+
+00:11:22.240 --> 00:11:28.480
+of the group minus beta 0 minus beta 1 x of ij. And so once we do that, we can split them. And so
+
+00:11:28.480 --> 00:11:33.680
+this side here, we're going to split out y sub ij minus y bar sub j2. And then we're going to
+
+00:11:33.680 --> 00:11:41.760
+keep adding up all this stuff on the side. And since we're in y sub j, and we have a
+
+00:11:43.760 --> 00:11:52.080
+cross product term of 1 to m and 1 to n sub j of 2 times this, that equals 0. That allows us to
+
+00:11:52.080 --> 00:12:04.480
+drop out the n. So let's just go away, basically. And so we are able to say that we've got this
+
+00:12:05.360 --> 00:12:12.240
+individual minus the average plus this weighted times the regression. And so those are the two
+
+00:12:12.240 --> 00:12:18.640
+parts. Essentially, we decompose this into two parts. And so we call this pure error. And so
+
+00:12:18.640 --> 00:12:25.200
+here, it's how much the wages move around the education group. And this is the weighted sums
+
+00:12:25.200 --> 00:12:29.760
+of squares for fitting the group means. And so you can see, we should actually have the sum of
+
+00:12:29.760 --> 00:12:33.520
+these two. So if we get rid of this, you can see that the model we're fitting actually has a
+
+00:12:33.520 --> 00:12:43.280
+different error structure. So how do we fix this in R? What can we what can we do? So to do a
+
+00:12:43.280 --> 00:12:50.080
+weighted regression, we have to specify weights. And that's it. So to do this in R, we'll just say
+
+00:12:50.080 --> 00:12:55.280
+if I want to do that CPS, average weight, I'm going to do that. And then I'm going to do the
+
+00:12:55.280 --> 00:13:00.240
+weights. So to do this in R, we'll just say, if we want to do that CPS, average wage to the
+
+00:13:00.240 --> 00:13:05.360
+education group, weights is equal to n. And n, what's that count? Data is this. And what's it
+
+00:13:05.360 --> 00:13:10.560
+look like? And so it says, oh, average data weights. Yep. And it says weighted residuals now,
+
+00:13:10.560 --> 00:13:18.640
+instead of residuals. Coefficients, minus 1.0 to 0.813. This is very, very similar to what
+
+00:13:18.640 --> 00:13:24.240
+we had at 0.82 before. And now we're at 0.81. Still highly significant. And our multiple R
+
+00:13:24.240 --> 00:13:34.000
+square is now 0.86. So it's dropped a bit. But the coefficients agree much better. Let's compare.
+
+00:13:34.000 --> 00:13:38.320
+Did I remember the values? Oh, sorry. No. Education groups are exactly identical.
+
+00:13:38.320 --> 00:13:43.120
+The standard error has dropped a bit in the OLS.
+
+00:13:43.120 --> 00:13:50.640
+So the t values are a bit different. And yeah, the multiple R square is 0.1552.
+
+00:13:52.160 --> 00:13:57.280
+So you have the same intercept and slope apart from rounding. Education is constant within each
+
+00:13:57.280 --> 00:14:02.160
+group. The standard errors in R squares do not match. The group fit has 13 rows and does not
+
+00:14:02.160 --> 00:14:11.120
+include the within group variation. So the intercepts and slopes are the same. But the
+
+00:14:11.120 --> 00:14:15.520
+variation is different. So you end up with slightly different t values and standard errors.
+
+00:14:19.760 --> 00:14:24.880
+What does this look like on a plot? So if we go into ggplot, we start plotting this out.
+
+00:14:24.880 --> 00:14:34.800
+Do our mapping, gm point. We'll do method equals lm AES. And you can actually do a weight in here
+
+00:14:34.800 --> 00:14:40.960
+and make that red. So that's the red one is our weighted. And the gm smooth, there's no weight
+
+00:14:40.960 --> 00:14:47.600
+on the blue dashed. And education years and average wage. So you can see by including the
+
+00:14:47.600 --> 00:14:52.800
+weight how much the line has been tweaked down towards these larger values and away from the
+
+00:14:52.800 --> 00:15:00.000
+smaller ones. So this is why we're getting quite a different fit when we acknowledge that we have
+
+00:15:00.000 --> 00:15:07.040
+different amounts of information from these points. So if we look at the residuals,
+
+00:15:07.040 --> 00:15:14.480
+and I draw this horizontal line across, and I say, what's the residuals look like?
+
+00:15:15.360 --> 00:15:21.040
+Um, if we look the low weight points on the left are badly fitted.
+
+00:15:21.040 --> 00:15:25.680
+Yeah, they're not there. These aren't great. And then it kind of drops down. And then it kind of
+
+00:15:25.680 --> 00:15:30.560
+goes back up. I mean, this doesn't look very random. This looks like a nice pattern. We need
+
+00:15:30.560 --> 00:15:34.320
+to actually wait these as well. And so we do that with something we call a Pearson residual.
+
+00:15:34.320 --> 00:15:42.480
+And when we use a Pearson residual, it gets much closer to the line. So
+
+00:15:43.840 --> 00:15:51.920
+well, it's weighted properly. And so it's, um, the scale is different is why it's a bit,
+
+00:15:51.920 --> 00:15:58.880
+a bit, it looks a bit weird. So since we're all multiplied by the square root of the weight and
+
+00:15:58.880 --> 00:16:04.640
+the weight is influenced by the sample size, the scale has changed. But the pattern now in context
+
+00:16:04.640 --> 00:16:14.160
+is see this top one here is there is above all these points. And this one is lower than that
+
+00:16:14.160 --> 00:16:18.720
+one in here, this one's higher than that one. So you can see it's, it's kind of changing the shape,
+
+00:16:18.720 --> 00:16:22.720
+these three now drop, it's changing the shape of of the residuals.
+
+00:16:22.720 --> 00:16:31.520
+So you want to look at the pattern, not their vertical magnitudes, because yeah, this is on
+
+00:16:31.520 --> 00:16:40.880
+some, some weird scale. One other thing we can do with weighting is we can use weights to adjust
+
+00:16:40.880 --> 00:16:48.240
+for non constant variance. So earlier in the course, if you want to adjust for, for heteroscedasticity,
+
+00:16:48.240 --> 00:16:53.440
+you'd have to do something like log a date, log a term or square rooted or do something to, to,
+
+00:16:53.440 --> 00:17:01.120
+to try and calm this down. But here we actually are going to go through an example we can use
+
+00:17:01.120 --> 00:17:08.560
+our weight function to kind of correct for that. So we'll say that as these points get further out,
+
+00:17:08.560 --> 00:17:14.560
+we're going to essentially give them less weight. So this is looking at the number of supervisors
+
+00:17:14.560 --> 00:17:18.640
+or team leaders and the number of workers, the data is there if you want to grab it.
+
+00:17:18.640 --> 00:17:24.240
+So we plotted out workers and supervisors. And we can see yes, this, I mean, even before we look at
+
+00:17:24.240 --> 00:17:28.080
+the residuals, you should just be able to see these points are tight. And then it's just like,
+
+00:17:29.040 --> 00:17:36.560
+it's getting really big as it goes out. Residual plot. Now let's look at the residual plot. Yeah,
+
+00:17:36.560 --> 00:17:43.200
+I mean, look at this. So it's just like, it's just dropping out. 27 is really influential.
+
+00:17:43.200 --> 00:17:47.360
+26 and 20. That's gonna be these two 26 and 27. I don't know which one's which.
+
+00:17:47.360 --> 00:17:53.360
+They're outside on the cooks distances. So they're, they're really, they're really far
+
+00:17:53.360 --> 00:17:58.320
+out there. This is definitely not a straight line. It's going up and down. And so this is
+
+00:17:58.320 --> 00:18:04.720
+like classic heteroscedasticity. It's an increasing funnel. So what can we do with that?
+
+00:18:04.720 --> 00:18:14.480
+So we can, I'll show you more derivations. So I like putting these in. So the residual versus
+
+00:18:14.480 --> 00:18:20.080
+fitted plot, the horizontal axis shows the fitted number of supervisors. And if you compare this
+
+00:18:20.080 --> 00:18:24.400
+against the Y of 50, 100, 150, you see that it increases. It's easier to see in the notes in
+
+00:18:24.400 --> 00:18:28.000
+the slide because they're right above each other. The spread increases, the fitted rises,
+
+00:18:28.000 --> 00:18:33.120
+so that means it's a, I mean, it's increasing funnel. And since Y also rises with X,
+
+00:18:33.120 --> 00:18:40.000
+a reasonable working model is that the standard deviation of the errors is proportional to X.
+
+00:18:40.000 --> 00:18:47.280
+So basically, as it increases, it increases with X. Or your standard deviation is K times X. So
+
+00:18:47.280 --> 00:18:53.200
+there's some constant K times X. So if you want to fit a straight model, Y sub I, this is just
+
+00:18:53.200 --> 00:18:57.920
+your standard linear model, sums of squares, standard sums of squares, and the residuals
+
+00:18:57.920 --> 00:19:04.560
+are this, have constant standard deviation. Now the standard deviation is not constant,
+
+00:19:04.560 --> 00:19:10.960
+but what we could do is divide through by X of I. So remember, if you do something to one side,
+
+00:19:10.960 --> 00:19:15.920
+you can do it to both sides. And so you just call this now Y sub I, beta naught of X of I,
+
+00:19:15.920 --> 00:19:25.600
+beta one plus nu of I, or eta of I. And so this is just rewritten as this to show you
+
+00:19:25.600 --> 00:19:30.320
+that it's the same thing. These are exactly the same, it's just this is the definition.
+
+00:19:30.320 --> 00:19:38.720
+The error term has now, has a constant standard deviation because the error divided by X of I
+
+00:19:38.720 --> 00:19:43.680
+is equal to K sub X I, right, because we assume that here. It's proportional to it, at least.
+
+00:19:44.240 --> 00:19:49.040
+And divide, the X is divided out and we're left with K. So the standard deviation is now
+
+00:19:49.040 --> 00:19:53.920
+some sort of constant, which is what we want, right? We want homoscedasticity, we want constant
+
+00:19:53.920 --> 00:19:58.800
+variance, which constant standard deviation is constant variance. So now we have a linear model
+
+00:19:58.800 --> 00:20:04.160
+of constant variance, we can solve least squares. We could do this normally and just use, and use
+
+00:20:04.160 --> 00:20:11.920
+LM, but we're minimizing a slightly different question. So one over X squared times all this,
+
+00:20:11.920 --> 00:20:17.520
+which is a regression with weighted, the weights of I, one over X of I squared. So
+
+00:20:17.520 --> 00:20:21.520
+this transformation is the same as doing a weighted least squares with those weights.
+
+00:20:21.520 --> 00:20:31.440
+So let's try it. So supervisor's data, Y to X, weight one over X squared. So these weights can be
+
+00:20:31.440 --> 00:20:35.200
+quite complicated and there's all kinds of reasons you could use one or the other.
+
+00:20:35.200 --> 00:20:41.200
+But in this case, it's, we're trying to make the variance constant. And so we end up with
+
+00:20:41.760 --> 00:20:50.160
+intercept of 3.8, X is 0.12, that's significant, that's basically zero, R squared 0.87. So now if
+
+00:20:50.160 --> 00:20:56.240
+we look at these two plots, the way to plot is again in red, and we can see that instead of
+
+00:20:56.240 --> 00:21:02.880
+getting tweaked down, because of what's going on, it actually is much more able to follow,
+
+00:21:03.920 --> 00:21:11.680
+follow the data. So this is a much better fit of the data, assuming that we have stabilized
+
+00:21:11.680 --> 00:21:19.360
+the variance. So it sits closer to low, where the variance is smaller, and the OLS line gives
+
+00:21:19.360 --> 00:21:23.520
+the points to the same weight as the higher X. So yeah, this is basically saying these are more
+
+00:21:23.520 --> 00:21:32.400
+important. So let's tilt our line down there a bit. What does our weighted residuals look like?
+
+00:21:32.400 --> 00:21:37.600
+That looks nice, right? I mean, look at that, that looks really good. We no longer see that
+
+00:21:37.600 --> 00:21:41.920
+weird pattern we had before. So a common rule that we use in weighting is,
+
+00:21:41.920 --> 00:21:46.240
+we use a weight that's proportional to 1 over the variance of Y given X.
+
+00:21:46.240 --> 00:21:55.200
+Here it was a group mean for supervisors, each row was one establishment. And so that's different
+
+00:21:55.200 --> 00:22:02.320
+weights. And so that's kind of a reason why that could happen. So now, another example of how we
+
+00:22:02.320 --> 00:22:09.600
+can use weights, this is example week, is meta-analysis. So meta-analysis is combining
+
+00:22:09.600 --> 00:22:18.560
+estimates from several studies. So this is the bread and butter of science, really. We do a study,
+
+00:22:18.560 --> 00:22:23.680
+report a result, someone else hopefully replicates that study at some point,
+
+00:22:23.680 --> 00:22:27.840
+sees the same or different thing, and maybe they do it slightly differently. And
+
+00:22:27.840 --> 00:22:33.040
+how can you combine all these data sets together? You basically can look at their estimates,
+
+00:22:33.040 --> 00:22:36.000
+figure out how big they are, look at the variability of their estimate, because usually
+
+00:22:36.000 --> 00:22:38.560
+you're going to report that. This is one of the reasons why we want you to report it,
+
+00:22:38.560 --> 00:22:45.920
+so we can see how much do we trust your estimate. Because a p-value is not as good as reporting
+
+00:22:45.920 --> 00:22:51.840
+a standard deviation, or a variance, or a confidence interval. Any of those,
+
+00:22:51.840 --> 00:22:58.640
+we can get to any of the others. And so we really want to know how variable your estimates were in
+
+00:22:58.640 --> 00:23:03.200
+your study. And we can use that and then essentially take into account not only the
+
+00:23:03.200 --> 00:23:07.840
+size of your study, but how much your study varied, so how precise was your study.
+
+00:23:07.840 --> 00:23:14.400
+And then we end up with a different type of weight here, which is n sub j, so the weight
+
+00:23:14.400 --> 00:23:17.440
+divided by the standard deviation squared, which is the variance, which is what we used earlier.
+
+00:23:20.320 --> 00:23:25.520
+And we put these two together, essentially the n and the accuracy, and then we're going to stick
+
+00:23:25.520 --> 00:23:31.120
+that together and regress. And so the CPS5 grouped, we actually had an n in the standard deviation.
+
+00:23:31.120 --> 00:23:34.240
+Since it gives us standard deviation, we have to square it, because it didn't give us variance,
+
+00:23:34.240 --> 00:23:37.200
+right? I mean, so this is just down to the parameterization we were given.
+
+00:23:37.200 --> 00:23:43.920
+And so we fit it in, and we say the weights are weights, so you can either do it here,
+
+00:23:43.920 --> 00:23:48.800
+you can make it and attach it. And so we look at the weights, and we say 0.22, 0.65,
+
+00:23:49.360 --> 00:23:54.800
+this is related, this is 0.86, that looks good. So what does it look like different?
+
+00:23:54.800 --> 00:24:02.560
+So this is education to average, so you remember it was 0.81, I think, before,
+
+00:24:02.560 --> 00:24:08.400
+something like that. Now it's down to 0.65, because not only are we adjusting for the size,
+
+00:24:08.400 --> 00:24:14.960
+we're adjusting for how accurate each of these points is. And so I haven't plotted that here,
+
+00:24:14.960 --> 00:24:17.680
+but I guess I could put color on it, and the more accurate could be a different color,
+
+00:24:17.680 --> 00:24:19.520
+but it makes the plot difficult to see.
+
+00:24:19.520 --> 00:24:27.920
+And so now we go to our running example, which is the sole bike data.
+
+00:24:27.920 --> 00:24:34.400
+And so this will show why group summaries need care. If we average demand within temperature
+
+00:24:34.400 --> 00:24:41.680
+bands, some groups represent more hourly observations than others. And so just looking
+
+00:24:42.320 --> 00:24:50.960
+from breaking temperature up, the temperatures are not always equally distributed. And so if
+
+00:24:50.960 --> 00:24:55.120
+I'm trying to measure temperature groups, I'm going to end up with different counts in each.
+
+00:24:55.120 --> 00:25:01.920
+So like 30 to 40 degrees in Seoul, I guess is common, 20 to 30 is common, you know, down to
+
+00:25:04.480 --> 00:25:14.720
+minus 20 is not as common. And so, you know, we end up with much fewer observations. And so we can
+
+00:25:14.720 --> 00:25:20.400
+just look, I'm just looking, average bike count. Yeah, so 23,500. Yeah, it was really hot, no one's
+
+00:25:20.400 --> 00:25:23.440
+riding their bike. When it's really cold, no one's riding their bike. They really like to ride 10
+
+00:25:23.440 --> 00:25:27.760
+to 20, 20, 30. 30 is pushing it for me, but yeah, 10, 20 would be a nice day to ride a bike. Yeah.
+
+00:25:27.760 --> 00:25:34.320
+0 to 10, wow, these guys are really into riding bikes. So that seems about reasonable. Let's
+
+00:25:34.960 --> 00:25:45.280
+model it. Just a linear model is the dashed line and the smooth one weighted by n is the red.
+
+00:25:45.280 --> 00:25:52.800
+So the temperature varies within each band. So the line through the weighted band needs to be,
+
+00:25:52.800 --> 00:25:58.640
+does not necessarily need to be identical to the line fitted through all hourly observations.
+
+00:26:02.240 --> 00:26:06.960
+The equality that we saw earlier relied on everyone in the group having the same predictor value.
+
+00:26:06.960 --> 00:26:11.280
+Here they don't. So clients don't necessarily have to agree.
+
+00:26:11.280 --> 00:26:16.160
+And I would say that is oftentimes the case. They don't necessarily agree. This is kind of showing
+
+00:26:16.160 --> 00:26:24.160
+you in any data set, there's ways to bend the data and make sure you're regressing.
+
+00:26:24.160 --> 00:26:29.600
+So if somebody gives you data, you need to ask, is this a single observation? How was it measured?
+
+00:26:29.600 --> 00:26:34.400
+This is what I said. Statisticians are annoying. How is this measured? Because a lot of times,
+
+00:26:34.400 --> 00:26:37.600
+especially when you start working with biologists, they do stuff in triplicate and they give you one
+
+00:26:37.600 --> 00:26:41.520
+value. And in fact, they have the triplicates and they've thrown on, this was an outlier.
+
+00:26:41.520 --> 00:26:44.240
+And it's like, how do you know it's an outlier? They're like, I didn't like the value. And I'm
+
+00:26:44.240 --> 00:26:50.960
+like, oh my goodness. So you really got to ask people where to come from. This is kind of just
+
+00:26:50.960 --> 00:27:03.840
+a summary of what is going on, the way we used the weights. So if it's independent people with a
+
+00:27:03.840 --> 00:27:09.040
+common individual variance, the variance of that row and the relative weight is n. So this was the
+
+00:27:09.040 --> 00:27:14.880
+first example. If it's an observational estimate with the variance, you can do whatever the
+
+00:27:14.880 --> 00:27:19.120
+variance. Remember, this is tau. This is usually what you'll use. This is also meta-analysis.
+
+00:27:20.000 --> 00:27:24.640
+If a mean of n individual people with individual variance in groups, you can do sigma squared j
+
+00:27:24.640 --> 00:27:29.360
+sub n sub j. And this is what we did for this example. And an observation of standard error
+
+00:27:29.360 --> 00:27:35.280
+is proportional to x. The variance is k squared x squared and the relative weight 1 over x squared.
+
+00:27:35.280 --> 00:27:40.400
+This is the supervisors and workers. But this is the general one you'll use a lot. And sometimes
+
+00:27:40.400 --> 00:27:47.680
+you use this one. Meta-analysis typically uses this one. Sometimes we use this one. It really
+
+00:27:47.680 --> 00:28:01.520
+depends on what you've got. So that is weighted regression. Let me know if you have any questions.

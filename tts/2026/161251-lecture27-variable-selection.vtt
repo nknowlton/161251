@@ -1,0 +1,1033 @@
+WEBVTT
+
+00:00:00.720 --> 00:00:06.600
+Hello, welcome to lecture 27. So in the last lecture, we talked about
+
+00:00:06.600 --> 00:00:17.520
+selecting, selecting models that were pre specified. And today we're moving into much more
+
+00:00:17.520 --> 00:00:27.200
+ill-defined territory, right? Because in a real modeling problem, you don't know that am I gonna
+
+00:00:27.240 --> 00:00:34.560
+just add this variable or take this out, you're given a ton of variable, sometimes maybe, I mean,
+
+00:00:34.560 --> 00:00:39.680
+I've had, I've had projects where I've been given hundreds of variables, sometimes even 1000s. And
+
+00:00:39.680 --> 00:00:47.200
+they're like, Dick, make me a model. It'll be like, Oh, okay, which one of these matter? What
+
+00:00:47.200 --> 00:00:57.080
+should we be doing here? It's, it's a tricky situation. So, so where do we go? And when we
+
+00:00:57.080 --> 00:01:04.560
+have all this, so it, so I'm here today to show you some tricks, and general guidelines you can
+
+00:01:04.560 --> 00:01:11.920
+follow to make sure that your your modeling and is making a reasonable model. And I'm putting
+
+00:01:11.920 --> 00:01:15.880
+reasonable in air quotes there, it doesn't have to be the best model, it doesn't have to be the
+
+00:01:15.880 --> 00:01:23.160
+worst model, but it doesn't have to be a pretty good model. And because what we're trying to do
+
+00:01:23.160 --> 00:01:31.800
+is we're trying to balance model fit against model complexity. And this is a problem, only
+
+00:01:31.800 --> 00:01:40.080
+because there's not one, one right answer is, it depends on what, what we're trying to address
+
+00:01:40.080 --> 00:01:50.440
+with our model. Because remember, no model is necessarily true models are just useful or not
+
+00:01:50.440 --> 00:01:58.400
+useful. So here, a common use, especially in statistical modeling, is explanation or inference,
+
+00:01:58.400 --> 00:02:04.000
+you want to estimate and interpret effects after adjustments for other variables. So this is this
+
+00:02:04.000 --> 00:02:09.200
+is a standard thing that you'll see. And these are the textbooks examples, you see, you know, a
+
+00:02:09.200 --> 00:02:15.600
+farmer has a field or cows are making milk, and we've tested this, and we've tested that, and you
+
+00:02:15.600 --> 00:02:27.360
+really need an explanation of what is causing this, this yield, or does does jumping to this machine
+
+00:02:27.360 --> 00:02:32.440
+in this factory actually improve things versus the old machine we used. And so for explanation
+
+00:02:32.440 --> 00:02:36.960
+and inference, you can measure all kinds of really weird and esoteric variables. And it's
+
+00:02:36.960 --> 00:02:46.040
+totally cool. Prediction is slightly different beast, where instead of saying, a is you're trying
+
+00:02:46.040 --> 00:02:52.640
+to say a relates to B, and then I can use that relationship to say what's going to happen when in
+
+00:02:52.640 --> 00:03:03.600
+the future, I can only measure a. And so is there a subset of models I can create and use that will
+
+00:03:03.600 --> 00:03:12.960
+help me predict something else that I haven't measured. So that's obviously going to be it's a
+
+00:03:12.960 --> 00:03:16.680
+bit different than than explanatory. One of the main things you have to worry about with predictive
+
+00:03:16.680 --> 00:03:26.840
+models is what are you going to do if the variable you've measured is really hard to get. So imagine
+
+00:03:26.840 --> 00:03:32.560
+you needed to go to the bottom of a lake to get a certain soil sample. That's really expensive. Do
+
+00:03:32.560 --> 00:03:38.640
+you really need to do that? How about we have a slightly less predictive model that does a surface
+
+00:03:38.640 --> 00:03:44.240
+sampling from the side of the same lake? Is that is that enough? I mean, it might not be as accurate,
+
+00:03:44.240 --> 00:03:53.040
+but is it enough? And so this is where prediction versus explanation, it's a bit different. And then
+
+00:03:53.040 --> 00:03:59.320
+finally, are you just trying to describe a process and you really don't know what levers are
+
+00:03:59.320 --> 00:04:05.640
+associated with the outcome you're looking at. And so in that case, you just want a smaller set
+
+00:04:05.640 --> 00:04:10.280
+of variables that here we call them compact, because that's the mathematical way we discuss
+
+00:04:10.280 --> 00:04:16.320
+them. You want a smaller set so they're easier to interpret, because it doesn't do any good. If I
+
+00:04:16.320 --> 00:04:21.920
+say I threw 1000 variables into this model, it took 1000 variables. If you gave me this output,
+
+00:04:21.920 --> 00:04:27.120
+that's not super useful. That's a black box, right? I mean, you know, I like magic as much
+
+00:04:27.120 --> 00:04:35.120
+the next person, but that's not describing much to me, if I can go in and actually explain what's
+
+00:04:35.120 --> 00:04:40.880
+going on, it's much more important. And so this is kind of these are the competing goals you have
+
+00:04:40.880 --> 00:04:48.040
+in model selection. And depending upon what we tell you, you're trying to do, you will necessarily
+
+00:04:48.040 --> 00:05:00.600
+make different choices. And the other thing that comes up with making model choices is, you know,
+
+00:05:00.600 --> 00:05:08.880
+I've got 1000 variables, let me throw them all in. Fine. Why is that a bad thing? Well, it's a little
+
+00:05:08.880 --> 00:05:16.120
+bit like the three bears, right? You throw in too much, and you're going to be too flexible in your
+
+00:05:16.120 --> 00:05:26.520
+modeling, you're going to fit every little nook and cranny in the data, every bit of idiosyncrasy
+
+00:05:26.520 --> 00:05:36.400
+in the data, and it's not gonna be a good model. And the other side, if you don't put in things
+
+00:05:36.400 --> 00:05:44.840
+that are important, you're just going to miss them and you can misattribute them. Maybe, let's see,
+
+00:05:44.840 --> 00:05:53.600
+how about if we are trying to predict the temperature outside of Auckland on a given
+
+00:05:53.600 --> 00:06:04.680
+day, and we're using sunshine, is the sun shining, not number of hours or anything fancy? And is that
+
+00:06:04.680 --> 00:06:10.600
+a good predictor? Probably not great. Because the season matters, the time of year matters,
+
+00:06:10.600 --> 00:06:14.320
+the number of sunlight hours matters, the elevation matters, right? There's all these,
+
+00:06:14.320 --> 00:06:20.680
+there's all these other things that provide meaningful information that, will it associate?
+
+00:06:20.680 --> 00:06:25.160
+Probably, I'm assuming it would associate if it's sunny or not would relate somewhat to the
+
+00:06:25.160 --> 00:06:29.160
+temperature, but it's not gonna be a great relationship. But then again, if I have to
+
+00:06:29.160 --> 00:06:39.000
+measure the previous five days, Mercury level, moon phase, exact elevation, wind speed over the
+
+00:06:39.000 --> 00:06:49.240
+last hour, you know, solar gain, cloudiness, is it raining? If I have to measure all these things,
+
+00:06:49.240 --> 00:06:57.580
+that's, I might be too, I might be measuring too much. And so we call this the bias variance
+
+00:06:57.580 --> 00:07:02.720
+trade off. And so a simple model could have been structure, like things we should be measuring,
+
+00:07:02.720 --> 00:07:08.240
+and while it's too complicated, just fits garbage, basically. We call it, I hear I'm
+
+00:07:08.240 --> 00:07:13.360
+calling it accidental features, but yeah, it's just garbage. And so the way to think of this is,
+
+00:07:13.360 --> 00:07:25.000
+if I have a term and the beta value is, is zero. And that means it really has no slope. And so on
+
+00:07:25.000 --> 00:07:31.560
+average, it's just nothing, it's just noise. And so if we add that to the model, we're going to
+
+00:07:31.560 --> 00:07:35.480
+be spending our degrees of freedom. And we do not want to spend our degrees of freedom, we don't
+
+00:07:35.480 --> 00:07:39.200
+have very many to spend. These are expensive, right? This is like, every time we measure
+
+00:07:39.200 --> 00:07:43.080
+something, we get a degree of freedom. So I don't want to throw away degrees of freedom, because I
+
+00:07:43.080 --> 00:07:49.800
+measured something. So these are precious, so we try and keep them. And especially if it's not
+
+00:07:49.800 --> 00:07:56.880
+contributing any meaningful signal. And so if we do keep it in, we call that overfitting. If it
+
+00:07:56.880 --> 00:08:02.520
+truly is zero, and if it's not zero, so it's something that really matters, and we leave it
+
+00:08:02.520 --> 00:08:13.080
+out. We can bias our estimates, essentially, one coefficient can take on here, I say absorb some of
+
+00:08:13.080 --> 00:08:17.640
+the missing structure, it ends up with a larger value. So it can it can look more important than
+
+00:08:17.640 --> 00:08:27.760
+it is, it can mislead you and think that A and B are highly related, but really, it's A and C that
+
+00:08:27.760 --> 00:08:35.200
+are related to B. I mean, it Yeah, it's tricky. And we don't know in advance, which ones are truly
+
+00:08:35.200 --> 00:08:42.720
+zero, we really don't. So if it's something that's been studied before, you kind of figure this out,
+
+00:08:42.720 --> 00:08:49.000
+right? I mean, the the classic example of this confounding is what we call this in epidemiology,
+
+00:08:49.360 --> 00:09:01.480
+is the relationship between smoking, and coffee drinking and lung disease. It used to be that
+
+00:09:01.480 --> 00:09:08.160
+people who drank coffee were highly likely to get lung cancer. But we know coffee doesn't cause lung
+
+00:09:08.160 --> 00:09:12.160
+cancer, like, we've done trials of just people that drink coffee and kept everything else the
+
+00:09:12.160 --> 00:09:17.920
+same, and they don't get lung cancer. And so what was happening was, people were taking coffee
+
+00:09:17.920 --> 00:09:22.480
+breaks and smoking on them. And the smoking was causing lung cancer. But if you didn't measure
+
+00:09:22.480 --> 00:09:29.440
+the smoking variable, that latent effect was causing you to miss what was really driving,
+
+00:09:29.440 --> 00:09:36.320
+driving the relationship. So this is why it's it's bad to go too simple. So it's kind of a it's a
+
+00:09:36.320 --> 00:09:41.680
+tightrope we walk as, as analysts, not only do we have to balance this, we have to balance what is
+
+00:09:41.680 --> 00:09:47.680
+our intended use of the model because we're trying to make useful models. So let's do a simulation.
+
+00:09:47.680 --> 00:09:54.320
+And have have what we know is the truth and see what it does to our data when we either add
+
+00:09:54.320 --> 00:10:01.600
+something or take away something. And so I've got a really simple model, we're just gonna consider
+
+00:10:01.600 --> 00:10:06.880
+making up that we're measuring yield. And there's two stages, they have different temperatures. And
+
+00:10:06.880 --> 00:10:13.360
+this is just a simple relationship. I've got a little bit of variability, zero to one. And we
+
+00:10:13.360 --> 00:10:19.280
+know this because we are simulating it. So we know the truth. And so for the first one, we'll say
+
+00:10:19.280 --> 00:10:24.640
+beta nine is 50. Okay, it's our intercept, beta one is 10, and beta two is zero.
+
+00:10:24.640 --> 00:10:34.720
+So B is doing nothing, right, because it's beta two. The model we have is yield is equal to 50
+
+00:10:34.720 --> 00:10:43.680
+plus 10 A plus some error. And so if we now try and model y versus A and y versus A plus B on this
+
+00:10:43.680 --> 00:10:50.160
+data, and then look at the resulting coefficients, we can see the first model, which is the correct
+
+00:10:50.160 --> 00:10:58.560
+model, because it's exactly what we what we simulated, we get 49.3, 50 is what we said it was,
+
+00:10:59.280 --> 00:11:03.840
+standard error is about two, we say that's definitely not equal to zero, right? And then
+
+00:11:03.840 --> 00:11:10.800
+a term is 10, right on the nose, that's amazing. Standard error 0.1, that's also not zero.
+
+00:11:10.800 --> 00:11:18.080
+What do we got here? Linear model two, that's pretty close, right? Again, that's not bad.
+
+00:11:18.080 --> 00:11:25.280
+48.8 versus 49. Standard error is about two again. But A 9.76, it's not that bad.
+
+00:11:25.920 --> 00:11:32.800
+Standard error 0.3, whoa, so that doesn't seem bad in itself. But look at what it was before,
+
+00:11:32.800 --> 00:11:38.160
+it was 0.1, this is 3x. So when you look at the standard errors and things, don't think of them
+
+00:11:38.160 --> 00:11:44.560
+in absolutes, think of them as compare them to with and without terms in the model, you want to
+
+00:11:44.560 --> 00:11:49.760
+see really what's what's driving them. And so they're all relative to the other terms, and you
+
+00:11:49.760 --> 00:12:00.800
+can really see, but a tripling is a big deal. And B at 0.29, yeah, the standard error is almost a
+
+00:12:00.800 --> 00:12:06.080
+little bit bigger than A where we know there's actual signal. And then we say, oh, yeah, that's
+
+00:12:06.080 --> 00:12:13.920
+not actually different than zero. So in this one, we're measuring A much less precisely when we
+
+00:12:13.920 --> 00:12:21.680
+have noise in the model. And the other way around, the second scenario, beta 9 is 50, beta 1 is 5,
+
+00:12:21.680 --> 00:12:31.440
+beta 2 is 5. And so the real model is 50 plus 5 plus 5. And the data is 50 plus 5 plus 5,
+
+00:12:31.440 --> 00:12:38.480
+we fit A, we fit A plus B, and we look at the intercepts and coefficients. So 57, 48,
+
+00:12:39.680 --> 00:12:47.680
+okay, not great, seven, what the, that's really big. Why is that so big? I don't know,
+
+00:12:47.680 --> 00:12:52.320
+this is really driving this coefficient. The standard error on this on this intercept,
+
+00:12:52.320 --> 00:13:06.880
+958 and 0.4. Okay. 4.76 and 0.3. Okay, standard errors are roughly similar. So this correct model
+
+00:13:06.880 --> 00:13:13.280
+here, 4.76 and 0.529, roughly five a piece, roughly the same standard error, that's fine. 958.
+
+00:13:13.280 --> 00:13:22.800
+So that somehow is absorbing, or the relationship of temperatures being attributed all to A,
+
+00:13:22.800 --> 00:13:29.840
+when in fact, half of it belongs to B. So now, what we're saying is related,
+
+00:13:29.840 --> 00:13:34.240
+the relationship that we're measuring is now distorted by leaving out a coefficient.
+
+00:13:35.680 --> 00:13:40.720
+And so this is what we mean by omitting the needed variable causes bias and the predictions,
+
+00:13:40.720 --> 00:13:46.480
+especially when overlaps with variables retained in the model, including unnecessary variables.
+
+00:13:46.480 --> 00:13:52.960
+We never know where we're at, this is kind of, and they're normally not this extreme. And so
+
+00:13:52.960 --> 00:13:56.160
+they're kind of subtle. And this is what makes it hard to find, but it's just something you need to
+
+00:13:56.160 --> 00:14:03.200
+keep an eye out for. So how should we judge extra complexity, right? We did this model fit earlier,
+
+00:14:03.200 --> 00:14:10.640
+and we did the, we could do the partial F test to see if it added additional information. But
+
+00:14:10.640 --> 00:14:17.040
+that was based on residual sums of squares. But we know that adding variables always makes the RSS
+
+00:14:17.040 --> 00:14:25.440
+smaller. So that won't tell us. So we can look at the coefficient of determination.
+
+00:14:25.440 --> 00:14:31.760
+And again, this is related back to residual sums of squares, as you kind of see.
+
+00:14:32.640 --> 00:14:37.760
+And there's the proportion of sample response accounted for by the fitted model, it does not
+
+00:14:37.760 --> 00:14:44.320
+penalize complexity. So the adjusted R square is the one I want you to focus on more. And so this
+
+00:14:44.320 --> 00:14:50.800
+adjusts for including more variables in the model. So basically an additional,
+
+00:14:50.800 --> 00:14:57.040
+for every additional degree of freedom that you're fitting, it needs to earn its place
+
+00:14:58.720 --> 00:15:04.400
+proportionally in your adjusted R square. So it can decrease when added terms, but it's not
+
+00:15:04.400 --> 00:15:09.600
+reduced residual sum of square enough to justify a degree of freedom. This basically, if you start
+
+00:15:09.600 --> 00:15:17.520
+seeing a decrease, it's obviously there's, it's bad. It happens. And the residual standard error
+
+00:15:17.520 --> 00:15:22.800
+is a residual scale, scale estimate. Residual sum of squares divided by degrees of freedom
+
+00:15:22.800 --> 00:15:29.520
+squared that measures remaining unexplained variation on the response scale. It's useful
+
+00:15:29.520 --> 00:15:33.440
+for comparing fitted models to the extent they have the same response and observation. So
+
+00:15:33.440 --> 00:15:41.360
+basically, this is residual sum squared, we don't think in squared terms, we think in real
+
+00:15:41.360 --> 00:15:44.640
+differences. And so you take the square root to get rid of the square basically.
+
+00:15:44.640 --> 00:15:47.440
+But you normalize that by the number of degrees of freedom.
+
+00:15:47.520 --> 00:15:58.640
+Um, we talked about the partial F test
+
+00:15:58.640 --> 00:16:06.560
+last lecture. And so that's useful, we know, we have something in mind, and it's nested.
+
+00:16:06.560 --> 00:16:14.880
+AIC is another criterion you can use. And so you can see it's the number of samples of the log of
+
+00:16:14.880 --> 00:16:20.160
+the RSS divided by the number of samples plus 2P plus some sort of constant. P is the number of
+
+00:16:20.160 --> 00:16:27.120
+fitted parameters. Smaller AIC is preferred when comparing candidate models. But what is the scale
+
+00:16:27.120 --> 00:16:33.360
+of this? And so it's, it's once again, it's all relative. So you want to look at it, you want to
+
+00:16:33.360 --> 00:16:40.160
+look at AICs and the value. So if someone said my AIC is six, I can't tell if that's good or bad.
+
+00:16:40.160 --> 00:16:45.360
+If someone says my AIC is 2000, I can't tell them if that's good or bad. It's all depends on how
+
+00:16:45.360 --> 00:16:49.440
+big a sample you've got, it depends on what you're trying to fit, the number of terms, you can see
+
+00:16:49.440 --> 00:16:55.600
+all these things are changing. So we compare them to each other. AIC to AIC of model one, model two
+
+00:16:55.600 --> 00:17:00.560
+we're comparing, and they make sense in that context, just random AIC values are not useful.
+
+00:17:00.560 --> 00:17:06.960
+But notice, unlike the partial F, the AIC compare models that are not nested.
+
+00:17:08.800 --> 00:17:18.800
+So if you want to do some fancy models, and you want to test, hmm, I want to test temperature of,
+
+00:17:18.800 --> 00:17:27.120
+let me think of a good example here, temperature of a lake.
+
+00:17:27.120 --> 00:17:36.560
+And then I want to test the solar radiation during the day. And both of those are predicting
+
+00:17:38.000 --> 00:17:44.240
+fish stock levels. I don't know. You can't do the partial F that I showed you earlier,
+
+00:17:44.240 --> 00:17:49.120
+because those models are not nested within each other. But you can compare their AICs
+
+00:17:49.120 --> 00:17:53.120
+and get an indication of which model is better.
+
+00:17:53.120 --> 00:18:04.160
+So it's a good thing to have your in your toolkit, there is, there's AIC, there's BIC,
+
+00:18:04.160 --> 00:18:08.000
+there's, there's, and there's, there's probably 20 or 30 of these people who's come up with small
+
+00:18:08.000 --> 00:18:12.320
+tweaks, and they're better in very specific circumstances. This is just letting you know
+
+00:18:12.320 --> 00:18:18.240
+that these information criterias exist. Individual coefficient p values answer a more specific
+
+00:18:18.240 --> 00:18:25.200
+question about one coefficient under one parameterization. And that parameterization
+
+00:18:25.200 --> 00:18:30.880
+matters because, as you've learned already, you can do all kinds of things. What's the reference?
+
+00:18:30.880 --> 00:18:36.880
+Do you put the reference in? Yeah, so it depends on what are we trying to answer. So this is much
+
+00:18:36.880 --> 00:18:41.440
+AICs are much more model, and the coefficient p values are against individual terms.
+
+00:18:41.440 --> 00:18:50.480
+And so I need to discuss cross validation. So this is a bit data sciency, but it's used so
+
+00:18:50.480 --> 00:18:57.520
+much now in statistics, it's it's want to make sure that you've, you've seen it. So if I'm
+
+00:18:57.520 --> 00:19:03.120
+fitting a regression model, up till now, we usually use all the data that I give you.
+
+00:19:03.120 --> 00:19:10.400
+So if I give you 20 observations, you fit 20, you have 20 scatter points, you fit a model to all 20.
+
+00:19:10.400 --> 00:19:16.480
+And you're done, you go, this is how it fits. That's an internal metric. That's useful for
+
+00:19:16.480 --> 00:19:23.600
+exploration and inference. When it's time for prediction, that's no longer good enough.
+
+00:19:24.160 --> 00:19:31.040
+So what we, there's lots of ways to do this one way we can be a bit more robust in our
+
+00:19:31.040 --> 00:19:37.600
+parameter estimates and our metrics we're evaluating models with is we can do something
+
+00:19:37.600 --> 00:19:42.800
+called cross validation. And it's called cross because we basically fit the data we fit on,
+
+00:19:42.800 --> 00:19:46.400
+we have something called training data, and we have something called have held out data
+
+00:19:46.400 --> 00:19:50.480
+prediction error, and then we repeat it. So basically, we take the data, we cut it into
+
+00:19:50.480 --> 00:19:59.440
+chunks, how many chunks you cut it into, can be n minus one chunks. So if you have 100
+
+00:19:59.440 --> 00:20:05.280
+data points, you can cut into 99 different chunks, all the way up to
+
+00:20:05.280 --> 00:20:11.360
+maybe five or 10 chunks. And what you do is once you've once you've broken it into that,
+
+00:20:11.360 --> 00:20:18.400
+say broken into five, we call this five fold cross validation here, this little animated GIF.
+
+00:20:19.280 --> 00:20:26.640
+And you've got your test set, you've got a train set, a train set, a train set, a train set.
+
+00:20:26.640 --> 00:20:31.360
+So you've got four fifths of your data that you're going to build your model on. And you
+
+00:20:31.360 --> 00:20:36.400
+got one set of your data that you've never seen, you build your model like normal. And you do your
+
+00:20:36.400 --> 00:20:40.160
+predictions, remember, we learned already learned how to do predictions, confidence intervals around
+
+00:20:40.160 --> 00:20:45.840
+individual values. And in this test set, you can actually get the prediction error of this test set.
+
+00:20:47.040 --> 00:20:52.240
+And then you build another model, except in this model, you switch which one you're training on,
+
+00:20:52.240 --> 00:20:58.480
+and which one you're testing on. You do that again, and again, and again. And when you're done,
+
+00:20:58.480 --> 00:21:04.480
+you then have measured prediction error in all of the data,
+
+00:21:04.480 --> 00:21:13.360
+using not the rest of the data to make that prediction that that makes sense. So basically,
+
+00:21:13.360 --> 00:21:17.440
+this, since you're always using other data to make the prediction of the one, we now have a measure
+
+00:21:17.440 --> 00:21:23.200
+across all these folds, that is the complete data set. And so this tends to be more conservative,
+
+00:21:23.200 --> 00:21:32.160
+so that basically the values are more realistic. We'll do this again a bit in lecture 28, which is
+
+00:21:32.160 --> 00:21:40.800
+next week. Yep. But I just wanted you guys to have a good overview of what cross validation is. So if
+
+00:21:40.800 --> 00:21:44.000
+I say I'm doing cross validation, this is what you need to know in this course, what cross validation
+
+00:21:44.000 --> 00:21:48.160
+is. Essentially, you're breaking your data into chunks, and you're doing predictions on the bit
+
+00:21:48.160 --> 00:21:56.240
+that you haven't fit the model on. Another thing we really care about is selecting terms, not
+
+00:21:56.240 --> 00:22:04.080
+coefficients. What's the difference? You have to think about that, because at first you think those
+
+00:22:04.080 --> 00:22:08.800
+are the same thing, but they're not. So if you have a factor that has 100 levels, you're going
+
+00:22:08.800 --> 00:22:15.600
+to end up with say 99 coefficients. So it's 99 terms that are the difference from the one reference
+
+00:22:15.600 --> 00:22:22.240
+all you've got. And so if you're selecting, you usually, usually now, don't go in and say,
+
+00:22:22.240 --> 00:22:27.680
+I only want to keep factor level two, and factor level six, and factor level 42. You take the whole
+
+00:22:27.680 --> 00:22:31.840
+thing, I'm putting it for this factor, and the factor itself is significant or not. It doesn't
+
+00:22:31.840 --> 00:22:39.200
+matter if individual factors are significant. And so it's kind of a, you need to take some things
+
+00:22:39.200 --> 00:22:43.680
+come in and out as groups. And that's why you need, that's why we say select terms, not
+
+00:22:43.680 --> 00:22:52.000
+coefficients. There are some rare cases when you could do weird things, like I say weird,
+
+00:22:52.000 --> 00:22:58.400
+and they're, they're quite unusual. You could go in and say, I only want these three factor terms.
+
+00:22:59.600 --> 00:23:03.840
+But that's just, that's you looking at your data, and perhaps some domain knowledge,
+
+00:23:03.840 --> 00:23:08.080
+hopefully telling you that these three are important. And then you're basically making
+
+00:23:08.080 --> 00:23:12.240
+a new factor that is these three versus nothing. And then once again, now, then you're using
+
+00:23:12.240 --> 00:23:19.920
+everything again. So it's, it's, yeah, so basically, you always take things in as terms,
+
+00:23:19.920 --> 00:23:28.160
+not as coefficients. And same thing for the interaction. So it would be highly uncommon
+
+00:23:28.160 --> 00:23:33.040
+for you to take the AX interaction term, and to have neither A nor X in your model.
+
+00:23:33.040 --> 00:23:39.040
+Almost always you have A and X in your model. It would be rare circumstance when you don't do it,
+
+00:23:39.040 --> 00:23:45.440
+definitely not in this course. Some people would say never. But it depends on prediction. I've
+
+00:23:45.440 --> 00:23:50.720
+seen lots of weird things happen. But yeah, just try and keep in mind, we're trying to select
+
+00:23:50.720 --> 00:24:00.400
+terms, not coefficients. Got some climate data. So July temperatures across 36 towns in New Zealand,
+
+00:24:00.400 --> 00:24:05.680
+each has a latitude and longitude and elevation, a coastal location, and the island.
+
+00:24:05.680 --> 00:24:15.200
+With summer temperature, sunshine and rainfall. Oh, man. So Kaitaia, latitude and longitude,
+
+00:24:16.560 --> 00:24:22.640
+mean January temperature, mean July temperature, rain, guessing a millimeter, sun and hours,
+
+00:24:22.640 --> 00:24:32.080
+height, meters from sea level. Sea, coastal location, I'm guessing this is coastal, yes,
+
+00:24:32.080 --> 00:24:40.160
+no. And North Island, I'm guessing this is no, I don't know. Actually, North Island, that's one.
+
+00:24:40.160 --> 00:24:43.840
+But Gisborne is also one. I don't know. I don't know what that is. So we'll figure out what this
+
+00:24:43.840 --> 00:24:50.400
+is here in a minute. This is our data. Anytime you get data, you need to plot and see what's going on.
+
+00:24:50.400 --> 00:24:59.040
+So we pivot it, and we just ggplot it and facet wrap. So this is whatever value is. So this is
+
+00:24:59.040 --> 00:25:04.080
+rain. And this is all mean July temp. So height, you can see there's some sort of
+
+00:25:04.080 --> 00:25:09.200
+negative trend here, latitude, negative trend, longitude, positive trend.
+
+00:25:10.720 --> 00:25:14.720
+January temperature seems to be a positive trend, which kind of makes some sense. Sun,
+
+00:25:14.720 --> 00:25:23.360
+that's a mostly positive trend. Sea tends to be a bit higher if sea is one and not if it's no.
+
+00:25:23.360 --> 00:25:32.480
+North Island tends to be a bit higher if it's one and a bit lower if it's no. And rain doesn't look
+
+00:25:32.480 --> 00:25:38.400
+like it's adding much, right? It looks pretty flat. And so winter temperature associations,
+
+00:25:39.520 --> 00:25:45.520
+lower elevations, lower latitudes, higher heights, higher summer temperatures,
+
+00:25:45.520 --> 00:25:52.240
+North Island, it could just be latitude, increased rainfall. So yeah, so yeah, if you looked at this,
+
+00:25:52.240 --> 00:25:58.400
+just the subplot here, it looks like it's helpful. And then something happened. Closeness to the sea
+
+00:25:58.400 --> 00:26:06.400
+increased sunshine hours. Yeah. Some of these are telling us the same story. So yeah, now that we
+
+00:26:06.400 --> 00:26:10.800
+have things that are kind of measuring the same thing, like do I need longitude and that? I mean,
+
+00:26:10.800 --> 00:26:15.120
+are they telling me the same thing? Maybe it's slightly different. We need to go in and figure
+
+00:26:15.120 --> 00:26:22.640
+out how to model these. So we're going to plot this out. It's just a ggplot of the locations.
+
+00:26:22.640 --> 00:26:32.400
+North Island is circle, South Island is triangle. The darker the color, the colder, the warmer the
+
+00:26:32.400 --> 00:26:37.600
+color, the hotter. So we can see it's warmer here, except for a little gidsburn, which is nice and
+
+00:26:37.600 --> 00:26:45.600
+shiny. And we can see it kind of goes down as we go down the temperature. But the map definitely
+
+00:26:45.600 --> 00:26:51.920
+makes it easier to see. Longitude reflects mostly the rotation of the islands, right? So longitude
+
+00:26:51.920 --> 00:26:59.680
+and latitude, elevations tend to matter. Yeah, these are, I think, higher in the latitudes,
+
+00:26:59.680 --> 00:27:06.480
+and those tend to be a bit colder, a bit colder, a bit warmer towards the beach. Yeah, Timaru versus
+
+00:27:06.480 --> 00:27:13.440
+Lake Tekapo. Yeah. So we are expecting some sort of collinearity here, that these variables are
+
+00:27:13.440 --> 00:27:18.880
+kind of correlated with each other. So let's start with some simple models.
+
+00:27:18.880 --> 00:27:24.880
+One, two, and three. We're just going to do latitude, latitude and height,
+
+00:27:24.880 --> 00:27:33.280
+latitude, height, and C, and we'll see what we get. So latitude, I'll put in latitude, we get,
+
+00:27:33.280 --> 00:27:42.400
+oh yeah, that looks good. That's definitely 0, 34, latitude, negative 0.06 times our latitude,
+
+00:27:42.400 --> 00:27:50.640
+and that's definitely not zero. Adjusted our square point, five, seven, that's pretty good.
+
+00:27:50.640 --> 00:27:55.520
+We add latitude, adjusted our square, 0.834, and we see,
+
+00:27:55.520 --> 00:28:05.200
+we see the height. Yep, it's increasing again. So still significant. We've added another term,
+
+00:28:05.200 --> 00:28:11.920
+latitude, height, and C, we've added another term. These are all significant. So they're
+
+00:28:11.920 --> 00:28:19.280
+all adding, they adjusted our square, keeps going up, 0.8649, 0.8374, 0.57. So this is a big jump
+
+00:28:19.280 --> 00:28:32.080
+here. Adding height is a big difference. Adding, adjusted our square, 0.86, yep, that's another 3%.
+
+00:28:32.080 --> 00:28:36.640
+So what is happening with these? The p-values are small,
+
+00:28:36.640 --> 00:28:43.600
+means they're likely not zero. S is decreasing, adjusted our square increases. So S remember is
+
+00:28:46.720 --> 00:28:55.120
+your adjusted standard error here. So 1022, 121, 18, so they are dropping each time.
+
+00:28:55.120 --> 00:29:07.680
+Height changes noticeably when C is added. So height, 0.00, negative 0.05, negative 0.007.
+
+00:29:11.520 --> 00:29:16.960
+It does change quite a bit. So it loses 100 fold, it's,
+
+00:29:16.960 --> 00:29:27.760
+yeah, it's surprising this basically. So it goes from negative seven, it's easiest to see this.
+
+00:29:27.760 --> 00:29:32.240
+So looking at the standard error in the estimate, it's sorry, it's easiest to see this in the,
+
+00:29:32.240 --> 00:29:35.840
+in the t-statistics. So minus seven to minus four, so it drops quite a bit.
+
+00:29:37.280 --> 00:29:42.400
+When C is added, the things that usually cause things to revert to the mean usually mean they're
+
+00:29:42.400 --> 00:29:49.680
+co-linear. Yep, this tells us the impression that height depends on whether C is adjusted for
+
+00:29:49.680 --> 00:29:55.200
+predictors overlap the information. So it's a conditional association of isolate effect and
+
+00:29:55.200 --> 00:30:02.480
+height. Okay, adding Northland. Okay, so now we're going to add, sorry, Northland, North Island.
+
+00:30:03.440 --> 00:30:09.840
+We had North Island. Okay, C, North Island, 155. That's also still significant.
+
+00:30:09.840 --> 00:30:21.440
+And the 88, that's an increase. Latitude has changed from negative 0.37. What was the last one?
+
+00:30:21.440 --> 00:30:29.440
+Negative 0.58, negative 0.37. So the change here is basically saying that there's a North
+
+00:30:29.440 --> 00:30:41.040
+Island effect, right? This is really crude Island versus latitude. And so the question I have here
+
+00:30:41.040 --> 00:30:46.480
+is why do you think adding North versus South Island is useful over and above latitude? Why
+
+00:30:46.480 --> 00:30:55.120
+doesn't latitude do everything? Got to think about that for a second. So is there additional
+
+00:30:55.120 --> 00:31:04.240
+information knowing what Island you're on that the latitude itself doesn't account for? I think so.
+
+00:31:04.240 --> 00:31:12.400
+I think in the North Island, we tend to be much closer to sea level.
+
+00:31:12.400 --> 00:31:18.720
+And so latitude's not necessarily adjusting for that. It's harder to adjust for that.
+
+00:31:19.440 --> 00:31:25.680
+There's mountain ranges on the South Island. We can have different weather patterns across
+
+00:31:25.680 --> 00:31:32.640
+different Islands that aren't fully captured by just this latitude alone. Maybe adding
+
+00:31:32.640 --> 00:31:40.000
+longitude will help. We can try that a bit later, I think. Amount of rain. You remember rain wasn't
+
+00:31:40.000 --> 00:31:49.120
+that good of a predictor when we looked in the scatter. There was, you know, it increased a lot
+
+00:31:49.120 --> 00:31:54.080
+to a point and then it stopped. So rain, that's what we saw in the scatter. And now that we're
+
+00:31:54.080 --> 00:32:04.000
+adjusting for all these other things. Significance. Rain is not significant. And the adjusted R-square,
+
+00:32:04.000 --> 00:32:11.040
+0.887. It's still going up, but very slightly. Multiple are 8, 9, 5, 9. This is 9, 0, 4, 6. So
+
+00:32:11.040 --> 00:32:17.280
+that definitely went up. This is 8, 8, 8, 7. So it's only very slightly up on adjusted R-square.
+
+00:32:17.280 --> 00:32:27.440
+This is, there's not good evidence for including rain. It's 9, 7, 2, 1 versus 9, 5. So this is
+
+00:32:27.440 --> 00:32:34.480
+S, residual standard error. So it goes from 9, 5 to 9, 2. Okay. So it's going down. That's good.
+
+00:32:34.480 --> 00:32:42.080
+Adjusted R-square increases. Yes. So these are in-sample measures. So they don't tell us that
+
+00:32:42.080 --> 00:32:48.880
+rain will improve prediction for new towns. If we wanted to know about that, that's when we do
+
+00:32:48.880 --> 00:32:58.080
+that cross-validation I showed you earlier. Now we'll add longitude. Oh, this doesn't look great,
+
+00:32:58.080 --> 00:33:04.320
+right? So now we've got a 0.54. So this definitely isn't significant. So we're just adding noise to
+
+00:33:04.320 --> 00:33:12.000
+the model. 8, 8, 6, 4. 8, 8, 8, 7. So this is down slightly. Adjusted R-square is down. S, 9,
+
+00:33:12.000 --> 00:33:20.000
+3, 6, 8. S, 9, 2. So yes. Residual error goes up. So this is saying this, this isn't very helpful.
+
+00:33:20.000 --> 00:33:26.320
+So what did we end up with? What did, what did everything look like all together in one table?
+
+00:33:26.320 --> 00:33:31.840
+So we've got latitude, then we add height, then we add C, then we add North Island,
+
+00:33:31.840 --> 00:33:40.880
+then we add rain, then we add longitude. This is really typical of real data sets you'll see.
+
+00:33:40.880 --> 00:33:49.040
+The first one or two terms explain a ton. And then 3, 4, 5, 6. They just tweak after a while.
+
+00:33:49.040 --> 00:34:00.080
+So I've seen models where 4 or 5 can help a lot. And after that, it's just usually your earlier
+
+00:34:00.080 --> 00:34:04.960
+terms or your strongest terms explain a bunch. And it's hard to explain. When you, when you're
+
+00:34:04.960 --> 00:34:08.880
+doing a good job, it's hard to do better. Basically, your baseline is so much higher,
+
+00:34:08.880 --> 00:34:15.760
+because you're explaining so much, it's hard to do much better. Okay, if we were to use AIC,
+
+00:34:15.760 --> 00:34:22.000
+we potentially would have rain, right, because it's the lowest.
+
+00:34:23.280 --> 00:34:30.480
+So we would rank these. This is the, the best fit by a information criterion model would be rain,
+
+00:34:30.480 --> 00:34:38.400
+North Island, and then longitude, and then C, then height, then latitude. But you see,
+
+00:34:38.400 --> 00:34:43.200
+there's a huge difference between just latitude and height, 115, and then they drop. You see that
+
+00:34:43.200 --> 00:34:48.880
+same big drop. Added term evidence. So this is the p value of the last term that we added.
+
+00:34:50.080 --> 00:34:59.200
+Very helpful here. Not helpful, not helpful. Yep. So let's, let's just stick it all together
+
+00:34:59.200 --> 00:35:06.000
+so we can review it. And so now that we have a model, we need to do our diagnostics. As always,
+
+00:35:06.000 --> 00:35:12.720
+just get away and forget all about these. And so here's our, our model. And so you remember,
+
+00:35:12.720 --> 00:35:15.200
+now that we're adjusting for all these things, these are residuals,
+
+00:35:15.200 --> 00:35:24.480
+adjusting for latitude, height, C, North Island rain, they, you can't see this in a 2d scatter
+
+00:35:24.480 --> 00:35:29.600
+plot. Just with the raw data, you really need to fit the model and its residuals are fitted.
+
+00:35:29.600 --> 00:35:35.120
+That's fairly flat. There's nine's a bit weird. QQ, that's pretty linear. Actually, it's,
+
+00:35:35.120 --> 00:35:40.000
+it's really nice. That nine's a bit weird. It happens. We need to look up what nine is,
+
+00:35:40.000 --> 00:35:43.760
+I think it's going to be something like something like Queenstown.
+
+00:35:43.760 --> 00:35:52.720
+And so we look at scale location. We don't see anything that looks too, too bad here.
+
+00:35:52.720 --> 00:35:59.440
+Cook's distance. I say you see nine's all right. So it looks a bit weird here, but
+
+00:35:59.440 --> 00:36:05.520
+yeah, it's, it's, it's leverage is really low. So I think it's probably all right.
+
+00:36:09.200 --> 00:36:11.040
+Yep. I'm pretty happy with all these actually.
+
+00:36:11.040 --> 00:36:17.840
+And so now I'm giving you what we call, I'm calling some more realistic running examples.
+
+00:36:17.840 --> 00:36:24.560
+So with this soul bike is a really cool data set of hourly bike rentals in Seoul, South Korea.
+
+00:36:24.560 --> 00:36:29.440
+And we know a ton of stuff about this. We've got all kinds of, of,
+
+00:36:29.440 --> 00:36:35.760
+of variables here. The day, the hour, the rented bike count, the temperature,
+
+00:36:35.760 --> 00:36:40.000
+the humidity, the wind speed, the visibility, the dew point, the solar radiation, the rainfall,
+
+00:36:40.000 --> 00:36:45.360
+the snowfall, the season, the holiday, and is it a functioning day? So we have all these cool
+
+00:36:45.360 --> 00:36:52.480
+things. And so as we go through the rest of the course, we will often return to the soul bike,
+
+00:36:52.480 --> 00:36:59.520
+because by the end of the term, we're going to be modeling temporal and seasonal variations and
+
+00:37:01.840 --> 00:37:07.520
+all kinds of correlated variables. And it's, it's, it's going to be fun. And so this is a much more
+
+00:37:07.520 --> 00:37:10.560
+realistic problem. And so this is why I'm, I'm interested in here. We're just going to do
+
+00:37:10.560 --> 00:37:16.000
+something really simple in the beginning. So let's try and predict printed bike counts.
+
+00:37:16.000 --> 00:37:23.600
+And we call these two models, the basic and richer model. So this is just temperature,
+
+00:37:23.600 --> 00:37:27.120
+humidity, wind speed. And this is a, you know, everything under the sun.
+
+00:37:28.320 --> 00:37:36.000
+If we were to compare these two adjusted R square, here's 376. And with everything in there,
+
+00:37:36.000 --> 00:37:41.680
+it's going to be 550. And so you're looking at that thinking, wait a second.
+
+00:37:41.680 --> 00:37:49.600
+That's not amazing. No, it's not. This is real data. So it's hard to get really high R square
+
+00:37:49.600 --> 00:37:53.920
+sometimes. So I'd say they're doing a pretty good job. AICs. And this is why I was saying,
+
+00:37:53.920 --> 00:38:01.680
+you can't look at a value, look at this 134,000 versus 131,000. It's like, wow. And so it really
+
+00:38:01.680 --> 00:38:10.400
+depends on how much data you've got. And so the conclusion I've written here is richer model looks
+
+00:38:10.400 --> 00:38:16.080
+better on the N3 sample criteria, just R square is higher. Yep. It's a better model. Residual
+
+00:38:16.080 --> 00:38:23.360
+standard error. And AIC is this residual standard errors here. So it's lower or lower. So it tells
+
+00:38:23.360 --> 00:38:30.240
+us it fits these data better after accounting to some extent for the extra complexity. It does not
+
+00:38:30.240 --> 00:38:39.520
+just tell us, well, it would predict new bike demand better. Yeah, we can. Yeah. So imagine
+
+00:38:39.520 --> 00:38:42.800
+going through all of these and there's like 10 of these and how do you do it and how do you model
+
+00:38:42.800 --> 00:38:46.880
+each one and there's different ways to do it. You can do this by hand, but as we get longer and
+
+00:38:46.880 --> 00:38:56.160
+longer, it is oh, so painful. So the next lecture, 28, we're going to look at two ways we can kind
+
+00:38:56.160 --> 00:39:01.280
+of automate this. We get through forward and backwards. And then we're also going to do some
+
+00:39:01.280 --> 00:39:07.920
+really cool things with shrinkage estimators to add and remove terms kind of for us. So
+
+00:39:07.920 --> 00:39:16.160
+is there some modern tooling we can use in R that makes this process a bit less painful?
+
+00:39:16.160 --> 00:39:22.880
+Because it can be painful doing it like this. As always, if you have any questions,
+
+00:39:22.880 --> 00:39:28.160
+please reach out. Let me know. Happy to have a chat.

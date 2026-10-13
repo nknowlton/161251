@@ -1,0 +1,385 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:27.000
+Hello, welcome to lecture 26. So last week, we looked at general linear models. And in this context, that's just adding a factor and a numeric variable together in single model. This week, we're going to look at how we can do comparisons and actually look at what we did last week and determine if adding extra flexibility to the models is actually useful, or we just add a bunch of noise.
+
+00:00:28.000 --> 00:00:46.000
+So the learning objectives are pretty straightforward. This week, we're going to learn what nesting means. We should have already covered this a bit earlier in the semester when Jonathan went over it. This is kind of just a brief, a brief refresher. And I have a kind of a visual way to look at it to think about it.
+
+00:00:48.000 --> 00:01:10.000
+We're going to use partial F statistics, which again, you've done before. We're going to interpret residual sums of squares, degrees of freedom, F statistics, p-values, you know, how do we, what do we look at to make a statistical decision? We're going to look at AOV and ANOVA, reduced versus full. And then we're going to apply some nested comparisons to the somer and body fat examples.
+
+00:01:11.000 --> 00:01:30.000
+So just a quick recall, what we did last lecture. We had three increasingly flexible ways to model the factor A alongside a numerical variable X. Remember the factor is essentially just a group. In this case, it was a tree last week.
+
+00:01:31.000 --> 00:01:44.000
+So, you know, we were just adding every tree gets an average value. And then there's a common slope amongst them. So you can have parallel slopes. Or then we also did a cool interaction where you can have, they can all have their own slope.
+
+00:01:45.000 --> 00:01:53.000
+And so the question is, does this extra flexibility, is it supported by the data or we just add noise?
+
+00:01:55.000 --> 00:02:13.000
+Before we do that, we need to really think about what does it mean to be a nested model, because it's kind of crucial for the rest of this course, when we show you statistics and things, you got to know, is this nested or not? Because if it's not, you have to look at different metrics, essentially.
+
+00:02:14.000 --> 00:02:29.000
+So a model is nested within another model, if it can be obtained by placing the restrictions on the parameters of the larger model. What? So a factor A and numerical variant X, the relationships are, we're going to start with more flexible, and we're going to go down to least flexible.
+
+00:02:31.000 --> 00:02:55.000
+So what does this mean? It means we'll take this separate regression lines example, why a times x, if we were to set one of these terms equal to zero, so here, let's set the interaction term, remember, a colon x is the interaction in R, set this equal to zero, we end up with this reduced model parallel regression lines, this parallel line is nested within the separate regression lines.
+
+00:02:56.000 --> 00:03:06.000
+And then once we have this model, well, there's two things we could do, we could either set a equals zero, and end up with a regular regression line, or we can set x equal to zero, and we just get a factor only model.
+
+00:03:07.000 --> 00:03:21.000
+So we're gonna have three, three values, like three mean values for the tree within the tree example. And then both of those models can be also simplified, even more, we can set x equal to zero, and we literally just model a constant.
+
+00:03:22.000 --> 00:03:44.000
+Same thing with a equal to zero. And what this gives us is the mean value of all the points, which should make sense. This is what you get if you have no no other things in your model. So this, we call this the null model. And so you can compare a null for the regression line, or you know, is the line better than basically just the mean? We can ask that question now.
+
+00:03:45.000 --> 00:04:01.000
+And so all the ones lower are nested up. These two are red, because they're not nested within each other. If you have a factor only in a regression line, they're not nested within each other, right? You can't, there's no way to set some value here equal to zero to equal this, because you can't turn x into an a or an a into an x.
+
+00:04:01.000 --> 00:04:13.000
+So you can follow the lines backwards or down, but this is where they kind of split. So this is nested within all of these, and this is nested within all of these, right?
+
+00:04:14.000 --> 00:04:21.000
+But it's good to take a second and make sure you understand how this is, how these are nested within each other.
+
+00:04:22.000 --> 00:04:37.000
+If you remember back, way back in lecture 14, we did this partial F test, and this is when we were looking at, are we getting an improvement by adding additional terms in the model?
+
+00:04:38.000 --> 00:04:56.000
+Just a refresher, the full model is denoted M sub F, the reduced model is M sub R. Reduced is nested within F. That's the way to think of it. The hypotheses are the additional coefficients of F are all zero, and at least one of the additional coefficients is non-zero.
+
+00:04:57.000 --> 00:05:12.000
+We need to take a second here and talk about, remember, coefficients and terms are not the same thing. We'll talk about it a bit later, but you can have a factor that can have lots of coefficients, and these need to come in and out together as a group, essentially.
+
+00:05:13.000 --> 00:05:28.000
+This is testing a group of things, potentially, at least one. And so these are like chi-squares, so R minus F, chi-square minus chi-square is still a chi-square, divided by degrees of freedom.
+
+00:05:29.000 --> 00:05:42.000
+And then this is, you know, off the full model, and so this ratio here makes an F of numerator, denominator, degrees of freedom. The denominator is the residual mean square from the full model, which estimates the remaining variance.
+
+00:05:43.000 --> 00:06:01.000
+And so remember, this is the full model here. A large F statistic means additional terms have removed a large amount of residual variation relative to the background residual variation. So the larger this is, the more evidence you have that additional terms are reducing the sums of square.
+
+00:06:02.000 --> 00:06:23.000
+Under the null, the static follows the F with these degrees of freedom. They must be nested and fitted to the same observations. So both these have to be true. So just because you have a nested model of, you know, the tree model, if you fit it on trees 1, 2, and 3 and fit another model on trees 4, 5, and 6, those are not nested models.
+
+00:06:24.000 --> 00:06:35.000
+You get completely different sums of squares. And so we oftentimes don't say this. It's kind of assumed. But yes, it has to be within the same. And then we have all the usual line assumptions.
+
+00:06:36.000 --> 00:06:53.000
+Let's go back to that summary data we looked at last week. What do we have here? We had velocity to load. So load was predicting velocity of how fast they fall. We had tree-specific. So this is parallel lines, and these are independent lines, different intercepts and potentially different slopes.
+
+00:06:54.000 --> 00:07:05.000
+What did that look like? That looked like this. Same plot as the last lecture. What we have now that we didn't have last week is we have these residual degrees of freedom. And we have those residual sums of square.
+
+00:07:06.000 --> 00:07:23.000
+You could see as we increase the model complexity, the residual sums of squares is falling. Is falling from 0.21 to 0.203 enough to call that an improvement? Well, we're going to find that out here in a minute.
+
+00:07:24.000 --> 00:07:39.000
+Degrees of freedom. So this is residual. So residual means left over. So as I use up my degrees of freedom, remember you use your degrees of freedom by fitting parameters in your model, you start to use them there and lose them here in the residual.
+
+00:07:40.000 --> 00:07:52.000
+They're no longer residual, they're used for something. So the difference between parallel lines and one line is two degrees of freedom. Because we're now fitting, we went from fitting one line to fitting three lines. So that's two degrees of freedom.
+
+00:07:52.000 --> 00:08:01.000
+And we lose another two degrees of freedom as we go to separate lines. And that is because instead of fitting one slope, we're now fitting one, two, three slopes.
+
+00:08:02.000 --> 00:08:20.000
+So just imagine everything you fit is costing you degrees of freedom. And yes, you only have 29 left. So you can only fit on this data set, another 28 things before you run out of degrees of freedom, and then you would have no denominator because you'd have no more residual degree of freedom.
+
+00:08:21.000 --> 00:08:28.000
+So there is a limit to how much you can fit in these models, limited by your sample size.
+
+00:08:28.000 --> 00:08:42.000
+That's what I just went through. And so now we're going to test. We're going to follow the hierarchy that we established earlier. We start with the most complex and we go downwards when we fit these models.
+
+00:08:43.000 --> 00:08:53.000
+Do the slopes differ by tree? So we're going to compare M2 to M3. And then does the tree shift the lines vertically? Are these actually useful? Are they providing additional information?
+
+00:08:53.000 --> 00:09:04.000
+So let's do M2 versus three first. And so do the slopes need to differ? So are we doing that just for fun and giggles?
+
+00:09:05.000 --> 00:09:17.000
+M3 has the tree-load interaction. The null hypothesis there is that the interaction coefficients are zero. So we allow the trees to have different intercepts. Is there evidence that the relationship between load and velocity also differs among trees?
+
+00:09:17.000 --> 00:09:30.000
+So we do an AOV. We feed in our models that we fit, two versus three. When they're actually inside this AOV table that R generates, they rename them one, two, three, four, five, six, seven, whatever.
+
+00:09:31.000 --> 00:09:43.000
+But you know it's the most simple to the most advanced model. And it figures this out by degrees of freedom. Velocity is load plus tree. Velocity is load times tree.
+
+00:09:43.000 --> 00:09:53.000
+There's two degrees of freedom difference. Residual sums of squares, 0.2 to 0.6. That's a 0.0379 difference. Divide that by the residual sums of squares of the larger model.
+
+00:09:54.000 --> 00:10:05.000
+And that gives us an F of 3.3 and a P value of 0.05011. Whoops. So what is the significant level we are calling here?
+
+00:10:06.000 --> 00:10:33.000
+0.05 is traditionally used, but you have to think of it as kind of a â€“ you should think of it as kind of evidence, right? So if I was running this and I had the ability to collect more data and I was right on the borderline like this, I would collect more data and see really as I collect more data, do I start to fall more on the â€“ does my P value tend to get smaller or tend to get larger?
+
+00:10:34.000 --> 00:10:45.000
+So it's kind of a replication thing at this point. We would say this is trending towards significance and it is potentially interesting. Would we leave it in a model? Maybe.
+
+00:10:46.000 --> 00:10:57.000
+Strictly in this course, if we tell you does it include it, you tell us what you use. At 0.05, you would not use this. You would say it fails to add value and so we don't need to differ the slopes.
+
+00:10:57.000 --> 00:11:07.000
+Basically, they're so close together. They add so little additional sums of square that, yeah, we don't need to put them in. But P values are â€“ they can get tricky.
+
+00:11:08.000 --> 00:11:18.000
+So now that we know that the slopes don't need to differ, do we even need tree intercepts? Is that adding any value? So that's the second question.
+
+00:11:19.000 --> 00:11:31.000
+It's very similar to the first. You put in the two models. Now it's M1 versus M2 and velocity versus load, velocity versus load plus tree. Thirty-three is greater than 31. So that's two different.
+
+00:11:31.000 --> 00:11:40.000
+The difference is 0.01, which is pretty small, divided by the residual sums of squares of the larger model. We end up with an F of 0.86 and a P value of 0.43.
+
+00:11:41.000 --> 00:11:50.000
+That is very little evidence of an additional shift after accounting for load. So basically, we don't even need that. So the original line we had is what the data is saying we support.
+
+00:11:53.000 --> 00:12:10.000
+Then you also can kind of â€“ you also can test up and down multiple steps at once if that â€“ I think it's a good way to describe it. So we tested interaction and then we tested just the tree itself.
+
+00:12:12.000 --> 00:12:27.000
+We can go straight to M1 to M3 and we'll say load versus load interacted with tree. You can test this together. So now the test is allowing the tree to affect either the slope or the intercept.
+
+00:12:28.000 --> 00:12:42.000
+So we're testing these together. So we call these more global tests or â€“ you tend to get more statistical power when you're doing things â€“ when you do fewer larger tests.
+
+00:12:42.000 --> 00:12:54.000
+But the problem is if it came up significant, you wouldn't know which of these two was improving. Was it the interaction or was it the addition of the specific tree intercept?
+
+00:12:55.000 --> 00:13:03.000
+But in any case, the logic is the same, 33 to 29. So we have four degrees of freedom because we're adding two for the tree intercept and two for the tree slopes.
+
+00:13:03.000 --> 00:13:15.000
+The difference now is 0.4 divided by the residual sums of squares of this. We end up with 2.1585 and it's a 0.09. So it's trending towards significance but we say, "Nah, this doesn't help.
+
+00:13:16.000 --> 00:13:20.000
+We end up with the same answer we had before where we tested them separately and when we tested them together.
+
+00:13:20.000 --> 00:13:34.000
+You might remember earlier in the class, Jonathan was talking about orthogonality and this is back to the point of A given B.
+
+00:13:34.000 --> 00:13:44.000
+It's the probability of A given B the same as the probability of B given A. If that's not true, then the data are dependent and it messes with a few things analytically.
+
+00:13:45.000 --> 00:13:51.000
+Here, we're going to show you an example of where this matters and why what we're doing now, it doesn't affect.
+
+00:13:51.000 --> 00:14:09.000
+So look at the load. This guy has a load that nobody else has. This is a load that nobody else has. So they aren't measured. The same things aren't measured in multiple places.
+
+00:14:10.000 --> 00:14:20.000
+I think the sample size is a bit different on some of these trees. So what's happening is they're no longer orthogonal. It's so easy to break orthogonality.
+
+00:14:20.000 --> 00:14:33.000
+I've never seen a real dataset with orthogonality that wasn't from some teaching literature honestly. Almost everything breaks this so it's really important to pay attention to what happens when it breaks because you're going to see it a lot.
+
+00:14:35.000 --> 00:14:41.000
+This means the variation attributed to tree depends on whether load has already been accounted for.
+
+00:14:41.000 --> 00:14:56.000
+So that means if I do this model here and say tree plus load or load plus tree. So tree â€“ do I add load adjusted for tree or do I add tree adjusting for load?
+
+00:14:56.000 --> 00:15:02.000
+Load adjusting for tree or tree adjusting for load. Those are only the same thing if they're totally orthogonal.
+
+00:15:03.000 --> 00:15:13.000
+So if we look at them, some are tree first, some are load first. We get sums of squares. Let's look at degrees of freedom first, make sure we're doing the same thing.
+
+00:15:13.000 --> 00:15:22.000
+So the degrees of freedom don't matter. 2 and 2. Load is 1 and 1. Residuals are 31 and 31. Sums of squares are residuals 0.20. Sums of squares are residuals 0.20.
+
+00:15:22.000 --> 00:15:28.000
+So these are looking the same way. So residuals don't matter the order. That's good because we're looking at the whole model.
+
+00:15:29.000 --> 00:15:43.000
+We're not looking at specific values. But when we go in and look at tree, its sum square of error is 0.53 and here tree is 0.01.
+
+00:15:43.000 --> 00:15:56.000
+What? That's vastly different. So basically if tree is entered in the model first, which is how we read this from top down, it's able to pull in essentially and be attributed to 53%.
+
+00:15:57.000 --> 00:16:07.000
+But since it's already in, there's only so much load left to attribute the additional variability to and it takes the remaining 0.31 and the residuals don't change.
+
+00:16:07.000 --> 00:16:16.000
+The other way around. Load goes in first and it grabs tons of variability. It's such a good predictor. And the tree grabs very little.
+
+00:16:16.000 --> 00:16:22.000
+And so here you would say both these terms are highly significant. You're like, "Oh, yeah. They're both really helpful.
+
+00:16:23.000 --> 00:16:31.000
+But then you find out, "Oh, no, they're not." So we try not to do straight AOVs when there's terms like this and we're fitting models. This is why we don't do it.
+
+00:16:31.000 --> 00:16:42.000
+You then have to do something besides a sequential type 1 sums of squares. We have to go in and do the non-orthogonal sums of squares, which is type 2 or type 3.
+
+00:16:43.000 --> 00:16:59.000
+And basically they're the ones we're much more interested in looking at that assume every other variable is already in the model. So it's kind of like a marginal effect is this adding.
+
+00:17:00.000 --> 00:17:10.000
+So if our question is whether tree adds information after accounting for load, we do this and remember we get nothing.
+
+00:17:10.000 --> 00:17:18.000
+So M1 contains load. M2 adds tree. Therefore, the test asks for tree improves the model after load has been accounted for.
+
+00:17:19.000 --> 00:17:36.000
+So it's a different question, right? So this is the question we're asking here. This is sum or load first. We get the 4319. We get the 4319. We get the 0.86. We get the 0.86.
+
+00:17:36.000 --> 00:17:45.000
+We get a same sum square, 01320132. And the residual is 0.2.
+
+00:17:46.000 --> 00:17:55.000
+So you can see these things are actually the same thing and this is actually the test we're doing with this ANOVA M1, M2, but we're testing it in the model as a whole.
+
+00:17:55.000 --> 00:18:12.000
+The thing you need to know about R, it has an interesting peculiarity to it. When you have multiple nested hypotheses in one AOV call, R uses the model's residual mean squares common denominator, the largest models.
+
+00:18:13.000 --> 00:18:20.000
+In this case, the largest model is this interaction term and so everything is compared to three.
+
+00:18:20.000 --> 00:18:36.000
+So comparing this guy to the next one, it actually compares it. The residual mean square it uses to create this difference is this 0.16.
+
+00:18:37.000 --> 00:18:44.000
+So it ends up being slightly different than we had before. So it's no longer this to this, but this to this is the same, the 0.05011.
+
+00:18:44.000 --> 00:18:51.000
+So you have to think of it as if I've got a large model, everything gets compared to that.
+
+00:18:51.000 --> 00:19:00.000
+If I do it stair-step wise and I'm increasing slowly in complexity, it's going to do it to the next model up is what you have to think about.
+
+00:19:01.000 --> 00:19:07.000
+Just be careful sticking them all three in together. I recommend you only ever do two at once is what I'm saying here.
+
+00:19:07.000 --> 00:19:16.000
+So let's look at body fat, which is another dataset. And we're going to do the same thing we did before, but now put the factor first.
+
+00:19:16.000 --> 00:19:22.000
+Body fat, it is percentage body fat, age, we know what age is, gender, we know what gender is.
+
+00:19:23.000 --> 00:19:31.000
+It uses the same nested logic as the summer data. So age, and then we can add slopes and then we can add separate slopes. And so if you look at the data,
+
+00:19:31.000 --> 00:19:41.000
+male and female, male, I only count four males and lots of females.
+
+00:19:41.000 --> 00:19:52.000
+Parallel lines. I don't know. I don't know if that's a good fit. There's like no data points out here. It's just like fitting something.
+
+00:19:52.000 --> 00:20:00.000
+And this one's really steep and I don't know if that's, I don't know if that's right too. So looking at this, I can't, I can't tell off the top of this is if this is statistically,
+
+00:20:00.000 --> 00:20:10.000
+if we have evidence or not, that we should keep that. So just a note, we actually call these models F0, F1, F2 instead of M1, M2, M3.
+
+00:20:10.000 --> 00:20:18.000
+Just change the nomenclature a bit. So F2 as the gender by age interaction, F1 is just the difference of slopes.
+
+00:20:19.000 --> 00:20:29.000
+So remember, it's one and two, no matter what you label them there. One degree of freedom difference, because there's only one degree of freedom in gender instead of two, like we had in tree.
+
+00:20:29.000 --> 00:20:40.000
+So one degree of freedom, some squares at P, okay, 0.06 says there's no difference, right? There's not, there's not strong evidence at the 5% level that separate slopes are required.
+
+00:20:40.000 --> 00:20:48.000
+So basically this would be trending towards significance if we saw this, but we would say, no, we don't in fact need separate slopes, which I kind of can agree with thinking about the plot.
+
+00:20:48.000 --> 00:21:01.000
+Do we need gender in this? Okay, so age and then gender age off the same AOV. That's a big difference. That's a huge drop.
+
+00:21:01.000 --> 00:21:11.000
+168, F of 7, which is really big, P of 0.01. So this says, wow, yeah, there's a lot of evidence that gender contributes to expected body fat percentage after you've accounted for age.
+
+00:21:12.000 --> 00:21:21.000
+F1, it says here is the simplest model that supports these comparisons. Basically, you got to figure out down to where you have statistical support.
+
+00:21:21.000 --> 00:21:29.000
+And the other thing you have to, you can see, but you need to try and test, look for yourself, is F is equal to T squared.
+
+00:21:29.000 --> 00:21:40.000
+So if we took the square root of 7.0157, we should end up with the T value we get when we do the summary of the coefficient in the linear model fit.
+
+00:21:41.000 --> 00:21:50.000
+So I leave that for you to check. And these two are the same. So knowing this relationship, F is equal to T squared, hint, hint, test time is very important.
+
+00:21:50.000 --> 00:22:01.000
+Fitted equations for retrained body models. So let's actually see what we ended up with. Gender and age. These are our final terms.
+
+00:22:02.000 --> 00:22:16.000
+Yes. Okay. So females is the reference level. This is theoretically what we should get, and then we're going to put the real values in next.
+
+00:22:16.000 --> 00:22:27.000
+So body fat, given that they're female, is an intercept and then an age slope, given that they're male is an intercept plus a male offset, which is gender M plus an age.
+
+00:22:28.000 --> 00:22:39.000
+So these are the actual values we're going to stick in. We end up with females, 1507 plus 34, and males, 528 plus 34. So the slopes are the same and they're different.
+
+00:22:39.000 --> 00:22:52.000
+And so that's our fitted equations. So the things you need to think about as you are presenting these models, a good write-up, you're always going to state you're reduced in full models.
+
+00:22:53.000 --> 00:23:03.000
+As you saw, it can be reduced, can be one level down, it can be two levels down, just as long as it falls within the other. It's nested, so you really need to state your models so people can assess what's going on.
+
+00:23:03.000 --> 00:23:17.000
+You can state what terms are being tested, translate that into a scientific question. A lot of times in this class we just tell you to do it, but this is good practice for your life as an analyst whenever you see data.
+
+00:23:18.000 --> 00:23:31.000
+You always want to try and discuss everything in terms of how it actually matters or why you would do this. Why are you looking at gender within the body fat? What are the implications of that?
+
+00:23:32.000 --> 00:23:55.000
+Report on the change in residual sum of squares, degrees of freedom, F and P. Basically just put the table in. You don't always see the table, sometimes you'll see the P value. The statistician emulates to see all of this, but I know you get further away from the analysis and into the decision makers, just the P is usually enough.
+
+00:23:56.000 --> 00:24:05.000
+If you're reporting it, we as the statistician, we want to see everything. It goes in your statistical report, I should say. State whether the data provided evidence of the additional model structure is needed.
+
+00:24:05.000 --> 00:24:12.000
+You're basically interpreting your P values and F statistics and interpret the retained model in terms of response to explanatory variables.
+
+00:24:12.000 --> 00:24:17.000
+Once you have a model and you've figured out the structure, then you need to explain to someone else how it works.
+
+00:24:20.000 --> 00:24:34.000
+This bottom part is a caveat that is true that you just need to pay attention to. A non-significant comparison does not prove that a smaller model is true. It means that the data do not provide sufficient evidence that additional structure improves the model.
+
+00:24:34.000 --> 00:24:44.000
+I'll even go and say that there's not evidence that additional structure improves the model of what you've measured because there could be something else out there that you didn't measure.
+
+00:24:45.000 --> 00:24:56.000
+We'll see in the overfitting and underfitting section, there could be something else that we're just not measuring that is causing this relationship that we're seeing.
+
+00:24:56.000 --> 00:25:11.000
+Remember, we call them models because they're like toy models. They're things you can manipulate and I would say play with to get a good understanding of the world and how it works and make predictions and things.
+
+00:25:14.000 --> 00:25:25.000
+No model is necessarily true or causal. They are tools by which we can make predictions and test hypotheses.
+
+00:25:25.000 --> 00:25:37.000
+I will also note that in this lecture, we only had two or three terms. We kind of knew what we were doing. Everything's specified for you. I want to know the difference between this and this and this and this.
+
+00:25:38.000 --> 00:25:46.000
+Oftentimes as analysts, that's not what you get. You get here's a ton of data, here's a ton of variables, and there is no obvious comparison.
+
+00:25:46.000 --> 00:25:55.000
+That's where we're going in our next lecture, which is going to go into variable selection. We start going from model comparison to model selection.
+
+00:25:55.000 --> 00:26:04.000
+You have to compare models, but you also have to select which terms you put in and what terms you put in. There's not a truth to it.
+
+00:26:05.000 --> 00:26:16.000
+I love statistics. There's not one answer on these things. It's what can you justify and what's the actual domain problem because it's really easy to answer a problem statistically.
+
+00:26:16.000 --> 00:26:26.000
+That is not the question that people really have. You can say, "Oh, there's no difference," but you didn't actually measure or not really reporting on what their actual question was.
+
+00:26:27.000 --> 00:26:39.000
+It's very easy to do that, find solutions to things that aren't problems basically. You want to be useful as a statistician, and so you really want to take that next step and go from model comparison to model selection.
+
+00:26:39.000 --> 00:26:55.000
+That's the next lecture. I look forward to seeing you there. I hope to see you guys on Wednesday for the Q&A. If not, drop me a line online and talk to you soon.

@@ -1,0 +1,1093 @@
+WEBVTT
+
+00:00:00.720 --> 00:00:06.720
+Hello. Welcome to Lecture 28, Stepwise and Penalized Regressions.
+
+00:00:06.720 --> 00:00:15.760
+So we spent the last few lectures going over expanding our models. You know, we're adding in
+
+00:00:15.760 --> 00:00:20.720
+factors and numeric, and we're adding more and more terms. And last time we started
+
+00:00:20.720 --> 00:00:27.360
+building a manual model, and we added a term, added a term, added a term. And so you can see
+
+00:00:27.360 --> 00:00:33.760
+this gets tedious. Or as I said in the last lecture, very painful. So this time we're going
+
+00:00:33.760 --> 00:00:40.240
+to say, is there some sort of automated approach that we can be taking that will give us a
+
+00:00:40.240 --> 00:00:47.200
+reasonable model? And then from that we can kind of tweak it. And so that's what we're doing today.
+
+00:00:47.200 --> 00:00:53.280
+We're going to go over two types of models. First is a stepwise search. There's three variants for
+
+00:00:53.280 --> 00:00:57.360
+this, or flavors. We're going to go forward, we're going to go backwards, and we're going to go
+
+00:00:57.360 --> 00:01:02.640
+stepwise. And this is just kind of a stochastic graphic up there. When we look at it again,
+
+00:01:02.640 --> 00:01:07.840
+it'll make a bit more sense. And the other thing to do, if you don't want to interview to pick
+
+00:01:07.840 --> 00:01:14.000
+terms, is something a bit more, this is becoming more and more common. I see it used a lot more.
+
+00:01:14.000 --> 00:01:20.400
+I don't know if it's used more because people are becoming more sophisticated, or if large
+
+00:01:20.400 --> 00:01:26.320
+language models are recommending these types of approaches more often. But penalized regressions.
+
+00:01:26.320 --> 00:01:33.760
+And I'm not going to go into exactly what these balls are and what they're doing, but once I've
+
+00:01:33.760 --> 00:01:39.040
+reviewed today what it is and what it's doing, we'll go back and look at each of these and
+
+00:01:39.040 --> 00:01:45.520
+hopefully they make a bit more sense. And so that's today. So forward, backward, and stepwise
+
+00:01:45.520 --> 00:01:51.520
+search. It is actually quite simple. Forward selection. You start at some baseline model,
+
+00:01:51.520 --> 00:01:56.800
+typically a null model, which means you have nothing, just an intercept or a mean of all
+
+00:01:56.800 --> 00:02:01.200
+your terms. And you start adding them one at a time. And there has to be some metric by which
+
+00:02:01.200 --> 00:02:06.080
+you add them. You know, you say, "Oh, I have five flavors of ice cream I can add. I'm going to add
+
+00:02:06.080 --> 00:02:08.880
+this one. And then, oh, what's my next favorite? I'm going to add this one, and this one, and this
+
+00:02:08.880 --> 00:02:15.040
+one." So there's just some criteria we're going to use to add the terms. In the last lecture,
+
+00:02:15.040 --> 00:02:22.880
+we used a partial F. There's all kinds of things we can use. The other thing is, the other approach
+
+00:02:22.880 --> 00:02:29.200
+is backwards elimination. So just throw the kitchen sink at this, put everything we have
+
+00:02:29.200 --> 00:02:34.320
+in the model, assuming we can still estimate it. And then we're going to start taking stuff out
+
+00:02:34.320 --> 00:02:43.920
+one at a time and see who can we remove. And the last approach is typically what I've
+
+00:02:43.920 --> 00:02:50.080
+used to practice, if I've ever done this, it's a stepwise. And so stepwise means
+
+00:02:50.080 --> 00:02:57.200
+one step forward, two steps back, right? So you enter a term in the model. And if you enter a term
+
+00:02:57.200 --> 00:03:01.840
+and you decide that now that this one's here, another one maybe shouldn't, and there's ways we
+
+00:03:01.840 --> 00:03:08.160
+can look at that, you are able to kick terms out once you've added them. So you might end up in
+
+00:03:08.160 --> 00:03:18.000
+some place different. We need to pay attention here that we are adding model terms, not
+
+00:03:18.000 --> 00:03:26.560
+coefficients. Remember the difference? This is kind of key. So if we have a factor and it has
+
+00:03:26.560 --> 00:03:31.440
+three levels, we're going to end up with three coefficients or two coefficients,
+
+00:03:31.440 --> 00:03:38.160
+depends on if it gets absorbed into the grand mean or not. So if I add categorical variables,
+
+00:03:38.160 --> 00:03:43.760
+they could be more than one coefficient, but it's still one term. So terms enter and exit
+
+00:03:43.760 --> 00:03:51.520
+themselves. It's quite a different modeling approach if we're trying to model individual
+
+00:03:51.520 --> 00:04:05.520
+levels. And as I just mentioned, in the past lecture, we use partial Fs. That's good. But
+
+00:04:05.520 --> 00:04:12.480
+remember, partial F needs a nested model. So what if I want to compare two models that aren't nested,
+
+00:04:13.280 --> 00:04:17.920
+and I'm going to use some sort of information criteria. This is why we
+
+00:04:17.920 --> 00:04:25.520
+teach you AIC. There was actually quite a bit of controversy in R
+
+00:04:25.520 --> 00:04:31.360
+when it came out and the stepwise in R uses AIC instead of a
+
+00:04:31.360 --> 00:04:39.680
+partial F as it adds these things. And there's lots of debate about which is best and what's
+
+00:04:39.680 --> 00:04:43.680
+not. And people had to write their own packages around it. But AIC is what R uses.
+
+00:04:43.680 --> 00:04:49.840
+And we do this through an R function called step, which makes sense since it does stepwise
+
+00:04:49.840 --> 00:04:55.200
+selection. It can either step forward, step backward. And if you put those two together,
+
+00:04:55.200 --> 00:05:02.320
+you get stepwise. And so since it's only looking one term at a time, it's taking one step at a time,
+
+00:05:03.040 --> 00:05:12.240
+we call that a local search. So it can't go from one term to six terms, right? It's not
+
+00:05:12.240 --> 00:05:21.600
+that advanced. It's one at a time. So let's start off with our climate data. This is nice and small.
+
+00:05:21.600 --> 00:05:27.680
+There's only a few variables, but we have to set this up a bit differently to fit this.
+
+00:05:29.360 --> 00:05:35.280
+So we'll bring in and clean up our data. We call this the null model. So this is just the mean
+
+00:05:35.280 --> 00:05:40.640
+sun hours, right? Because all we have is just an intercept. So it's the mean value.
+
+00:05:40.640 --> 00:05:45.760
+And then the full model is literally everything we want to model. Latitude,
+
+00:05:45.760 --> 00:05:50.080
+longitude, a bit above January temperature, a bit above July temperature, rain, height,
+
+00:05:50.080 --> 00:05:56.560
+sea, North Island. And then our scope. So this is what we call this a list.
+
+00:05:56.560 --> 00:06:05.440
+The lower of our scope is the climate null. So just the mean and the upper limit is climate full.
+
+00:06:05.440 --> 00:06:11.360
+And so the reason we define this and don't just give it everything is oftentimes there'll be a
+
+00:06:11.360 --> 00:06:15.760
+default model that we always want to build upon. You don't necessarily need to start with a null.
+
+00:06:15.760 --> 00:06:21.360
+Like if you know, you always need to adjust for age and sex and some health question.
+
+00:06:21.360 --> 00:06:27.520
+You want to see what term can I add or what term can I remove? But age and sex always have to be
+
+00:06:27.520 --> 00:06:31.360
+in there. It's kind of, it doesn't matter if it's significant or not. Those guys have to be there.
+
+00:06:31.360 --> 00:06:36.480
+And so this is why you can define it. And then again, on the full, oftentimes you get a bunch of
+
+00:06:36.480 --> 00:06:41.680
+non-numeric variables or variables that look numeric, but are patient ID or something else.
+
+00:06:41.680 --> 00:06:45.600
+So you explicitly state these are the terms I'm modeling with. And this is the minimum
+
+00:06:45.600 --> 00:06:49.040
+I'm modeling with. You stick it together. It's called your scope, you know, scope of the search.
+
+00:06:49.040 --> 00:06:58.960
+So the full model is this guy. So if we start with that intercept only model and we go forward,
+
+00:06:58.960 --> 00:07:06.000
+step, climate null, scope is climate scope, direction is forward. And so this is what
+
+00:07:06.000 --> 00:07:08.720
+we're going to be changing. We're going to change the direction forward, backwards step.
+
+00:07:09.520 --> 00:07:12.640
+Trace is one, just means show it to be. And trace is this.
+
+00:07:12.640 --> 00:07:25.120
+So if we start off, our mean model has an AIC of 388.08. Remember, these by themselves mean
+
+00:07:25.120 --> 00:07:29.360
+practically nothing. If someone says my AIC is 5 million, I have no idea. I just think you have
+
+00:07:29.360 --> 00:07:35.760
+a lot of data. It's really hard to tell what's going on. So it's the difference in these AUCs
+
+00:07:35.760 --> 00:07:43.040
+that actually helps us out. And so this is saying, oh, of all the things we can do, what can I,
+
+00:07:43.040 --> 00:07:50.640
+it looks, what can I add next? And this is the rank order of the sums of squares that's going to
+
+00:07:50.640 --> 00:07:58.960
+essentially explain the lowest residual sums of squares. So if I added this term, I drop an AIC
+
+00:07:58.960 --> 00:08:04.080
+376. If I add this longitude, I go to 381. If I add rain, I go to 382. Remember, I'm not adding
+
+00:08:04.080 --> 00:08:07.680
+all these together. I'm checking. Should I check? Should I add this one? Should I add this one?
+
+00:08:07.680 --> 00:08:10.640
+Should I add this one? Should I add this one? Should I add this one? So it's checking them
+
+00:08:10.640 --> 00:08:19.760
+all for you. So instead of you doing 10 models, this is doing nothing. And so this is adding
+
+00:08:19.760 --> 00:08:23.920
+height basically doesn't improve it. And the most improvement comes from adding this minimum
+
+00:08:23.920 --> 00:08:29.520
+January temperature. And so we told it to take a step. That's the step. Go forward. That's the
+
+00:08:29.520 --> 00:08:34.880
+step it took. It added the minimum January temperature. Now that minimum January temperature
+
+00:08:34.880 --> 00:08:39.280
+is in, what other term can we add, given that minimum January temperature is in, and how does
+
+00:08:39.280 --> 00:08:44.560
+it affect our AIC? So we can see North Island and Nunn are pretty, are pretty close to each other.
+
+00:08:44.560 --> 00:08:56.240
+That's, yeah, sea lat, July. Rain looks the best. And rain's what it adds. And so now we've gone
+
+00:08:56.240 --> 00:09:02.800
+from 388, 376, 374, which is what we said we go to. Now, is there anything else we can add?
+
+00:09:02.800 --> 00:09:07.440
+We could add C. That's a bit better than these guys. That's better than Nunn. So that means
+
+00:09:07.440 --> 00:09:13.840
+we're going to add it. So we add in C. And then once we've added in C, you thought we were done,
+
+00:09:13.840 --> 00:09:18.400
+right? But now that C is in there, it changes these guys a bit. And the relationships are
+
+00:09:18.400 --> 00:09:23.520
+right conditional. And so now it's like, oh, I can actually now add height in these. It looks
+
+00:09:23.520 --> 00:09:28.800
+like we might be able to add two more. So 371, and yep, it adds height. Now, once it's added
+
+00:09:28.800 --> 00:09:32.560
+height, you think, oh, is it going to add this medium July temperature? No. Once height's in
+
+00:09:32.560 --> 00:09:38.960
+the model, there's nothing else we can add. And so we've gone from 388 back down to 371,
+
+00:09:38.960 --> 00:09:45.120
+which is quite, I'd be happy with that. And so that's what we get. And so if we type in our
+
+00:09:45.120 --> 00:09:53.920
+formula, this is our final model. So when you run this yourself, it won't have trace on. You won't
+
+00:09:53.920 --> 00:09:58.080
+see all this junk. So when you're done, it'll just be like, I'm done. And you're just like,
+
+00:09:58.080 --> 00:10:02.960
+what did I get? You'll have to type formula and then see what model you ended up with.
+
+00:10:03.600 --> 00:10:08.480
+Let's see what AIC you ended up with. Climate 4 is 475.2.
+
+00:10:08.480 --> 00:10:19.920
+Backward is basically the same. The same step function, the same scopes,
+
+00:10:19.920 --> 00:10:25.920
+it's just the direction changes. And so this time you can see, we start off with everybody at,
+
+00:10:30.400 --> 00:10:34.080
+everybody's in this model. And then instead of pluses, there's minus.
+
+00:10:34.080 --> 00:10:39.440
+So this is saying what will improve our AIC the most is getting rid of latitude.
+
+00:10:39.440 --> 00:10:45.600
+And then July temp and then height and then nothing on and so forth. So the first step,
+
+00:10:45.600 --> 00:10:52.880
+it's going to get rid of latitude. Latitude, longitude. So now we got rid of it. We went down
+
+00:10:52.880 --> 00:10:57.760
+Sunday lawn. And so now it's like, oh, what else can we get rid of? Looks like we're almost done,
+
+00:10:57.760 --> 00:11:04.480
+right? It's going to be a lot of terms. It says, oh, I can improve this again, another two units.
+
+00:11:04.480 --> 00:11:08.160
+I get rid of this mean July temp. So it gets rid of mean July temp.
+
+00:11:08.160 --> 00:11:18.240
+And then now it goes again and goes, you know what? That's the best model. Longitude. Yep.
+
+00:11:18.880 --> 00:11:25.680
+Okay. So sounds like we're done. Let's look at our formula. This is interesting
+
+00:11:25.680 --> 00:11:35.120
+because this is not the same model. What is going on? So since we, so which is right?
+
+00:11:35.120 --> 00:11:40.000
+You know, they're both, they're both right. They both used different criteria to select the model.
+
+00:11:43.760 --> 00:11:48.880
+So it's not how to put it here. It's not that
+
+00:11:48.880 --> 00:11:56.800
+is one better or not. It really depends on if you think we need to adjust for all these things or
+
+00:11:56.800 --> 00:12:04.640
+not. But let's try stepwise and see what we get. Stepwise essentially checks. The only difference
+
+00:12:04.640 --> 00:12:10.640
+here when direction is both not step. The only difference here is if a term goes in and then a
+
+00:12:10.640 --> 00:12:21.760
+later term allows you the conditional probability of that term increases as other terms come in.
+
+00:12:21.760 --> 00:12:27.120
+And you're like, how could that happen? That happens due to colinearity of terms. Often
+
+00:12:27.120 --> 00:12:35.360
+you could then remove a term and the model could be better. Let's see if that happens in this case.
+
+00:12:35.360 --> 00:12:40.400
+So we start off. So a stepwise is very similar to a forward. It's just, we can kick terms out
+
+00:12:40.400 --> 00:12:45.840
+if they end up being weird a bit later. So what does it say? We should add 380. It says we should
+
+00:12:45.840 --> 00:12:51.440
+add minimum January temperature. Yeah. I'm sorry, mean January temperature. And then it says, oh,
+
+00:12:51.440 --> 00:12:58.000
+rain looks good. Yep. Let's add rain and rain. And then it says, oh, we should add C above none.
+
+00:12:58.000 --> 00:13:05.600
+So we're adding C. Let's see if added C. It says, oh, we should add height. Okay. We've got height
+
+00:13:05.600 --> 00:13:12.160
+371. Ooh, yep. Nothing else. Okay. So we're all done. So we ended up with this rain C height.
+
+00:13:12.160 --> 00:13:15.680
+That looks like the other forward. I think it is because we didn't kick anything out.
+
+00:13:15.680 --> 00:13:21.840
+And our AIC is 475. So we ended up with a forward model.
+
+00:13:24.640 --> 00:13:33.920
+So here is our climate searches. So we've got a forward model has minimum January temp,
+
+00:13:33.920 --> 00:13:41.440
+rain, C and height as an AIC 475. Backward has longitude, minimum January temp, rain,
+
+00:13:41.440 --> 00:13:48.240
+height, C and North Island. So we've got these extra couple terms in here. And it's AIC is lower.
+
+00:13:48.240 --> 00:13:52.640
+So although there is more terms, the information we have is more.
+
+00:13:52.640 --> 00:13:58.320
+Stepwise, we have the same as forward.
+
+00:13:58.320 --> 00:14:06.880
+Usually you're picking this by the lowest AIC, but it's kind of a trade-off sometimes between
+
+00:14:06.880 --> 00:14:15.040
+parsimony and accuracy. So if I was only two AICs away, I would, this is where when we ask you what
+
+00:14:15.040 --> 00:14:25.600
+the answer is you need to discuss, why did you make this choice? I would say due to parsimony
+
+00:14:25.600 --> 00:14:32.640
+concerns, I've used the smaller model because I want, you know, most bang for my variable buck.
+
+00:14:32.640 --> 00:14:38.160
+And so this brings us back to this image I showed at the beginning. This is kind of just a graphical
+
+00:14:38.160 --> 00:14:41.200
+representation of what can happen. You start with a null, you can add the first term, you can add
+
+00:14:41.200 --> 00:14:46.160
+the second term, you can add a third term, you can drop terms, you can add terms, and you end up with
+
+00:14:46.160 --> 00:14:51.920
+this really complex tree. We didn't see this here because there's not that many choices to make. But
+
+00:14:51.920 --> 00:14:57.920
+as we try some other examples, you might see terms coming in and dropping out. So now we're going to
+
+00:14:57.920 --> 00:15:07.360
+go back to our sole bike rental question. If you remember, it's hourly bike rentals, weather,
+
+00:15:07.360 --> 00:15:14.480
+and calendar variables. So we've already looked at forward and back. But so here let's,
+
+00:15:14.480 --> 00:15:21.680
+we're going to do one simplifying thing for this, which is we're going to treat hour as a factor.
+
+00:15:21.680 --> 00:15:29.120
+So here, otherwise, if we don't, we're saying that bike demand is linear, which isn't,
+
+00:15:29.120 --> 00:15:34.560
+probably isn't true. I haven't actually checked to see if it's linear, but I don't think it's true.
+
+00:15:34.560 --> 00:15:39.040
+I'd be really surprised if there's not like a morning rush and an evening rush.
+
+00:15:39.040 --> 00:15:48.320
+But for here, we'll just treat each hour as a time. And so we do the same thing. We say
+
+00:15:48.320 --> 00:15:53.680
+our null model is just one, we say our full model is everything. That's our scope.
+
+00:15:53.680 --> 00:15:58.320
+And then we actually have it
+
+00:16:00.640 --> 00:16:06.800
+lower and higher. Yep. Remember, scope tells the step. And I talked about that a bit earlier.
+
+00:16:06.800 --> 00:16:12.080
+And so here's our sole step. We take our null, we take our scope, we had direction both,
+
+00:16:12.080 --> 00:16:16.880
+traces on. So we're going to watch what happens. So bike count, look at this. See this, look at
+
+00:16:16.880 --> 00:16:24.640
+this AIC. It's 113,000. The other one's 300. So that's why I said I don't pay much attention to
+
+00:16:24.640 --> 00:16:29.600
+the actual values. It's the difference between the two. So we start off with just this null model.
+
+00:16:30.080 --> 00:16:37.760
+And we say, oh, yeah, temperature is really dropping the AIC. 110 from 113. So it drops at
+
+00:16:37.760 --> 00:16:44.080
+3000. So that's a big drop. Hours dropping a lot too, almost the same as temperature,
+
+00:16:44.080 --> 00:16:48.320
+season, dew point, solar radiation. You can see these are adding less and less.
+
+00:16:48.320 --> 00:16:54.320
+And so temperature is what it's going to add. It adds in temperature. Now, temperature's in there.
+
+00:16:54.320 --> 00:16:59.120
+Conditionally, who adds the best? Is it still the same? It's not the same order, right?
+
+00:16:59.680 --> 00:17:06.160
+So, hour is still the best, 106.9 and then 109. Humidity, dew point, functioning day. So it goes
+
+00:17:06.160 --> 00:17:11.440
+in and says hour is the best, adds hour. Now they have temperature and hour. What's this other term
+
+00:17:11.440 --> 00:17:14.480
+that we're going to add? Functioning day. Where was functioning day up here? Functioning day was
+
+00:17:14.480 --> 00:17:20.800
+way down here, yeah. So this guy's now come up, given that these are adjusted for, says functioning
+
+00:17:20.800 --> 00:17:25.520
+day. So we go temperature, hour, functioning day. Good. Now we're starting to get into weather
+
+00:17:25.520 --> 00:17:32.480
+effects. So, well, temperature is a weather effect, but more detailed weather effects, I should call
+
+00:17:32.480 --> 00:17:46.000
+it outside of temperature. Humidity, it's going to add humidity. Now the humidity's in, what are
+
+00:17:46.000 --> 00:17:53.120
+we doing? Oh, season. Well, that's four degrees of freedom because it's all four seasons. Rainfall,
+
+00:17:53.120 --> 00:17:59.360
+so it's added season in. After season, it says rainfall. Oh my goodness, it's added season and
+
+00:17:59.360 --> 00:18:04.800
+rainfall. And then it was, look at all that. My goodness, it's going to keep going. So solar,
+
+00:18:04.800 --> 00:18:09.840
+it's going to add solar radiation. It's going to add solar radiation. And then it looks like it's
+
+00:18:09.840 --> 00:18:14.640
+going to add holiday. Oh my goodness. And then it's going to add dew point. So right, everything
+
+00:18:14.640 --> 00:18:20.640
+above none is going to keep getting added until none comes up. Dew point temperature. And then
+
+00:18:20.640 --> 00:18:26.320
+we're going to, dew point temperature. Oh, we can add snowfall. Oh my goodness. So we've got
+
+00:18:26.320 --> 00:18:35.840
+this huge model. And so let's look at it. Here's our formula. And we end up with temperature,
+
+00:18:35.840 --> 00:18:42.080
+hour, functioning day. So it's operating that day. That makes sense. Binary. Humidity, season,
+
+00:18:42.080 --> 00:18:49.680
+rainfall, solar radiation. Is it a holiday? Dew point temperature and snowfall. Oh, that's,
+
+00:18:49.680 --> 00:18:53.920
+I guess we'll check. I always thought temperature and dew point were related, but
+
+00:18:53.920 --> 00:19:02.800
+this model's picking them both up. And so, yeah. And here is your order in which it entered in,
+
+00:19:02.800 --> 00:19:09.520
+in case you wanted to look at that. And this is definitely a great example of why you want to use
+
+00:19:09.520 --> 00:19:14.480
+some sort of stepwise, because you going through and checking every single one of these steps is
+
+00:19:14.480 --> 00:19:21.040
+going to take you a long time. But on the other hand, is, are you just doing a black box? And is
+
+00:19:21.040 --> 00:19:25.520
+this actually getting you a good model? That's a different question. We're going to talk more
+
+00:19:25.520 --> 00:19:33.360
+about that as we go on. It is a model. Remember, all models are wrong. Some models are useful.
+
+00:19:34.000 --> 00:19:44.960
+And so is this model useful? Potentially? I don't know. So now we're going to
+
+00:19:44.960 --> 00:19:57.200
+go from stepwise to what if we have terms, what if we had terms that we don't necessarily want
+
+00:19:57.200 --> 00:20:02.160
+to kick them in or out, or we have thousands and thousands of terms. So sometimes we can't do
+
+00:20:02.160 --> 00:20:06.240
+backwards elimination because we just don't have enough data to fit all the terms. What if we know
+
+00:20:06.240 --> 00:20:14.080
+we have a bunch of terms that are related to each other? What if, what if we want to take a different
+
+00:20:14.080 --> 00:20:23.200
+approach to fitting these models? So what we did before was very discreet. So we said the term is
+
+00:20:23.200 --> 00:20:32.400
+in or out. Now we're thinking, what if we have a term half in, or three quarters in, or 5% in?
+
+00:20:32.400 --> 00:20:38.080
+You think, wait, you can't, you can't, yes, you can do that, actually. It's really cool.
+
+00:20:38.080 --> 00:20:43.920
+So you can go in and say, I want, you know, a little bit of this term and a little bit of this
+
+00:20:43.920 --> 00:20:53.120
+term. And it allows me to still keep them in, but not have them essentially take over the regression.
+
+00:20:53.760 --> 00:21:03.360
+So this mainly goes down to, if we expect the response to reflect many small influences,
+
+00:21:03.360 --> 00:21:11.440
+or instead expect that only a small number of predictors have substantial effects or influences,
+
+00:21:11.440 --> 00:21:19.680
+right? These are two sides of the same coin. Is there five terms that I need? And these five
+
+00:21:19.680 --> 00:21:29.440
+are what it is? Or is there really 5,000? And they all add a little bit. So in my previous work on
+
+00:21:29.440 --> 00:21:36.720
+gene expression, and so genes related in the human body, almost everything is replaceable, right?
+
+00:21:36.720 --> 00:21:41.200
+Your body will compensate. You knock out this and it says, oh, we'll just use this other method and
+
+00:21:41.200 --> 00:21:48.480
+go around. So when we're building predictive models of disease, you oftentimes have to put in
+
+00:21:49.440 --> 00:21:54.720
+the entire pathway. So you'll put in hundreds of genes at a time, because you need to capture all
+
+00:21:54.720 --> 00:22:01.520
+of it. So it's all a little bit of many small influences pushing you. So here, this is just a
+
+00:22:01.520 --> 00:22:06.320
+quick recap of what ordinary least squares is minimizing, your residual sum of squares. We have
+
+00:22:06.320 --> 00:22:13.760
+our values minus our hat, our predicted mean values, and we square that. Done. Penalized
+
+00:22:13.760 --> 00:22:20.560
+regression, we have the same residual sums of squares, but we add this parameter lambda,
+
+00:22:20.560 --> 00:22:27.440
+and we add a penalty. So in this course, we're only going to discuss two penalties,
+
+00:22:27.440 --> 00:22:35.600
+and the two penalties are L2 and L1. And L2 is often called ridge regression, and L1 is lasso.
+
+00:22:35.600 --> 00:22:42.480
+If you get into more computer science or data science things, they often don't call it lasso
+
+00:22:42.480 --> 00:22:48.000
+and ridge. They'll call it, did you apply an L1? Did you apply an L2? And it's really funny that
+
+00:22:48.000 --> 00:22:53.440
+they just drop these terms when you go into data science and CS. But statisticians, we do the
+
+00:22:53.440 --> 00:23:01.600
+opposite. We usually call it a ridge regression or lasso. So just notice that when lambda is zero,
+
+00:23:01.600 --> 00:23:07.600
+it's ordinary least squares. This just falls away. And the larger lambda is, the stronger the
+
+00:23:07.600 --> 00:23:14.160
+penalty. I mean, that's the relationship. And the intercept is normally not penalized because
+
+00:23:14.160 --> 00:23:20.400
+where the average point cloud falls in n-dimensional space shouldn't be changing.
+
+00:23:20.400 --> 00:23:28.160
+So let's start off with a ridge regression. So it minimizes the residual sum of squares
+
+00:23:28.160 --> 00:23:37.760
+plus this lambda, the sum of all the beta squared. The large coefficients are penalized
+
+00:23:37.760 --> 00:23:42.560
+more strongly than small coefficients. As lambda increases, the fitted coefficient
+
+00:23:42.560 --> 00:23:47.840
+vector is pulled towards zero. As lambda increases, the fitted coefficient pulled towards
+
+00:23:47.840 --> 00:23:56.000
+zero. So it's penalty. So if I made lambda 10, it's basically going to take all of your
+
+00:23:56.560 --> 00:24:02.240
+beta coefficients, no matter what they are, and make them go towards zero. So if they're negative,
+
+00:24:02.240 --> 00:24:06.720
+they're going up towards zero. And if they're positive, they're going down towards zero.
+
+00:24:06.720 --> 00:24:14.320
+And ridge generally keeps all predictors rather than setting coefficients to zero.
+
+00:24:14.320 --> 00:24:20.320
+So the other thing it's doing, then if I have 10 terms and I apply a ridge,
+
+00:24:20.320 --> 00:24:24.480
+all 10 terms are always going to be there no matter how strong a penalty I put, basically.
+
+00:24:25.200 --> 00:24:27.200
+It's just their values get smaller.
+
+00:24:27.200 --> 00:24:34.240
+So in matrix form, if you guys remember when we showed you this matrix earlier,
+
+00:24:34.240 --> 00:24:38.000
+so this should look somewhat familiar. The only thing that's different is we've added this
+
+00:24:38.000 --> 00:24:44.560
+lambda I is the identity matrix. So if it's x prime x inverse x prime,
+
+00:24:44.560 --> 00:24:50.080
+this is in fact the hat matrix. It puts the hat on top of the y, does the projection.
+
+00:24:51.280 --> 00:24:58.160
+If we add a little bit of lambda to the identity matrix, we're actually adding it
+
+00:24:58.160 --> 00:25:06.960
+down the diagonal. And it makes this inverse here much easier to calculate. So we didn't
+
+00:25:06.960 --> 00:25:12.240
+actually calculate inverses here, but this is a pain. It really is tricky. So by hand,
+
+00:25:12.240 --> 00:25:16.320
+it's a nightmare. The computer can do it. Oftentimes we do what's called a generalized
+
+00:25:16.320 --> 00:25:23.200
+inverse if we have deficient rank in our matrix. And this just makes it so we can invert. And so
+
+00:25:23.200 --> 00:25:26.880
+it stabilizes the inversion so we get more consistent values.
+
+00:25:26.880 --> 00:25:35.520
+The other thing that we're looking at today is the lasso. And so this is the so-called L1 penalty.
+
+00:25:35.520 --> 00:25:42.560
+And so the difference here is we have residual sums of squares plus a lambda. We're summing up
+
+00:25:42.560 --> 00:25:52.720
+all the p predictors. It's the absolute value of beta j, where before it was
+
+00:25:52.720 --> 00:26:02.240
+beta squared. Now it's absolute value. And so lasso, it shrinks coefficients as lambda increases,
+
+00:26:02.240 --> 00:26:08.160
+as you assume. But unlike the abridged, some coefficients can be exactly zero. So this has
+
+00:26:08.160 --> 00:26:13.440
+a really cool property of shrinking values this way, that it can actually make things disappear.
+
+00:26:13.440 --> 00:26:18.720
+So it can do a little bit of variable selection as well as regularization.
+
+00:26:18.720 --> 00:26:25.920
+And that's what I have there. Shrinkage is making the values go towards zero. It shrinks them
+
+00:26:25.920 --> 00:26:33.120
+towards zero. Ridge and lasso both control coefficient size. And the main difference is
+
+00:26:33.120 --> 00:26:37.040
+what happens to the penalty at zero. And they have different properties as they go down.
+
+00:26:38.000 --> 00:26:46.800
+But that's the main thing. Before we get into actually showing you how these work,
+
+00:26:46.800 --> 00:26:53.520
+we need to say that the penalties act on the coefficients. So the scale matters.
+
+00:26:53.520 --> 00:27:00.080
+So if I've got something in millimeters and meters, and then my penalty gets applied,
+
+00:27:00.080 --> 00:27:08.080
+either my penalty is 0.00004 here, or my penalty is 4. So the relationship is the same,
+
+00:27:08.080 --> 00:27:14.800
+but the coefficient is not. So if you don't standardize all your units to one standard
+
+00:27:14.800 --> 00:27:18.400
+deviation, which is typically what we do, so center it and standardize,
+
+00:27:18.400 --> 00:27:26.560
+the larger values are going to essentially get clamped down harder. Do you want to do that?
+
+00:27:27.680 --> 00:27:30.880
+I've never done it that way. I mean, theoretically, you can.
+
+00:27:30.880 --> 00:27:32.880
+I can't think of a good reason why you'd want to do that.
+
+00:27:32.880 --> 00:27:39.040
+And anything that's not a bit esoteric. So basically,
+
+00:27:39.040 --> 00:27:41.920
+we standardize. So that way, the penalties are all on the same scale.
+
+00:27:41.920 --> 00:27:53.760
+So inside R, we're going to fit these penalized regression models using a GLM net. And so for
+
+00:27:53.760 --> 00:27:57.200
+just we assume we have the Gaussian response, which is what we've been looking at the whole time,
+
+00:27:57.200 --> 00:28:03.920
+just a normal response variable, our objective function. Look at this guy. What is this?
+
+00:28:03.920 --> 00:28:08.000
+Residual sums of squares over two times the number of
+
+00:28:08.000 --> 00:28:15.200
+samples plus some lambda. Well, at least there's a lambda.
+
+00:28:18.400 --> 00:28:21.600
+Parenthesis one minus alpha. What the heck is this? Alpha over two.
+
+00:28:21.600 --> 00:28:27.440
+This one looks like my ridge, and this one looks like my lasso.
+
+00:28:27.440 --> 00:28:34.560
+So they're both in there together. It says the first term measures fit with residuals
+
+00:28:34.560 --> 00:28:39.200
+divided by two n. So it's a scale. I'm not really sure why they're scaling it,
+
+00:28:39.200 --> 00:28:42.000
+but it doesn't probably because probably because there's two here.
+
+00:28:44.640 --> 00:28:47.520
+The bracketed term penalizes the coefficient side, so this is our penalty.
+
+00:28:47.520 --> 00:28:54.800
+A is a mixing parameter. Whoa, mixing parameter. Between zero and one, we can choose a balance
+
+00:28:54.800 --> 00:28:58.640
+between L1 and L2. Oh my goodness, so we can have a bit of L1 and a bit of L2.
+
+00:28:58.640 --> 00:29:04.640
+Wow, that's a lot of flexibility. So just for this course, we're going to set alpha equal to zero,
+
+00:29:04.640 --> 00:29:08.880
+and that gives us a ridge. So when this is zero, this is one over two.
+
+00:29:08.880 --> 00:29:13.120
+This is your ridge penalty, and this is zero, and the whole term just crosses out.
+
+00:29:14.240 --> 00:29:20.640
+If alpha equals one, this is here. One minus one is zero. This whole term cancels out.
+
+00:29:20.640 --> 00:29:28.320
+And so any alpha in between these two is called an elastic net. We aren't going to discuss that
+
+00:29:28.320 --> 00:29:32.000
+more here, but this is, as I said, there's other penalties we can apply, and there's all kinds of
+
+00:29:32.000 --> 00:29:37.120
+fun ways to do it. These are often commonly used. So if you ever hear about an elastic net,
+
+00:29:37.120 --> 00:29:43.440
+it's some sort of penalized regression. And by default, it will do the standardization for you.
+
+00:29:44.080 --> 00:29:53.360
+And how do we now choose lambda? Yeah, that's a trick. So we need to choose it, and it depends
+
+00:29:53.360 --> 00:29:57.280
+really on our problem and our data. So I can't tell you a lambda of six is always good, or lambda
+
+00:29:57.280 --> 00:30:04.160
+of 0.01 is always good. So we actually need to pick it. Usually we do it by cross-validation,
+
+00:30:04.160 --> 00:30:09.760
+internal cross-validation. So we'll take our, you remember a few lectures back, I had a little
+
+00:30:10.800 --> 00:30:18.000
+animated gif about cross-validation. We essentially split the data up into
+
+00:30:18.000 --> 00:30:25.760
+non-overlapping chunks, and then we take one chunk as the prediction, or one chunk that we predict
+
+00:30:25.760 --> 00:30:28.720
+on the other nine that we build the model on, and we go around and around and around and around.
+
+00:30:28.720 --> 00:30:31.200
+And that's what we're going to do here to pick lambda.
+
+00:30:31.200 --> 00:30:38.880
+And how we would do this, so like the sole bike data, this is actually the code that would create
+
+00:30:38.880 --> 00:30:43.600
+those folds. So if you want to run this yourself and try it out, and it's called fold_id,
+
+00:30:43.600 --> 00:30:50.960
+sequence length's 10. So this is going to make 10 equal-sized chunks of the data,
+
+00:30:50.960 --> 00:31:00.960
+and with a one-ninth held out for each. And so with this, you can do your cross-validation.
+
+00:31:00.960 --> 00:31:05.520
+And so this is the default for glm.net is a 10-fold cross-validation. This way,
+
+00:31:05.520 --> 00:31:12.800
+10's picked here, so I just pulled out of my hat. And so what do we look at? What are we trying to
+
+00:31:12.800 --> 00:31:20.000
+pick? So as we pick this lambda, we usually look at the cross-validated mean square error.
+
+00:31:20.000 --> 00:31:24.720
+So I'm going to make a model with lambda of 5, make a model with lambda of 7.5, make
+
+00:31:24.720 --> 00:31:31.040
+a model with lambda of 10. This is the log of lambda.
+
+00:31:33.200 --> 00:31:38.160
+And then fit that model, and so this is how many models I fit. I fit a ton of models,
+
+00:31:38.160 --> 00:31:42.800
+but I've done that cross-validated bit, and so this is a bit more optimistic.
+
+00:31:42.800 --> 00:31:48.640
+And I found there's two key points that we're going to look at. The first is lambda_min,
+
+00:31:48.640 --> 00:31:54.320
+and so this gives the lowest cross-validation error. This is as good as you can get. And then
+
+00:31:54.320 --> 00:32:00.000
+there's lambda_1_se, so one standard error up. It's the largest lambda whose estimated error
+
+00:32:00.000 --> 00:32:07.200
+is within one standard error of that minimum. So we know the variability of this, and so within
+
+00:32:07.200 --> 00:32:13.920
+a standard error, it gives stronger regularization. So the value is to the right, so it's stronger,
+
+00:32:13.920 --> 00:32:19.600
+while remaining close to the best estimated performance. So it's kind of a compromise.
+
+00:32:19.600 --> 00:32:22.800
+So we do this because in LASSO, it gives us a bit smaller models.
+
+00:32:22.800 --> 00:32:28.560
+And so what does it look like in practice? So let's look on the SOL data.
+
+00:32:28.880 --> 00:32:36.880
+And so SOL ridge, lambda_min, and then SOL ridge, lambda_1_se. So basically, I fit this on the SOL
+
+00:32:36.880 --> 00:32:43.520
+data, and here's all these terms. This is every term in the model. Oh my goodness. Okay, so lambda_min,
+
+00:32:43.520 --> 00:32:48.480
+these are beta parameters, and we can see the beta parameters change depending upon how much
+
+00:32:48.480 --> 00:32:53.520
+we've regularized them. And so the difference between now, we're just comparing min to 1_se,
+
+00:32:54.720 --> 00:33:04.880
+intercept is up. This is smaller, bigger, 80 to 50. So this has come down quite a bit,
+
+00:33:04.880 --> 00:33:12.320
+400 to 300. I mean, these are beta parameters. So at hour 8, I was getting plus 400 when it was
+
+00:33:12.320 --> 00:33:20.480
+hour 8. Now I'm getting plus 300. I was positive hour 9, now I'm negative hour 9. So it is a bit
+
+00:33:20.480 --> 00:33:27.920
+different. So it is a stronger, it's considered stronger regularization. Visibility is such a
+
+00:33:27.920 --> 00:33:35.680
+small parameter. Dew point is reduced. Most of these are more reduced, which is what, so they're
+
+00:33:35.680 --> 00:33:42.000
+going towards zero. Sometimes they'll do weird things like that, but usually they don't. And so
+
+00:33:42.000 --> 00:33:47.680
+this is a stronger penalty. So it's more strongly regularized. And for the rest of this lecture,
+
+00:33:47.680 --> 00:33:53.120
+we're going to use the 1_se. So for ridge, it's stronger shrinkage, for lasso, it's fewer
+
+00:33:53.120 --> 00:34:01.360
+coefficients, as I mentioned a bit earlier. So lasso is doing something else. So as lambda
+
+00:34:01.360 --> 00:34:09.040
+increases for a lasso, so it's going to have the same lambda min, lambda 1_se, but there's a
+
+00:34:09.040 --> 00:34:14.480
+another, there's a nicer graph. So no matter what you do in a ridge, you're going to have the same
+
+00:34:14.480 --> 00:34:20.000
+number of terms, because it's just shrinking the terms towards zero. Lasso has this cool effect
+
+00:34:20.000 --> 00:34:25.520
+that terms drop out. And so you can actually use its variable selection. So I've kind of taken and
+
+00:34:25.520 --> 00:34:31.760
+made predictor groups. So hour, holiday, functioning day are blue, season is orange, temperature,
+
+00:34:31.760 --> 00:34:37.520
+humidity, wind, and visibility is green, rainfall, snowfall, solar, dew point, all that is purple.
+
+00:34:37.520 --> 00:34:42.800
+So as our lambda penalty gets stronger and moves to the right here, as I move my mouse across,
+
+00:34:43.520 --> 00:34:48.480
+we can see these lasso paths kind of wobble, and they all kind of drop down towards zero,
+
+00:34:48.480 --> 00:34:53.200
+which zero is right here. When it hits zero, they never come back up.
+
+00:34:53.200 --> 00:35:02.160
+So it has selected that term for removal, essentially, is the way to think of it.
+
+00:35:02.160 --> 00:35:11.440
+So as we go up, we can see by the time we get to a lambda of 2, this is about where we're at,
+
+00:35:11.440 --> 00:35:18.320
+we can see there are some terms that are, there might be one or two terms that have actually
+
+00:35:18.320 --> 00:35:23.440
+dropped out. But as we go further and further, this would be more cross-validation error, but
+
+00:35:23.440 --> 00:35:26.880
+terms drop out. Remember, this is hours. And so you can see these hours, no matter what I
+
+00:35:26.880 --> 00:35:32.960
+regularize, I have to basically go way out and make everything disappear before these ones come.
+
+00:35:32.960 --> 00:35:37.280
+So you can tell how hard it is to get rid of these. These means these are really important
+
+00:35:37.280 --> 00:35:44.160
+variables. These ones are also important if they, so if they refuse to go down until the very end,
+
+00:35:44.160 --> 00:35:47.440
+they're really important. These are the less important ones will start to drop out
+
+00:35:47.440 --> 00:35:56.400
+faster as we start to regularize. Let's look at what this looks like. So at lambda 1 SE,
+
+00:35:58.480 --> 00:36:07.440
+we go through and we can see for the lasso, hour 15 is gone. It said,
+
+00:36:07.440 --> 00:36:12.320
+we don't need that variable anymore. Wind speed is gone. Dew point temperature is gone. Snowfall
+
+00:36:12.320 --> 00:36:17.520
+is gone. So it's actually removed terms from our model where remember the ridge doesn't.
+
+00:36:17.520 --> 00:36:21.280
+So it actually is doing a little bit of variable selection.
+
+00:36:21.280 --> 00:36:28.000
+So now we have this plot again, and we can look at what we've, what we've gone over today.
+
+00:36:28.480 --> 00:36:34.000
+So stepwise regression versus shrinkage. Stepwise search, add or remove whole terms,
+
+00:36:34.000 --> 00:36:40.160
+and you end up with a smaller formula. Ridge or the L2 penalizes squared coefficient size,
+
+00:36:40.160 --> 00:36:44.880
+keeps the predictor, but shrink stabilize the coefficient vector. Lasso the L1 penalize
+
+00:36:44.880 --> 00:36:49.920
+absolute coefficient size, shrink coefficient of the set sum exactly to zero. This graphic
+
+00:36:49.920 --> 00:36:55.600
+is kind of what's happening with ridge and lasso. So if each of these colored balls are your
+
+00:36:55.600 --> 00:37:02.160
+predictors, and as you add lambda, they are all regularized together.
+
+00:37:02.160 --> 00:37:07.680
+They're all just getting squeezed and squeezed. Where lasso
+
+00:37:07.680 --> 00:37:12.880
+takes a different approach and it squeezes some balls more than others.
+
+00:37:12.880 --> 00:37:19.920
+And if you squeeze hard enough, some will just disappear. So I thought this might be a good
+
+00:37:19.920 --> 00:37:25.120
+visual so you can understand the difference between these two, these two models. So for the
+
+00:37:25.120 --> 00:37:29.520
+test at the end of the year, which is not that far away,
+
+00:37:29.520 --> 00:37:33.840
+understanding the differences between ridge lasso and stepwise is what I'm after.
+
+00:37:33.840 --> 00:37:41.600
+And so this all seemed good. We made a bunch of models, hopefully they were useful.
+
+00:37:44.080 --> 00:37:50.240
+They, they show us the problem we have, which is what are we going to do when our predictors have
+
+00:37:50.240 --> 00:37:58.640
+the same information? Ordinary least squares coefficients become unstable. Well, I'm going
+
+00:37:58.640 --> 00:38:05.360
+to show you what that looks like next week, or sorry, next lecture. But yeah, what, what?
+
+00:38:05.360 --> 00:38:12.240
+Same information. Yeah. So if I'm measuring height, well, the worst case would be like height
+
+00:38:12.240 --> 00:38:17.600
+in inches and height in centimeters. Those are the same information just scaled. And we call that
+
+00:38:17.600 --> 00:38:24.400
+multicollinearity. And so that can mess up our penalized regressions, that can mess up our
+
+00:38:24.400 --> 00:38:29.840
+stepwise, messes up non, just standard models have trouble when there's multicollinearity.
+
+00:38:29.840 --> 00:38:37.520
+And so we'll look how to identify it and some ways to fix it. Well,
+
+00:38:39.680 --> 00:38:45.520
+improve it. It's hard, hard to completely fix it. So if you stuck through the whole lecture,
+
+00:38:45.520 --> 00:38:49.680
+good job. Let me know if you have any questions.

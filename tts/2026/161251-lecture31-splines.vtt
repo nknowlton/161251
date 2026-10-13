@@ -1,0 +1,937 @@
+WEBVTT
+
+00:00:00.840 --> 00:00:06.360
+Hello, welcome to lecture 31. Splines and Loess. Flexible
+
+00:00:06.360 --> 00:00:11.880
+regression curves. So I really like these last these last few
+
+00:00:11.880 --> 00:00:14.960
+before we get into time series. So these are are fun because you
+
+00:00:14.960 --> 00:00:18.320
+get to play with all kinds of shapes in your in your data and
+
+00:00:18.320 --> 00:00:23.080
+different ways to model things. Last week, we did weighting. And
+
+00:00:23.080 --> 00:00:25.800
+we saw how we could, you know, combine different types of
+
+00:00:26.600 --> 00:00:33.680
+estimates together using tau. One over the variance, and how
+
+00:00:33.680 --> 00:00:36.680
+we could adjust things for different ends. And this week,
+
+00:00:36.680 --> 00:00:41.480
+we're going to say, what are we going to do if we need to change
+
+00:00:41.480 --> 00:00:43.840
+the actual mean structure of what we're measuring? So
+
+00:00:43.840 --> 00:00:46.080
+something isn't necessarily a purely straight line, can we
+
+00:00:46.080 --> 00:00:48.640
+still estimate it? Because we call this linear regression,
+
+00:00:48.640 --> 00:00:52.040
+what can we fit curves with linear, we already learned how
+
+00:00:52.040 --> 00:00:56.080
+to do polynomials. And so we're going to kind of get even more
+
+00:00:56.600 --> 00:01:03.040
+advanced this week. So everything, yeah, up till now
+
+00:01:03.040 --> 00:01:07.040
+has been has had a really simple shape. Mostly, you fit a couple
+
+00:01:07.040 --> 00:01:11.720
+of splines, you've done the broken stick, or piece piecewise
+
+00:01:11.720 --> 00:01:14.360
+linear, we call it, we're going to look and start looking at the
+
+00:01:14.360 --> 00:01:22.840
+soul by data a bit more in terms of its non nonlinear effects. So
+
+00:01:24.400 --> 00:01:29.080
+when we look at the data, we'll see that demand in weather are
+
+00:01:29.080 --> 00:01:32.880
+not linear, which, yeah, I mean, that makes sense, right? You
+
+00:01:32.880 --> 00:01:35.840
+don't, I mean, I would expect some sort of a bell curve,
+
+00:01:35.840 --> 00:01:38.800
+there's going to be a temperature at which it's a nice
+
+00:01:38.800 --> 00:01:40.520
+day to ride a bike, and then there's some temperatures where
+
+00:01:40.520 --> 00:01:42.760
+it's too hot, and then there's some temperatures where it's too
+
+00:01:42.760 --> 00:01:48.320
+cold. And then whether that you're gonna throw rain on top
+
+00:01:48.320 --> 00:01:50.480
+of it, you're gonna throw dew point, you're gonna throw solar
+
+00:01:50.480 --> 00:01:52.760
+radiation, you got all these things. So to expect this all to
+
+00:01:52.760 --> 00:01:58.240
+just be linear mean scales is not realistic. Right? Because
+
+00:01:58.240 --> 00:02:05.280
+remember, no model is right, some models are useful. So at
+
+00:02:05.280 --> 00:02:09.760
+the end of today, we should be able to say why straight lines
+
+00:02:09.760 --> 00:02:13.480
+don't always work. You should be able to run a low s and kind of
+
+00:02:13.480 --> 00:02:17.120
+interpret how it looks. You should know how to cubic splines
+
+00:02:17.120 --> 00:02:21.400
+use knots, you're going to fit and interpret cubic and natural
+
+00:02:21.400 --> 00:02:24.640
+cubic splines, and know the difference between the two, and
+
+00:02:24.640 --> 00:02:27.400
+explain how degrees of freedom can control the flexibility of a
+
+00:02:27.400 --> 00:02:29.800
+cubic spline. So all of these are really good questions for
+
+00:02:29.800 --> 00:02:33.520
+finals, because I can ask you, interpretation, does this do
+
+00:02:33.520 --> 00:02:37.720
+this? Does this do this? So it's good to pay attention. So we're
+
+00:02:37.720 --> 00:02:40.200
+going to use the the sole bike data, you remember, it looks
+
+00:02:40.200 --> 00:02:42.920
+like this got all these all these variables. And so the
+
+00:02:42.920 --> 00:02:46.120
+question now is, how does hourly bike demand change with
+
+00:02:46.120 --> 00:02:51.360
+temperature? Oh, here it is. So temperature, hourly bike rate,
+
+00:02:51.800 --> 00:02:58.320
+um, yeah, what is going on? So I mean, my alpha is point of six.
+
+00:02:58.320 --> 00:03:00.400
+So this is really dense. So the stuff that's black is like
+
+00:03:00.400 --> 00:03:03.680
+really on top. And so this is hourly bike demand. So there is
+
+00:03:03.680 --> 00:03:09.120
+a lot of hours where there's no bike demand in good temperatures.
+
+00:03:09.120 --> 00:03:13.160
+This makes sense, because this temperature is more common. I
+
+00:03:13.160 --> 00:03:17.320
+think in Seoul, so you see in this, you've got crazy demand
+
+00:03:17.320 --> 00:03:21.120
+coming here, I'd say maybe it's maybe it's kind of linear.
+
+00:03:21.400 --> 00:03:23.960
+To here, I mean, if I was going to trace it, I'd say it looks
+
+00:03:23.960 --> 00:03:27.400
+like there's a black density somewhere around there. Maybe
+
+00:03:27.400 --> 00:03:31.040
+maybe it goes down here as it gets hotter. I mean, 40 is
+
+00:03:31.040 --> 00:03:34.920
+pretty, pretty nice to be riding a bike. But but there's, there's
+
+00:03:34.920 --> 00:03:38.440
+a lot of data down here as well. So yeah, so if I fit a linear
+
+00:03:38.440 --> 00:03:43.720
+regression, it's obviously not the right shape. But before we
+
+00:03:43.720 --> 00:03:50.000
+get to that, let's look at what a lowest is. So lowest, we teach
+
+00:03:50.000 --> 00:03:53.960
+this first, instead of splines, because this is kind of, if you
+
+00:03:53.960 --> 00:03:58.640
+don't know what the shape of a relationship is, it's almost
+
+00:03:58.640 --> 00:04:01.280
+always a good idea to run a lowest smooth through it. And so
+
+00:04:01.280 --> 00:04:05.960
+this is what GM smooth and GG plot runs for you. So if you
+
+00:04:05.960 --> 00:04:09.640
+don't say method equals LM, it runs a low s. And what is that?
+
+00:04:09.640 --> 00:04:11.800
+What has it been doing? Because we haven't been, we haven't been
+
+00:04:11.800 --> 00:04:18.840
+changing anything of the default. So essentially, there's
+
+00:04:18.840 --> 00:04:22.760
+a target value, we call that x naught, and the fit uses a local
+
+00:04:22.760 --> 00:04:26.240
+quadratic working model. And so this is how R does it, every
+
+00:04:26.240 --> 00:04:28.040
+package does it a bit differently, they're all pretty
+
+00:04:28.040 --> 00:04:32.440
+similar. So we've got some sort of output, and we've got beta of
+
+00:04:32.440 --> 00:04:36.920
+x naught, beta one of x naught, x i minus x naught. So distance
+
+00:04:36.920 --> 00:04:41.640
+between x and x naught, and beta two x naught, a distance between
+
+00:04:41.640 --> 00:04:46.600
+x i and x naught squared, plus error. So this is a squared
+
+00:04:47.920 --> 00:04:53.240
+distance from this x naught, this is a linear distance, and
+
+00:04:53.240 --> 00:04:57.640
+this isn't some sort of intercept. So the coefficients
+
+00:04:57.640 --> 00:05:00.320
+depend on where you start. And so essentially, you're fitting a
+
+00:05:00.320 --> 00:05:03.760
+squared model to each of these points. And then you're going to
+
+00:05:03.760 --> 00:05:07.720
+minimize the weighted sums of squares. So here the weight,
+
+00:05:07.720 --> 00:05:10.640
+we'll talk about in a second. But basically, it is a weighted
+
+00:05:10.640 --> 00:05:14.640
+sums of squares, which we talked about last week. And so you have
+
+00:05:14.640 --> 00:05:18.720
+your weight times your x naught, and then we fit our little
+
+00:05:18.720 --> 00:05:23.160
+quadratic term in there, and we add all these up. So the weight
+
+00:05:23.160 --> 00:05:33.000
+here is not how precise it is, it's how much data is there. And
+
+00:05:33.000 --> 00:05:36.520
+how far apart are you actually knows how much data there's,
+
+00:05:36.520 --> 00:05:40.080
+it's how far apart are you from x naught is the best way to
+
+00:05:40.080 --> 00:05:44.720
+think of it. So we've centered the predictor at x naught, the
+
+00:05:44.720 --> 00:05:48.600
+fitted values, the function hat of x naught is equal to the beta
+
+00:05:48.600 --> 00:05:51.720
+naught of x naught, you repeat the value overall x naught, and
+
+00:05:51.720 --> 00:05:53.560
+the fitted values form a curve, you're like, what are we doing,
+
+00:05:53.560 --> 00:05:57.800
+you're fitting a bunch of a bunch of quadratics, a bunch of
+
+00:05:57.800 --> 00:05:59.840
+different points, you're fitting this model, and this model, and
+
+00:05:59.840 --> 00:06:04.680
+this model, and this model. And so you're doing that, there's no
+
+00:06:04.680 --> 00:06:06.720
+there's no single coefficient for the whole range. So you're
+
+00:06:06.720 --> 00:06:09.360
+not fitting earlier, when we did polynomial models, you're not
+
+00:06:09.360 --> 00:06:13.240
+fitting just a quadratic, you're fitting a quadratic, if you have
+
+00:06:13.240 --> 00:06:15.920
+1000 points, you know, you could be fitting a quadratic 1000
+
+00:06:15.920 --> 00:06:22.600
+times. So here we use distance weights. And the weights decide
+
+00:06:22.600 --> 00:06:28.080
+which observations matter for the local fit. So the way to
+
+00:06:28.080 --> 00:06:31.480
+think of it is, I pick an arbitrary point on the line, and
+
+00:06:31.480 --> 00:06:34.960
+I go left and I go right at that point, because I'm on x. And I
+
+00:06:34.960 --> 00:06:39.000
+say, the further I am from where I start, the less I care about
+
+00:06:39.000 --> 00:06:46.600
+it. And that's basically it. And we drop off using a tri cube
+
+00:06:46.600 --> 00:06:50.920
+weight. So we drop off to the cube. So we don't drop off to
+
+00:06:50.920 --> 00:06:53.000
+the square, we drop off to the cube. So you can see we drop off
+
+00:06:53.000 --> 00:06:57.120
+pretty fast, we take the absolute value. Outside of
+
+00:06:57.120 --> 00:07:02.880
+outside of whatever neighborhood we've set, we say it's it's zero.
+
+00:07:02.880 --> 00:07:06.200
+And you're like, what is this? What is this neighborhood? And
+
+00:07:06.200 --> 00:07:12.560
+so now we get back into the the mathematical side of things. And
+
+00:07:12.560 --> 00:07:15.240
+so essentially, a neighborhood is a region. So you think of
+
+00:07:15.240 --> 00:07:16.920
+this back when you're doing calculus, and you're looking at
+
+00:07:16.920 --> 00:07:22.000
+neighborhoods around epsilons and things. And so here, it's
+
+00:07:22.000 --> 00:07:24.920
+the distance to the edge. And this is a parameter we're going
+
+00:07:24.920 --> 00:07:27.600
+to define, we're going to find what what the distance the edge
+
+00:07:27.600 --> 00:07:32.240
+is that we want to look at. In doing that, we have some control
+
+00:07:32.240 --> 00:07:35.600
+over the curves, the nearest observations receive the largest
+
+00:07:35.600 --> 00:07:37.320
+weights, which should make sense, right? The closer you are,
+
+00:07:37.320 --> 00:07:40.160
+the more weight you get. So if you're right on x naught, you
+
+00:07:40.160 --> 00:07:42.560
+get the most weight. The distinction between these
+
+00:07:42.560 --> 00:07:47.400
+distances and weights lecture 30. The weights is span sets
+
+00:07:47.400 --> 00:07:55.160
+proportion, x percent of closest points. Weights, oh,
+
+00:07:55.160 --> 00:07:58.720
+sorry, weights are spanning to fix that typo. Therefore, a span
+
+00:07:58.720 --> 00:08:01.440
+of one all points in the neighborhood around x naught and
+
+00:08:01.440 --> 00:08:04.880
+point two, five is a quarter of the points closest x naught. So
+
+00:08:04.880 --> 00:08:09.480
+we actually in a neighborhood can determine how much of the
+
+00:08:09.480 --> 00:08:13.400
+data we actually want to use. So we can use all the data, we can
+
+00:08:13.400 --> 00:08:17.640
+use a quarter of the data. And basically, it's going to control
+
+00:08:17.640 --> 00:08:22.200
+a small span gets a flexible curve that can allow random
+
+00:08:22.200 --> 00:08:24.800
+fluctuations and the larger span borrows from further away,
+
+00:08:24.800 --> 00:08:28.120
+producing a smoother curve. So you're averaging over your bumps
+
+00:08:28.120 --> 00:08:33.200
+or you're just overfitting basically. Knowing this is not
+
+00:08:33.240 --> 00:08:35.640
+on the exam is just giving you an idea of how this is working.
+
+00:08:35.640 --> 00:08:42.680
+So in the sole bike data, so before we had this data, let's
+
+00:08:42.680 --> 00:08:44.880
+let's see what it actually allows would work on this, how
+
+00:08:44.880 --> 00:08:50.680
+it would look on this data. So here, we can set the spans. And
+
+00:08:50.680 --> 00:08:53.760
+so if I set the span to point one, five, it's hard to see if
+
+00:08:53.760 --> 00:08:55.920
+this blue, but you can see it's kind of jumping, it's really
+
+00:08:55.920 --> 00:08:58.880
+jumping up and down, going around around. And then it's
+
+00:08:58.880 --> 00:09:02.040
+really, it's kind of looking the same over this sparse area, but
+
+00:09:02.040 --> 00:09:04.320
+where there's a lot more data points, it's it's able to jump a
+
+00:09:04.320 --> 00:09:08.640
+bit more. And so this keeping roughly 15% of the points within
+
+00:09:08.640 --> 00:09:11.600
+each, and so it's not average, it doesn't have a large span,
+
+00:09:11.600 --> 00:09:14.680
+it's really tight. So span
+
+00:09:14.680 --> 00:09:21.360
+controls how smooth this curve is, is what you need to kind of
+
+00:09:21.360 --> 00:09:26.120
+think about. So a span of one is going to be really smooth, and a
+
+00:09:26.120 --> 00:09:30.800
+span of zero is going to be craziness, I want to be next
+
+00:09:30.840 --> 00:09:35.240
+estimated certain points. So where to stick with span, it's
+
+00:09:35.240 --> 00:09:38.000
+hard to say, look at the default, there's, there's a good
+
+00:09:38.000 --> 00:09:42.360
+default, if you look up what Lois uses, I think it's like
+
+00:09:42.360 --> 00:09:46.000
+square root of four divided by the square root of the number or
+
+00:09:46.000 --> 00:09:47.960
+something there's, so there is the default that it uses, it
+
+00:09:47.960 --> 00:09:50.080
+usually gives you a good starting point, but you got to
+
+00:09:50.080 --> 00:09:54.080
+play with the span a bit. So yeah, the smaller is more
+
+00:09:54.080 --> 00:09:57.400
+closely. And so here's a quick little animated gif to show you
+
+00:09:57.400 --> 00:10:02.680
+kind of what it looks like. So 0.15, 0.3, 0.45. And see this,
+
+00:10:02.680 --> 00:10:07.440
+once you get a bit of data, it, it calms down pretty fast. So I
+
+00:10:07.440 --> 00:10:09.600
+wouldn't use this anything about 0.3, I would say not going to do
+
+00:10:09.600 --> 00:10:14.680
+much difference, but 0.45 and 0.6 is mostly here at the end.
+
+00:10:14.680 --> 00:10:19.880
+And so using this, it's kind of you can see how you could use
+
+00:10:19.880 --> 00:10:22.920
+this and say, ah, you know, what, what type of curve would
+
+00:10:22.920 --> 00:10:27.320
+that fit? Would this be a cubic? Well, you know, it's odd,
+
+00:10:27.320 --> 00:10:32.400
+because it's down, up, down. So it's three, I would say three
+
+00:10:32.400 --> 00:10:36.640
+degrees following the shape. If you just wanted to go down and
+
+00:10:36.640 --> 00:10:39.720
+up, that's two, if you just wanted to go up, that's one. So
+
+00:10:39.720 --> 00:10:42.440
+I'd say down, up, down. So I say this is a third degree. So I
+
+00:10:42.440 --> 00:10:45.000
+probably wouldn't fit a cubic to this. And so this is what Lois
+
+00:10:45.000 --> 00:10:49.800
+is useful for. You can predict straight off a Lois. But as you
+
+00:10:49.800 --> 00:10:55.280
+can imagine, there is no one parameter for this curve makes
+
+00:10:55.280 --> 00:11:00.040
+it not very interpretable. And we try and go in and predict off
+
+00:11:00.040 --> 00:11:02.160
+of it makes it makes it difficult. So if we can come up
+
+00:11:02.160 --> 00:11:05.280
+with something that's close to this, but has parameters, we can
+
+00:11:05.280 --> 00:11:09.240
+understand we can do a bit better as far as predicting and
+
+00:11:09.240 --> 00:11:15.600
+understanding what's going on. So now we're going to go, we've
+
+00:11:15.600 --> 00:11:18.440
+done the Lois kind of told us what we're going to do. And if
+
+00:11:18.440 --> 00:11:23.120
+you remember the piecewise regression, here, we're doing it
+
+00:11:23.120 --> 00:11:29.280
+again. But this time, the pieces are we're adding are essentially
+
+00:11:29.280 --> 00:11:33.840
+cubic knots, which is kind of fun. So you remember we used to
+
+00:11:33.840 --> 00:11:37.840
+do beta not beta one x beta two x minus k. So anything to the
+
+00:11:37.840 --> 00:11:42.800
+right got this additional thing added to it. And so that was
+
+00:11:42.800 --> 00:11:46.080
+what made it piecewise. The extra term is zero before the
+
+00:11:46.080 --> 00:11:48.960
+knot and changes the slope after it the lines join, but there can
+
+00:11:48.960 --> 00:11:54.440
+be a sharp corner at the knot. Right, you remember that. And
+
+00:11:54.440 --> 00:12:00.920
+here a cubic spline is the same idea. One way to write it is the
+
+00:12:00.920 --> 00:12:08.600
+same we do x x squared x cubed, then we're adding on k knots. And
+
+00:12:08.600 --> 00:12:11.640
+each of these k knots gets a gamma, and then it's x minus k
+
+00:12:11.640 --> 00:12:17.520
+sub j, this looks familiar. But this value is cubed. And that is
+
+00:12:17.520 --> 00:12:23.320
+added on. So these define general shape of a cube. And
+
+00:12:23.320 --> 00:12:26.080
+then at each knot, we get a bit more flexibility and a bit more
+
+00:12:26.080 --> 00:12:30.240
+flexibility and a bit more flexibility. Yeah, zero before
+
+00:12:30.240 --> 00:12:33.840
+the knot. At the knot, its first two derivatives are all zero,
+
+00:12:33.840 --> 00:12:36.040
+the new cubic piece can therefore change the shape after
+
+00:12:36.040 --> 00:12:38.520
+the knot without introducing a jump a corner or an abrupt
+
+00:12:38.520 --> 00:12:41.360
+change in curvature. So yeah, it's just a just allows more
+
+00:12:41.360 --> 00:12:47.280
+flexibility. So this technically is just a piecewise cubic with
+
+00:12:47.280 --> 00:12:53.000
+the pieces joined smoothly. We never will do this by hand. In
+
+00:12:53.000 --> 00:12:56.680
+R, we do this with the BS function. That's not what I
+
+00:12:56.680 --> 00:13:01.240
+thought BS stood for. But in R, that's what it stands for. And
+
+00:13:01.240 --> 00:13:03.480
+it lets you do it the cubic is the default. So all you have to
+
+00:13:03.480 --> 00:13:08.440
+do is say, I'm doing a linear model of rented bike count. And
+
+00:13:08.440 --> 00:13:11.760
+then I'm going to model BS of temperature degrees of freedom
+
+00:13:11.760 --> 00:13:18.200
+five, five is the default. But remember, this is a cubic spline.
+
+00:13:18.200 --> 00:13:24.960
+So it's not fitting a fifth degree. For a cubic spline with
+
+00:13:24.960 --> 00:13:28.000
+with the default intercept equals false, the number of
+
+00:13:28.000 --> 00:13:30.720
+internal knots is degrees of freedom minus three. So you fit
+
+00:13:30.720 --> 00:13:34.160
+three, so you put x, x squared, x cubed, and then not one, not
+
+00:13:34.160 --> 00:13:37.760
+two. So that's five. So you can have 10 knots, 15 knots, it
+
+00:13:37.760 --> 00:13:39.800
+really depends on how big your data is and how much additional
+
+00:13:39.800 --> 00:13:43.000
+freedom you need. But five is reasonable. So you've got two
+
+00:13:43.000 --> 00:13:48.880
+additional cubic bits. And so let's look at what we get. So
+
+00:13:48.880 --> 00:13:51.440
+this is kind of just a little animation again of what happens
+
+00:13:51.440 --> 00:13:55.080
+we increase our knots. So this is the same data. All we've
+
+00:13:55.080 --> 00:13:58.040
+changed in that is our degrees of freedom four, five, eight and
+
+00:13:58.040 --> 00:14:00.760
+10. So four is not the default four is less restrictive. So
+
+00:14:00.760 --> 00:14:06.360
+that fits pretty good. Five is a bit better fit. Eight is a bit
+
+00:14:06.360 --> 00:14:12.280
+better. And 10, I don't see much difference. So 10, not much
+
+00:14:12.280 --> 00:14:16.640
+better. So more flexibility is not automatically better. Large
+
+00:14:16.640 --> 00:14:19.040
+degree of freedom will allow the observed data more closely, but
+
+00:14:19.040 --> 00:14:21.560
+also gives the fitted mean more opportunity to follow random
+
+00:14:21.560 --> 00:14:26.800
+variation. So if you remember, back, ooh, three or four
+
+00:14:26.800 --> 00:14:33.360
+lectures ago, we were comparing, you know, when, when we add
+
+00:14:33.360 --> 00:14:35.440
+extra terms, oh, this might have been a bit more than four
+
+00:14:35.440 --> 00:14:39.280
+lectures ago. When we add extra terms, we can use AIC to
+
+00:14:39.280 --> 00:14:41.000
+determine if we're going to keep these additional terms in the
+
+00:14:41.000 --> 00:14:44.720
+model, we can use, you know, partial F statistics and things
+
+00:14:44.720 --> 00:14:49.200
+like that. So if you look at this, there is a point at which
+
+00:14:49.200 --> 00:14:53.240
+adding, using additional degrees of freedom does not get you any
+
+00:14:53.240 --> 00:14:55.400
+more information in your fit, and basically, it's not going to
+
+00:14:55.400 --> 00:14:59.800
+be useful. So it's kind of a, you just got to think about
+
+00:14:59.800 --> 00:15:03.560
+this. It's a trade off between flexibility and the amount of
+
+00:15:03.560 --> 00:15:13.080
+data you have to use to get that value. So you thought you were
+
+00:15:13.080 --> 00:15:16.680
+done? You're not because not only are there cube explains,
+
+00:15:16.680 --> 00:15:21.720
+there's natural cube explains. And knowing the trick and when
+
+00:15:21.720 --> 00:15:27.360
+to use these is actually really important. Because if you run a
+
+00:15:27.440 --> 00:15:30.960
+BS, when you should be running an NS, you might not have a good
+
+00:15:30.960 --> 00:15:37.600
+day. So they are basically the same cubic spline, except we
+
+00:15:37.600 --> 00:15:41.920
+put some extra restrictions on the end of the fit. So here's
+
+00:15:41.920 --> 00:15:44.080
+the linear, which I think is the first time I've shown in this
+
+00:15:44.080 --> 00:15:48.800
+this lecture. So there's a linear the cubic, that's a nice
+
+00:15:48.800 --> 00:15:52.640
+cubic default degrees of freedom is five, this default degrees of
+
+00:15:52.640 --> 00:15:55.400
+freedom is also five. But you see what it's doing, it's it's a
+
+00:15:55.400 --> 00:15:59.920
+bit smoother here. And it's a bit not quite as right curve
+
+00:15:59.920 --> 00:16:03.960
+there. So it changes the boundaries. How does it do
+
+00:16:03.960 --> 00:16:09.640
+that? It does this by setting the second derivative of a equal
+
+00:16:09.640 --> 00:16:13.160
+to zero, the second derivative of b equals zero beyond its
+
+00:16:13.160 --> 00:16:19.960
+boundary knots. And so this is an extrapolation. And it's not
+
+00:16:19.960 --> 00:16:24.000
+an extreme extrapolation, right? So if the temperature goes to
+
+00:16:24.000 --> 00:16:28.560
+40, and I use natural spline, it says, we're going to kind of
+
+00:16:28.560 --> 00:16:33.480
+fall off linearly after we exit the data where the cubic spline
+
+00:16:33.480 --> 00:16:38.120
+goes, you know, we're dropping our demand is zero at 42. Is
+
+00:16:38.120 --> 00:16:42.880
+that which is more realistic? Hard to say. At the cold. Now
+
+00:16:42.880 --> 00:16:48.840
+we're starting to see some restrictions on using a cubic,
+
+00:16:48.840 --> 00:16:52.800
+it did come up a bit. But if you start extrapolating out, it's
+
+00:16:52.800 --> 00:16:58.960
+going up and this is staying much flatter. I mean, I think they'll both drop, but I mean,
+
+00:16:58.960 --> 00:17:02.160
+you start going much below minus 20, I mean, you're going to freeze the bike.
+
+00:17:02.160 --> 00:17:14.080
+And in between, they're pretty similar. And so this is the main difference is the boundary. So
+
+00:17:14.080 --> 00:17:18.880
+if I ask what's the difference between a natural spline and a cubic spline, or a natural cubic
+
+00:17:18.880 --> 00:17:22.080
+spline and a cubic spline, you're going to see the boundaries are different because the boundaries
+
+00:17:22.080 --> 00:17:26.960
+are linear in a natural spline and they are not required to be linear in a cubic spline.
+
+00:17:26.960 --> 00:17:35.040
+And so this is just our review table at the end here. If we're doing a straight line,
+
+00:17:35.040 --> 00:17:40.080
+you know, it's one and x, one slope. If you're doing a cubic polynomial,
+
+00:17:40.080 --> 00:17:47.200
+we've got intercept x, x squared, x cubed. Yep. Piecewise linear, lines plus hinge,
+
+00:17:47.200 --> 00:17:53.920
+slope changes at knots, cubic spline smoothly join, natural cubic spline smoothly join pieces
+
+00:17:53.920 --> 00:18:01.040
+with linear tails, and loess, repeated distance weighted regressions. And so what does that look
+
+00:18:01.040 --> 00:18:07.200
+like? Here's them all on one data set. So you can kind of see which one and which one you could
+
+00:18:07.200 --> 00:18:12.720
+potentially use. Straight line's not great with this. You can kind of see why. Cubic polynomial,
+
+00:18:12.720 --> 00:18:16.400
+it's not a horrible fit, but it does weird stuff at the tails, which is honestly why we don't
+
+00:18:17.360 --> 00:18:21.920
+why we want some spline so we can control it a bit better. Piecewise linear, I'm actually
+
+00:18:21.920 --> 00:18:26.320
+pretty happy with that. Although all the rest kind of go down a bit here. I guess we give it
+
+00:18:26.320 --> 00:18:32.880
+one more knot about there, then have it go down. It's not horrible, but yeah, it's definitely
+
+00:18:32.880 --> 00:18:38.640
+better than straight linear. Cubic spline, that looks pretty good. Natural cubic spline, I like
+
+00:18:38.640 --> 00:18:42.800
+that. And you see the natural cubic spline is actually in this case with the lowest span of
+
+00:18:42.800 --> 00:18:50.560
+0.45. It's actually, I would say, the closest to the loess. And so instead of fitting hundreds of
+
+00:18:50.560 --> 00:18:56.000
+models across the span, you know, how wide are we going on each of these to create this, we just have
+
+00:18:56.000 --> 00:19:01.360
+five terms, five degrees of freedom, and we're able to make essentially the same thing. So
+
+00:19:01.360 --> 00:19:05.440
+you use this to kind of look for shape and kind of get an idea of what's going on.
+
+00:19:05.440 --> 00:19:10.720
+And then you can reach in your tool bag and see what can mimic that shape.
+
+00:19:10.960 --> 00:19:17.200
+But this is not the only term in our data set that is nonlinear. So if you plot out solar radiation
+
+00:19:17.200 --> 00:19:24.320
+and hourly bike count, you see that this also has some weirdness going on. So there's a lot of no
+
+00:19:24.320 --> 00:19:29.040
+solar radiation in a lot of bikes. And so I'm assuming this is night. And so night and day is
+
+00:19:29.040 --> 00:19:34.720
+a bit different. And then it kind of thins out. And so what's the relation with this temperature?
+
+00:19:35.360 --> 00:19:40.800
+And yeah, so all of these are not linear relationships. So if we need to start making
+
+00:19:40.800 --> 00:19:46.480
+more complex models than we have in the past, or we need to start doing some stepwise models,
+
+00:19:46.480 --> 00:19:51.360
+you could go back. And if you're doing a stepwise model, you would determine
+
+00:19:51.360 --> 00:19:55.360
+which of these fits the best. And then one of these could actually be a step in your model.
+
+00:19:55.360 --> 00:20:00.080
+Does adding the natural cubic spline of temperature enter as a term?
+
+00:20:02.880 --> 00:20:07.840
+Enter as a term. And so that is totally valid and a good way to do it. So you really need
+
+00:20:07.840 --> 00:20:12.560
+to understand all of your variables. And this is how we bring all the tools together.
+
+00:20:12.560 --> 00:20:19.600
+So this is just kind of a summary slide, because we went over a bunch of things from
+
+00:20:19.600 --> 00:20:27.840
+all across the course. So now we can model a change in mean response, which means we can
+
+00:20:27.840 --> 00:20:32.160
+essentially go non-linear. But this is not non-linear regression. This is still linear
+
+00:20:32.160 --> 00:20:37.680
+regression, because the parameters themselves are linear. You need to know polynomial gives
+
+00:20:37.680 --> 00:20:44.000
+you a global curve, piecewise lets you change at knots, cubic does splines but keeps piecewise
+
+00:20:44.000 --> 00:20:46.720
+construction, blah, blah, blah, blah, blah, that whole table. So this is that whole table,
+
+00:20:46.720 --> 00:20:50.560
+again, just in writing to make sure that you understand what's going on.
+
+00:20:50.560 --> 00:20:56.800
+None of these choices remove the question of how much flexibility the data support.
+
+00:20:56.880 --> 00:21:06.080
+It's a data question, right? No, there is no test here that says, what do I do? And how do I model
+
+00:21:06.080 --> 00:21:13.040
+this? And, you know, I, I go on about, I did, I think, in the workshop a bit was talking about
+
+00:21:13.040 --> 00:21:17.520
+what should you be able to do when you're done with this class. And I don't focus too much on
+
+00:21:17.520 --> 00:21:23.120
+coding per se, it's more about what do you do, if you see these patterns, you should know how you
+
+00:21:23.120 --> 00:21:29.600
+want to model it. And you could say, hey, Claude, I want to model this as a natural spline. And
+
+00:21:29.600 --> 00:21:33.280
+it'll do it. But if it looks at it, it's gonna, I'm going to do a low s, it's like, that's not
+
+00:21:33.280 --> 00:21:37.440
+interpretable. But is it right or wrong? There's no, there's no right or wrong. So anytime that
+
+00:21:37.440 --> 00:21:42.160
+you're open to interpretation, you really need to know what you're doing to get the most out of an
+
+00:21:42.160 --> 00:21:48.400
+analysis in which this is why this is the value you bring as a as a statistician, because statistics,
+
+00:21:49.760 --> 00:21:56.960
+for better or worse, is not mathematics. The models that we make are just as much
+
+00:21:56.960 --> 00:22:05.760
+art as science. So it's, it's what what is a useful model and measuring usefulness and determining
+
+00:22:05.760 --> 00:22:10.400
+where we can lose interpretability and where it is, it's crucial is,
+
+00:22:10.400 --> 00:22:18.960
+it's kind of it's kind of important. So next lecture, we are going to finally get to time
+
+00:22:18.960 --> 00:22:26.720
+series. And so there are special methods we use to look at time series data
+
+00:22:26.720 --> 00:22:33.440
+that are beyond splines and things. And so you can imagine this is going to be things like
+
+00:22:33.440 --> 00:22:42.160
+seasonality, holiday weekends, anything that happens on a given cycle. And can we figure
+
+00:22:42.160 --> 00:22:48.720
+out what cycles are and how to remove them and how to model them. And so this is why I love the
+
+00:22:48.720 --> 00:22:56.480
+Sol Bike data because it has time course and nonlinear terms and all these great factors
+
+00:22:56.480 --> 00:23:02.080
+all in one data set because it's it's such a it's a good one to go through. So I will
+
+00:23:02.080 --> 00:23:04.240
+see you guys in the next lecture.

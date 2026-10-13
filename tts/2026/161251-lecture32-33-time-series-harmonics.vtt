@@ -1,0 +1,1960 @@
+WEBVTT
+
+00:00:00.860 --> 00:00:05.860
+- Hello, welcome to lectures 32 and 33.
+
+00:00:05.860 --> 00:00:09.840
+So these two lectures, they were split in the notes,
+
+00:00:09.840 --> 00:00:11.200
+but now they're combined
+
+00:00:11.200 --> 00:00:15.280
+'cause these two things overlap quite heavily.
+
+00:00:15.280 --> 00:00:18.880
+And so today we're gonna go through time index regression
+
+00:00:18.880 --> 00:00:23.600
+and how that relates to trend and seasonality.
+
+00:00:23.600 --> 00:00:26.520
+So in the last few lectures,
+
+00:00:26.520 --> 00:00:29.320
+we started looking at how predictors
+
+00:00:29.320 --> 00:00:31.800
+can have much more flexible mean structures.
+
+00:00:31.800 --> 00:00:35.200
+And so we've looked at cubic splines,
+
+00:00:35.200 --> 00:00:37.280
+we've looked at natural splines.
+
+00:00:37.280 --> 00:00:40.840
+You guys have looked at orthogonal polynomials,
+
+00:00:40.840 --> 00:00:45.840
+non-orthogonal polynomials, all kinds of logging data.
+
+00:00:45.840 --> 00:00:48.720
+I'm trying to think, all the things you've looked at.
+
+00:00:48.720 --> 00:00:51.240
+How can we try and look at
+
+00:00:51.240 --> 00:00:56.240
+what flexibility do we have with this mean structure?
+
+00:00:56.240 --> 00:00:57.480
+And so we actually have,
+
+00:00:57.480 --> 00:00:59.360
+since this is a double lecture,
+
+00:00:59.360 --> 00:01:00.720
+we actually have quite a few things
+
+00:01:00.720 --> 00:01:01.920
+we're gonna learn today.
+
+00:01:01.920 --> 00:01:05.920
+Why time index data needs time predictors.
+
+00:01:05.920 --> 00:01:08.440
+We're gonna use some seasonal indicators.
+
+00:01:08.440 --> 00:01:11.600
+Explain why fitting sine and cosine together
+
+00:01:11.600 --> 00:01:14.500
+allows you to not know the phase shift.
+
+00:01:14.500 --> 00:01:16.920
+We call those together.
+
+00:01:16.920 --> 00:01:21.640
+All of these.
+
+00:01:21.640 --> 00:01:25.080
+We're also gonna kind of start to bring together
+
+00:01:27.160 --> 00:01:29.080
+trend, seasonal terms, and other predictors
+
+00:01:29.080 --> 00:01:30.960
+into one giant model.
+
+00:01:30.960 --> 00:01:32.720
+So by the end of this,
+
+00:01:32.720 --> 00:01:36.640
+we will have made a massive regression model
+
+00:01:36.640 --> 00:01:38.520
+that fits all kinds of cool things.
+
+00:01:38.520 --> 00:01:41.320
+And hopefully it'll be a good and useful model.
+
+00:01:41.320 --> 00:01:45.440
+We're gonna start to look at mean structure
+
+00:01:45.440 --> 00:01:47.200
+from residual dependence.
+
+00:01:47.200 --> 00:01:48.840
+Most of this is gonna be in the next few lectures,
+
+00:01:48.840 --> 00:01:50.920
+but we're gonna start to introduce it here.
+
+00:01:50.920 --> 00:01:54.600
+And then we're gonna try and link all of these examples.
+
+00:01:54.600 --> 00:01:57.000
+We've been using ski sales, electricity,
+
+00:01:57.000 --> 00:01:59.560
+and this soul bike example across.
+
+00:01:59.560 --> 00:02:05.600
+So ski sales is a fun data set from the '60s.
+
+00:02:05.600 --> 00:02:09.100
+And essentially it's just,
+
+00:02:09.100 --> 00:02:10.020
+what is the year?
+
+00:02:10.020 --> 00:02:10.900
+What is the quarter?
+
+00:02:10.900 --> 00:02:13.420
+How many, I'm guessing this is in thousands.
+
+00:02:13.420 --> 00:02:17.200
+And so it's how much disposable income,
+
+00:02:17.200 --> 00:02:22.060
+personal disposable income.
+
+00:02:22.060 --> 00:02:24.700
+And we hope that sales increase over time
+
+00:02:24.700 --> 00:02:27.080
+if a good business wants to see that.
+
+00:02:27.080 --> 00:02:30.860
+And if we actually went and plotted out this data,
+
+00:02:30.860 --> 00:02:33.040
+just with a straight L linear model,
+
+00:02:33.040 --> 00:02:35.380
+sales to disposable income,
+
+00:02:35.380 --> 00:02:36.420
+we're like looking at this
+
+00:02:36.420 --> 00:02:39.220
+and the quarters are different symbols.
+
+00:02:39.220 --> 00:02:41.860
+And we're noticing the squares and the triangles,
+
+00:02:41.860 --> 00:02:43.900
+quarters two and three.
+
+00:02:43.900 --> 00:02:48.520
+So this must mean we are in North America
+
+00:02:48.520 --> 00:02:51.900
+because these two are lower here in sales.
+
+00:02:51.900 --> 00:02:56.420
+And these winter months one and four are much higher sales.
+
+00:02:56.420 --> 00:03:02.620
+And that, yeah, I mean, you could drive a whole line
+
+00:03:02.620 --> 00:03:03.460
+basically through this,
+
+00:03:03.460 --> 00:03:05.300
+except for this one really good season here.
+
+00:03:05.300 --> 00:03:08.860
+Maybe this was a great Thanksgiving sale or something.
+
+00:03:08.860 --> 00:03:11.500
+They have a lot of those Black Friday sales in the US.
+
+00:03:11.500 --> 00:03:18.660
+The residuals really show this pattern much clearer.
+
+00:03:18.660 --> 00:03:20.740
+And there's that one point there.
+
+00:03:20.740 --> 00:03:23.300
+And so you look at it and you're like,
+
+00:03:23.300 --> 00:03:27.740
+is that maybe I can just make a new term
+
+00:03:27.740 --> 00:03:31.700
+and call it winter and use that.
+
+00:03:31.700 --> 00:03:32.620
+And so let's do that.
+
+00:03:32.620 --> 00:03:35.540
+And so if you're in quarter one or four,
+
+00:03:35.540 --> 00:03:36.380
+we're gonna call you winter.
+
+00:03:36.380 --> 00:03:38.220
+And so it's binary variable.
+
+00:03:38.220 --> 00:03:40.780
+We throw it in our model, winter.
+
+00:03:40.780 --> 00:03:44.900
+We see PDI as expected and it has a relationship.
+
+00:03:44.900 --> 00:03:46.180
+And we see this winter effect actually,
+
+00:03:46.180 --> 00:03:49.180
+this relationship, quite a strong relationship.
+
+00:03:49.180 --> 00:03:51.580
+And wow, look at that, it just did our square of 0.971.
+
+00:03:51.580 --> 00:03:52.860
+So that's really good.
+
+00:03:52.860 --> 00:03:56.100
+And now the whole mixing of quarters,
+
+00:03:56.100 --> 00:04:01.100
+one, two, three, and four, one, two, three, and four,
+
+00:04:01.100 --> 00:04:04.180
+they're all kind of interspersed together.
+
+00:04:04.180 --> 00:04:06.980
+And so this was a really simple fix.
+
+00:04:06.980 --> 00:04:13.660
+A lot of times there is just fairly easy ways
+
+00:04:13.660 --> 00:04:17.300
+to add a binary term in your data.
+
+00:04:17.300 --> 00:04:22.300
+We discussed something like that in the lab this week,
+
+00:04:22.300 --> 00:04:25.900
+or not the lab, the Q&A session.
+
+00:04:25.900 --> 00:04:29.260
+So I had some students ask me about,
+
+00:04:29.260 --> 00:04:32.460
+it looks like there's a bunch of really high earning people
+
+00:04:32.460 --> 00:04:33.500
+in one of the datasets.
+
+00:04:33.500 --> 00:04:35.220
+And I said, you can just make a binary variable
+
+00:04:35.220 --> 00:04:37.500
+for high earners and pull them down.
+
+00:04:37.500 --> 00:04:39.700
+This is the same kind of concept.
+
+00:04:39.700 --> 00:04:42.900
+So it works over time and it also can technically work
+
+00:04:42.900 --> 00:04:44.740
+within other groups.
+
+00:04:46.860 --> 00:04:48.740
+So is winner enough?
+
+00:04:48.740 --> 00:04:50.020
+Well, you know, winner work.
+
+00:04:50.020 --> 00:04:52.260
+Maybe we need a quarter specific.
+
+00:04:52.260 --> 00:04:57.260
+Maybe we can add a Q4, maybe we can add a Q2 and winner.
+
+00:04:57.260 --> 00:05:00.900
+And so we go and try and add these and they don't add much.
+
+00:05:00.900 --> 00:05:02.900
+So, I mean, this is really a good fit.
+
+00:05:02.900 --> 00:05:05.180
+And this says, this is not helpful.
+
+00:05:05.180 --> 00:05:07.860
+And if we compare the two models with an AOV,
+
+00:05:07.860 --> 00:05:09.180
+it says, oh yeah,
+
+00:05:09.180 --> 00:05:11.180
+with these extra two degrees of freedom,
+
+00:05:11.180 --> 00:05:15.700
+nah, it's not good enough to add anything else.
+
+00:05:15.700 --> 00:05:18.380
+So keep an eye out when you look at data
+
+00:05:18.380 --> 00:05:21.620
+for easy indicator variables
+
+00:05:21.620 --> 00:05:23.460
+that you could potentially add to the data,
+
+00:05:23.460 --> 00:05:28.220
+derived from the data that can explain patterns you're seeing.
+
+00:05:28.220 --> 00:05:33.820
+And the next example is electric bills.
+
+00:05:33.820 --> 00:05:36.620
+As you can imagine, these are a lot,
+
+00:05:36.620 --> 00:05:37.860
+these can be a lot more variable
+
+00:05:37.860 --> 00:05:40.300
+'cause they're gonna be a bit more weather dependent
+
+00:05:40.300 --> 00:05:41.420
+than ski sales, right?
+
+00:05:41.420 --> 00:05:42.860
+'Cause I mean, if you decide you're taking a ski trip,
+
+00:05:42.860 --> 00:05:45.500
+you're taking that ski trip 'cause you've booked off,
+
+00:05:45.500 --> 00:05:47.220
+you've booked your plane flights.
+
+00:05:47.220 --> 00:05:48.580
+I mean, you're going.
+
+00:05:48.580 --> 00:05:50.500
+Electricity is much more fluid.
+
+00:05:50.500 --> 00:05:51.820
+Oh, we had a really cool day.
+
+00:05:51.820 --> 00:05:53.620
+I had to turn on the heater.
+
+00:05:53.620 --> 00:05:57.820
+Maybe it's really hot and I, or I had a party or yeah.
+
+00:05:57.820 --> 00:06:02.980
+So this is data from 1994 to '98.
+
+00:06:02.980 --> 00:06:05.300
+During some months,
+
+00:06:05.300 --> 00:06:07.420
+they were paying guests staying in part of the house
+
+00:06:07.420 --> 00:06:10.060
+and the householder wanted to estimate
+
+00:06:10.060 --> 00:06:12.140
+the extra business-related electricity costs.
+
+00:06:12.140 --> 00:06:14.700
+So this is a really, right?
+
+00:06:14.700 --> 00:06:15.940
+If you don't have a separate meter
+
+00:06:15.940 --> 00:06:18.740
+and maybe you're running an Airbnb, this is a good idea.
+
+00:06:18.740 --> 00:06:21.100
+So what's the data look like?
+
+00:06:21.100 --> 00:06:24.700
+You can link the data there.
+
+00:06:24.700 --> 00:06:28.060
+Let's see the bill of power.
+
+00:06:28.060 --> 00:06:32.100
+This is obviously 94, 29 days.
+
+00:06:32.100 --> 00:06:34.020
+Is it an estimate or not, right?
+
+00:06:34.020 --> 00:06:36.460
+How many guests did I have that week?
+
+00:06:36.460 --> 00:06:37.860
+What month is it?
+
+00:06:37.860 --> 00:06:39.420
+What's the label of that month?
+
+00:06:40.620 --> 00:06:44.980
+What time and what year?
+
+00:06:44.980 --> 00:06:53.420
+So if I go through and just fit a model of what's my bill?
+
+00:06:53.420 --> 00:06:55.340
+What's the days?
+
+00:06:55.340 --> 00:06:56.180
+What's the estimate?
+
+00:06:56.180 --> 00:06:57.980
+What's the number of guest weeks?
+
+00:06:57.980 --> 00:06:58.820
+What's time?
+
+00:06:58.820 --> 00:07:00.220
+So remember guest weeks here is a number.
+
+00:07:00.220 --> 00:07:03.180
+So, and that is appropriate in this case
+
+00:07:03.180 --> 00:07:04.780
+because we're saying that, you know,
+
+00:07:04.780 --> 00:07:07.700
+two guest weeks is more than three guest weeks.
+
+00:07:07.700 --> 00:07:09.620
+And what we're saying is basically proportional
+
+00:07:09.620 --> 00:07:12.380
+and that kind of, in this case, makes some sense.
+
+00:07:12.380 --> 00:07:14.620
+And then I've got this time effect.
+
+00:07:14.620 --> 00:07:16.780
+And so if we look at the seasonal structure
+
+00:07:16.780 --> 00:07:19.620
+after we adjust, so this is the residuals of this model,
+
+00:07:19.620 --> 00:07:25.740
+we see it's down, up, down, up, down-ish.
+
+00:07:25.740 --> 00:07:30.180
+It goes up a bit, up, down, up, down.
+
+00:07:30.180 --> 00:07:35.220
+When you see patterns that look like sine waves,
+
+00:07:35.220 --> 00:07:36.940
+you might have some sort of time effect
+
+00:07:36.940 --> 00:07:38.700
+you need to model out.
+
+00:07:38.700 --> 00:07:40.620
+And so we can model that
+
+00:07:40.620 --> 00:07:42.740
+with what we call sinusoidal terms.
+
+00:07:42.740 --> 00:07:48.220
+And so we do that by literally using sine and cosine.
+
+00:07:48.220 --> 00:07:49.580
+So we're making two here.
+
+00:07:49.580 --> 00:07:50.660
+Note that we are making two.
+
+00:07:50.660 --> 00:07:53.460
+We're doing a time minus four and a time minus five.
+
+00:07:53.460 --> 00:07:54.820
+And the only difference between these two
+
+00:07:54.820 --> 00:07:56.900
+is where we shift essentially
+
+00:07:56.900 --> 00:08:00.700
+where we think that peak time is.
+
+00:08:00.700 --> 00:08:06.180
+And so subtracting, yeah, four or five moves the peak
+
+00:08:06.180 --> 00:08:07.820
+and both pairs repeat every 12 months
+
+00:08:07.820 --> 00:08:09.420
+'cause it's a sine curve, right?
+
+00:08:09.420 --> 00:08:13.660
+At the chosen origin,
+
+00:08:13.660 --> 00:08:17.780
+cosine is one or minus one.
+
+00:08:17.780 --> 00:08:19.100
+Do, do, do, do, where is it?
+
+00:08:19.100 --> 00:08:21.140
+One, yeah, origin.
+
+00:08:21.140 --> 00:08:24.740
+Yes, this is the four or the five?
+
+00:08:24.740 --> 00:08:25.580
+Let's look.
+
+00:08:25.580 --> 00:08:27.500
+This is the four and that's the five.
+
+00:08:27.500 --> 00:08:29.140
+So that's four and that's five.
+
+00:08:29.140 --> 00:08:30.820
+And then you can see these are also shifted
+
+00:08:30.820 --> 00:08:34.060
+essentially off a quarter or three months.
+
+00:08:36.300 --> 00:08:38.860
+And what does this actually do for us?
+
+00:08:38.860 --> 00:08:42.860
+We end up, if we have both of these in our model,
+
+00:08:42.860 --> 00:08:47.100
+we end up with this beautiful red curve
+
+00:08:47.100 --> 00:08:50.260
+that has a peak and has a trough.
+
+00:08:50.260 --> 00:08:53.580
+And these other two essentially are added together
+
+00:08:53.580 --> 00:08:56.580
+to make this one curve.
+
+00:08:56.580 --> 00:09:02.180
+We'll get into it a bit later of why we're doing this,
+
+00:09:02.180 --> 00:09:05.220
+but just know that you're putting these in together
+
+00:09:05.220 --> 00:09:09.340
+as a pair 'cause you're trying to explain the time,
+
+00:09:09.340 --> 00:09:10.740
+the repetitive time nature.
+
+00:09:10.740 --> 00:09:13.780
+So the combined wave,
+
+00:09:13.780 --> 00:09:15.620
+what does it look like mathematically?
+
+00:09:15.620 --> 00:09:18.260
+We've got some, oh, we call it B here,
+
+00:09:18.260 --> 00:09:20.660
+but it is in fact a beta that you estimate
+
+00:09:20.660 --> 00:09:23.180
+times the sine of some omega,
+
+00:09:23.180 --> 00:09:28.700
+time minus some constant plus beta of cosine,
+
+00:09:28.700 --> 00:09:30.820
+so beta of sine, beta of cosine.
+
+00:09:30.820 --> 00:09:33.060
+It's got the same omega of T minus C,
+
+00:09:33.060 --> 00:09:34.540
+and this is equivalent essentially,
+
+00:09:34.540 --> 00:09:38.140
+the sine plus cosine is equivalent to some factor A,
+
+00:09:38.140 --> 00:09:42.340
+which is the square root of the beta coefficient squared
+
+00:09:42.340 --> 00:09:45.180
+for sine plus the beta coefficient squared of cosine,
+
+00:09:45.180 --> 00:09:46.220
+square root of that.
+
+00:09:46.220 --> 00:09:50.620
+So that's A sine, and we've got phi here,
+
+00:09:50.620 --> 00:09:51.780
+which is some phase.
+
+00:09:51.780 --> 00:09:58.180
+And the W here is two pi over 12, or pi over six,
+
+00:09:58.180 --> 00:09:59.340
+and C is the origin.
+
+00:09:59.340 --> 00:10:01.020
+So we don't know where this origin is.
+
+00:10:01.020 --> 00:10:02.260
+A is the amplitude.
+
+00:10:02.260 --> 00:10:06.220
+And so we fit this with just ordinary least squares.
+
+00:10:06.220 --> 00:10:08.980
+So what we did earlier in that regression,
+
+00:10:08.980 --> 00:10:12.420
+we just will say sine is this, cosine is this, fit it,
+
+00:10:12.420 --> 00:10:16.900
+and they will determine once these are estimated,
+
+00:10:16.900 --> 00:10:19.460
+essentially they'll determine what A is
+
+00:10:19.460 --> 00:10:20.580
+and where the peak position is.
+
+00:10:20.580 --> 00:10:22.660
+And they are also going to determine
+
+00:10:22.660 --> 00:10:25.820
+by this relationship where that,
+
+00:10:25.820 --> 00:10:26.660
+where that,
+
+00:10:26.660 --> 00:10:32.180
+let's fit that.
+
+00:10:32.180 --> 00:10:34.940
+I encourage you to fit these on your own
+
+00:10:34.940 --> 00:10:36.100
+and really take a look.
+
+00:10:36.100 --> 00:10:37.060
+And with all these models,
+
+00:10:37.060 --> 00:10:39.100
+you should be fitting them on your own too.
+
+00:10:39.100 --> 00:10:42.820
+So the ones we show here in the notes and in the lecture,
+
+00:10:42.820 --> 00:10:43.740
+the reason we give you the data
+
+00:10:43.740 --> 00:10:45.260
+is we want you to play with it yourself
+
+00:10:45.260 --> 00:10:47.540
+and see what happens when you put these in.
+
+00:10:47.540 --> 00:10:52.060
+So the first four or the first five,
+
+00:10:52.060 --> 00:10:53.580
+so this is the same model we had before with time.
+
+00:10:53.580 --> 00:10:56.100
+Then we had sine and cosine, sine and cosine.
+
+00:10:56.100 --> 00:10:57.740
+The only difference are this is t minus four
+
+00:10:57.740 --> 00:10:58.980
+and this is t minus five.
+
+00:10:58.980 --> 00:11:03.780
+And so what you have to think here is,
+
+00:11:03.780 --> 00:11:08.780
+okay, well, my sine estimate is 23 with t minus four,
+
+00:11:08.780 --> 00:11:12.660
+20 with t minus five, minus 16 with cosine
+
+00:11:12.660 --> 00:11:15.300
+and minus 2.357, right?
+
+00:11:15.300 --> 00:11:19.740
+In this model, both of these terms are significant.
+
+00:11:19.740 --> 00:11:22.260
+In this model, one of them is not.
+
+00:11:22.260 --> 00:11:23.620
+So which is better?
+
+00:11:23.620 --> 00:11:28.580
+Well, they're exactly the same.
+
+00:11:28.580 --> 00:11:33.180
+So what's happened is if you take the fitted values
+
+00:11:33.180 --> 00:11:37.980
+and subtract out the fitted values from the other models,
+
+00:11:37.980 --> 00:11:39.700
+so you have these two models,
+
+00:11:39.700 --> 00:11:41.980
+the only difference is the t minus four and t minus five.
+
+00:11:41.980 --> 00:11:44.180
+If you stick them together, the fitted values,
+
+00:11:44.180 --> 00:11:45.660
+take the absolute value, subtract them,
+
+00:11:45.660 --> 00:11:46.820
+and then take the maximum value,
+
+00:11:46.820 --> 00:11:48.620
+the maximum difference between these two
+
+00:11:48.620 --> 00:11:53.300
+is the limit of our precision of our computer, right?
+
+00:11:53.300 --> 00:11:55.580
+I mean, there's 13 zeros in front of that.
+
+00:11:55.580 --> 00:11:57.940
+So what's going on?
+
+00:11:57.940 --> 00:11:59.300
+How are these the same?
+
+00:11:59.300 --> 00:12:02.300
+It's because to find a peak and a trough,
+
+00:12:02.300 --> 00:12:04.380
+you need to have both terms in the model.
+
+00:12:04.380 --> 00:12:08.660
+And how they're interacting with each other
+
+00:12:08.660 --> 00:12:10.980
+essentially can change one or the other,
+
+00:12:10.980 --> 00:12:14.860
+but you need to keep both terms in the model
+
+00:12:14.860 --> 00:12:16.340
+and you need to test them together.
+
+00:12:16.340 --> 00:12:18.260
+And so that's what we'll show.
+
+00:12:18.260 --> 00:12:20.940
+The other way you could potentially do it,
+
+00:12:20.940 --> 00:12:22.700
+which we don't teach, but I will mention it
+
+00:12:22.700 --> 00:12:26.420
+because you might see it, is if you know where the peak is,
+
+00:12:26.420 --> 00:12:29.020
+you can say the peak's at month four, month five,
+
+00:12:29.020 --> 00:12:32.740
+you could do time minus four or five, say that's the peak,
+
+00:12:32.740 --> 00:12:37.140
+and then just fit a sign term.
+
+00:12:37.140 --> 00:12:40.180
+And you know it, since that's the peak,
+
+00:12:40.180 --> 00:12:42.780
+you can make it kind of work.
+
+00:12:42.780 --> 00:12:44.740
+The problem is if you don't know exactly where the peak is,
+
+00:12:44.740 --> 00:12:46.180
+it's not determined by the data,
+
+00:12:46.180 --> 00:12:48.580
+it's determined by you outside of the data.
+
+00:12:48.580 --> 00:12:51.060
+And these terms can't take any shape.
+
+00:12:51.060 --> 00:12:54.500
+So you can't just put a sign in and pray, basically,
+
+00:12:54.500 --> 00:12:56.420
+that it's gonna fit.
+
+00:12:56.420 --> 00:12:58.900
+You have to put sine and cosine in
+
+00:12:58.900 --> 00:13:00.660
+if you want the model to be able to find that,
+
+00:13:00.660 --> 00:13:02.900
+the amplitude and the shift for you.
+
+00:13:02.900 --> 00:13:06.300
+A bit more explicitly,
+
+00:13:06.300 --> 00:13:08.780
+since you really probably wanna see this
+
+00:13:08.780 --> 00:13:10.700
+'cause the first time I saw it,
+
+00:13:10.700 --> 00:13:12.900
+I was like, "Wait, that can't be right.
+
+00:13:12.900 --> 00:13:15.820
+But it is, so sine of two pi over 12 is 0.5,
+
+00:13:15.820 --> 00:13:18.900
+cosine of two pi over 12 is 0.886.
+
+00:13:18.900 --> 00:13:23.900
+So 23.447 times 0.5 minus 16.276, 0.860 minus 2357,
+
+00:13:23.900 --> 00:13:31.340
+28.469 times zero minus 2.357 times one is minus 2.357.
+
+00:13:31.340 --> 00:13:36.420
+And so this is using these coefficients
+
+00:13:36.420 --> 00:13:39.580
+and showing you that they are, in fact, the same thing.
+
+00:13:41.980 --> 00:13:45.780
+So we're essentially looking at the red curve,
+
+00:13:45.780 --> 00:13:47.660
+the weighted sum curve.
+
+00:13:47.660 --> 00:13:51.900
+So when you're looking at Fourier series like this
+
+00:13:51.900 --> 00:13:55.660
+in your model, you need to think it is the combination
+
+00:13:55.660 --> 00:13:56.860
+of these terms that matter,
+
+00:13:56.860 --> 00:13:58.980
+not individually I need to be looking at them.
+
+00:13:58.980 --> 00:14:02.380
+So it's very similar to if you have a factor in your model,
+
+00:14:02.380 --> 00:14:05.260
+you kinda care if the individual terms are significant
+
+00:14:05.260 --> 00:14:06.380
+'cause it's kinda telling you something,
+
+00:14:06.380 --> 00:14:08.260
+but to know if a factor is important,
+
+00:14:08.260 --> 00:14:09.380
+we have to do the AOV test
+
+00:14:09.460 --> 00:14:12.420
+and determine if the factor is important.
+
+00:14:12.420 --> 00:14:16.900
+And so, yeah, we use origin five from here on.
+
+00:14:16.900 --> 00:14:20.420
+It's not a better fit, it's a convenient choice.
+
+00:14:20.420 --> 00:14:21.660
+Just remember that.
+
+00:14:21.660 --> 00:14:29.660
+This is showing you visually what has happened,
+
+00:14:29.660 --> 00:14:34.020
+kind of showing you those two curves
+
+00:14:34.020 --> 00:14:35.820
+because I just showed you that they sum,
+
+00:14:35.820 --> 00:14:37.260
+but that's kind of a mathematical thing.
+
+00:14:37.260 --> 00:14:39.180
+And if you wanna see it visually,
+
+00:14:39.180 --> 00:14:40.220
+this is what's happened.
+
+00:14:40.220 --> 00:14:42.300
+Time is four minus time is five.
+
+00:14:42.300 --> 00:14:46.900
+The red curve has the same,
+
+00:14:46.900 --> 00:14:54.820
+but the constituents of the green and blue
+
+00:14:54.820 --> 00:14:56.860
+change dramatically to create that same curve.
+
+00:14:56.860 --> 00:14:57.700
+And this is what you were saying.
+
+00:14:57.700 --> 00:14:58.540
+You were saying that,
+
+00:14:58.540 --> 00:15:00.740
+Oh, this one's not different than zero.
+
+00:15:00.740 --> 00:15:03.980
+But you see, it's not quite where it needs to be
+
+00:15:03.980 --> 00:15:04.820
+for the data.
+
+00:15:04.820 --> 00:15:06.540
+It's close to the right peak, but it's not quite.
+
+00:15:06.580 --> 00:15:09.700
+So it needs this to kind of shift it where it needs to be.
+
+00:15:09.700 --> 00:15:12.340
+Where here, it's nowhere near the right phase.
+
+00:15:12.340 --> 00:15:14.180
+And so it needs a bit more cosine
+
+00:15:14.180 --> 00:15:15.540
+to help it get over there.
+
+00:15:15.540 --> 00:15:16.580
+Because without both,
+
+00:15:16.580 --> 00:15:18.980
+you can't have the peak and trough anywhere.
+
+00:15:18.980 --> 00:15:20.380
+You're very restricted.
+
+00:15:20.380 --> 00:15:27.980
+So keeping both terms should be your next question.
+
+00:15:27.980 --> 00:15:28.860
+You keep them both.
+
+00:15:28.860 --> 00:15:30.020
+Are they both helpful?
+
+00:15:30.020 --> 00:15:33.380
+So this is, again, the AOV that we learn
+
+00:15:33.380 --> 00:15:34.860
+and we use over and over again.
+
+00:15:34.860 --> 00:15:36.500
+And it's a nested model.
+
+00:15:36.500 --> 00:15:38.580
+And we run this just for two degrees of freedom.
+
+00:15:38.580 --> 00:15:41.340
+We get, you know, 14,000.
+
+00:15:41.340 --> 00:15:44.300
+We have an F of 22, which is massive, right?
+
+00:15:44.300 --> 00:15:45.140
+Look at that.
+
+00:15:45.140 --> 00:15:46.500
+P value, really small.
+
+00:15:46.500 --> 00:15:50.580
+So this is definitely providing evidence
+
+00:15:50.580 --> 00:15:53.940
+that this is, in fact, quite a better fit.
+
+00:15:53.940 --> 00:15:57.980
+Even, and since you should get the same F statistic,
+
+00:15:57.980 --> 00:16:01.220
+no matter which parameterization you pick.
+
+00:16:01.220 --> 00:16:03.140
+You could do time minus six, time minus seven,
+
+00:16:03.140 --> 00:16:04.460
+time minus nine, right?
+
+00:16:04.460 --> 00:16:05.860
+It's just a scaling factor.
+
+00:16:05.860 --> 00:16:08.260
+It will change the individual beta parameters,
+
+00:16:08.260 --> 00:16:11.220
+but the joint red curve will stay the same
+
+00:16:11.220 --> 00:16:13.300
+'cause it's finding the same maximum.
+
+00:16:13.300 --> 00:16:16.620
+So this value should be the same.
+
+00:16:16.620 --> 00:16:24.100
+So what, after we stick sine and cosine in,
+
+00:16:24.100 --> 00:16:25.980
+did it fix things?
+
+00:16:25.980 --> 00:16:30.980
+It made them better, but not perfect, right?
+
+00:16:32.260 --> 00:16:35.000
+So, we call this the first harmonic.
+
+00:16:35.000 --> 00:16:37.660
+And if we add another curve, it's the second harmonic.
+
+00:16:37.660 --> 00:16:39.500
+And if it's the third one, it's the third harmonic.
+
+00:16:39.500 --> 00:16:42.460
+And so, you have to remember these things are repeating
+
+00:16:42.460 --> 00:16:46.300
+over time, again and again and again,
+
+00:16:46.300 --> 00:16:50.300
+on whatever frequency we want them to repeat upon.
+
+00:16:50.300 --> 00:16:51.140
+So that...
+
+00:16:51.140 --> 00:16:55.300
+This looks better.
+
+00:16:55.300 --> 00:16:57.940
+It's not quite under, under, up, under, under, up,
+
+00:16:57.940 --> 00:16:59.460
+or up, up, down.
+
+00:16:59.460 --> 00:17:00.780
+It's better, but it's not perfect.
+
+00:17:00.780 --> 00:17:03.620
+So, there's other things going on.
+
+00:17:03.620 --> 00:17:06.460
+We could improve these models.
+
+00:17:06.460 --> 00:17:07.700
+This is also make a note here.
+
+00:17:07.700 --> 00:17:10.080
+This is also a question I'm getting frequently,
+
+00:17:10.080 --> 00:17:14.940
+is I'm looking at the notes, or I see the models you make,
+
+00:17:14.940 --> 00:17:18.140
+and I think I can make a better model given this same data.
+
+00:17:18.140 --> 00:17:20.180
+Yes, yes, you can.
+
+00:17:20.180 --> 00:17:22.100
+This is what you should be seeing,
+
+00:17:22.100 --> 00:17:25.840
+that I'm just showing you techniques and strategies
+
+00:17:25.840 --> 00:17:29.140
+that you would apply to your own modeling.
+
+00:17:29.140 --> 00:17:31.900
+And the examples I gave are not the best model
+
+00:17:31.900 --> 00:17:33.580
+that you can make given this data.
+
+00:17:33.580 --> 00:17:37.540
+It's, we are using those data examples and techniques
+
+00:17:37.540 --> 00:17:39.940
+to illustrate what you can do.
+
+00:17:39.940 --> 00:17:43.980
+If you wanna take a log of an outcome variable,
+
+00:17:43.980 --> 00:17:45.940
+go for it, right?
+
+00:17:45.940 --> 00:17:47.380
+There's no reason not to.
+
+00:17:47.380 --> 00:17:51.980
+So, this class is all about experimentation
+
+00:17:51.980 --> 00:17:54.040
+and playing with data and models.
+
+00:17:56.700 --> 00:17:58.020
+So, if you aren't playing with models,
+
+00:17:58.020 --> 00:18:00.740
+you aren't getting the full value out of the course,
+
+00:18:00.740 --> 00:18:03.380
+'cause learning it in the book is one thing.
+
+00:18:03.380 --> 00:18:05.500
+Seeing how things behave in practices
+
+00:18:05.500 --> 00:18:06.640
+is definitely another.
+
+00:18:06.640 --> 00:18:13.020
+So, can we come up with a better electricity model?
+
+00:18:13.020 --> 00:18:14.500
+So, we're going to electricity model,
+
+00:18:14.500 --> 00:18:16.780
+and we'll call this sine two cosine.
+
+00:18:16.780 --> 00:18:19.060
+And now, instead of two pi over 12,
+
+00:18:19.060 --> 00:18:21.300
+we're gonna have four pi over 12.
+
+00:18:21.300 --> 00:18:24.060
+And the second pair is gonna be at twice the frequency.
+
+00:18:25.180 --> 00:18:27.260
+So, it can go up and down twice as fast.
+
+00:18:27.260 --> 00:18:29.260
+You can go up three times as fast, four times as fast.
+
+00:18:29.260 --> 00:18:31.460
+I mean, this is kind of, it's a little bit arbitrary,
+
+00:18:31.460 --> 00:18:34.100
+but it's a good place to start is what I'll say on this.
+
+00:18:34.100 --> 00:18:36.060
+And then we can do the same thing we did before,
+
+00:18:36.060 --> 00:18:37.860
+which was do a partial F test and say,
+
+00:18:37.860 --> 00:18:40.260
+is there a difference and does it improve the model?
+
+00:18:40.260 --> 00:18:41.820
+So, here's the original model, full one,
+
+00:18:41.820 --> 00:18:44.180
+and then there's full two with the second harmonics in here.
+
+00:18:44.180 --> 00:18:46.680
+So, first harmonics, second harmonics.
+
+00:18:46.680 --> 00:18:48.060
+And since we aren't,
+
+00:18:48.060 --> 00:18:50.180
+I'm not showing you summaries here of these models,
+
+00:18:50.180 --> 00:18:51.820
+because we don't look at these terms individually.
+
+00:18:51.820 --> 00:18:54.620
+We look at them through analysis of variance tables.
+
+00:18:54.620 --> 00:18:58.020
+And this says, you've added two more degrees of freedom.
+
+00:18:58.020 --> 00:19:00.660
+You've got an F of 3.83,
+
+00:19:00.660 --> 00:19:02.140
+given all these degrees of freedom.
+
+00:19:02.140 --> 00:19:03.940
+Yeah, 0.03.
+
+00:19:03.940 --> 00:19:06.820
+This is actually a reasonable improvement
+
+00:19:06.820 --> 00:19:09.640
+and it is something good to include.
+
+00:19:09.640 --> 00:19:14.180
+We aren't, there's other checks we'll do later in lectures,
+
+00:19:14.180 --> 00:19:16.380
+but basically this is saying this fits better.
+
+00:19:16.380 --> 00:19:18.940
+And now look at the models you're making.
+
+00:19:18.940 --> 00:19:22.060
+So, the red is the first fit,
+
+00:19:22.060 --> 00:19:24.340
+or sorry, the blue is the first fit.
+
+00:19:24.340 --> 00:19:28.900
+Blue, blue, blue, and you know, it's doing kind of okay.
+
+00:19:28.900 --> 00:19:32.260
+And your first and second is red,
+
+00:19:32.260 --> 00:19:35.620
+and it's much more responsive, right?
+
+00:19:35.620 --> 00:19:38.320
+Because now you have to think of your curve
+
+00:19:38.320 --> 00:19:41.700
+as no longer being one red curve.
+
+00:19:41.700 --> 00:19:43.620
+That red curve now can jump more.
+
+00:19:43.620 --> 00:19:48.620
+This is really similar to adding not locations
+
+00:19:48.620 --> 00:19:51.580
+to a natural or a cubic spline.
+
+00:19:52.740 --> 00:19:54.460
+A couple of lectures back when we were talking about that,
+
+00:19:54.460 --> 00:19:55.780
+you could add more degrees of freedom
+
+00:19:55.780 --> 00:19:59.460
+and you could twist faster and fit your data a bit better.
+
+00:19:59.460 --> 00:20:02.020
+This is kind of the same type of thing here,
+
+00:20:02.020 --> 00:20:04.200
+but you need to always test it versus,
+
+00:20:04.200 --> 00:20:07.260
+is it improving the model or am I just adding noise?
+
+00:20:07.260 --> 00:20:09.800
+So that's why we do that AOV.
+
+00:20:09.800 --> 00:20:13.380
+What do the residuals look like
+
+00:20:13.380 --> 00:20:15.680
+once we've done these models?
+
+00:20:15.680 --> 00:20:20.300
+So this is the residuals initially.
+
+00:20:20.300 --> 00:20:22.580
+This is after we added the first sine and cosine.
+
+00:20:22.580 --> 00:20:24.420
+You can, so now this is probably a better comparison.
+
+00:20:24.420 --> 00:20:25.820
+You can see what we did.
+
+00:20:25.820 --> 00:20:27.460
+I mean, this one is still really high up,
+
+00:20:27.460 --> 00:20:28.740
+but everything else has been,
+
+00:20:28.740 --> 00:20:31.860
+it's been kind of almost shrunken towards the center,
+
+00:20:31.860 --> 00:20:34.060
+which is what you should see happen
+
+00:20:34.060 --> 00:20:36.020
+as you fit better and better models,
+
+00:20:36.020 --> 00:20:38.780
+because there's less variance in your estimates
+
+00:20:38.780 --> 00:20:41.180
+because you're explaining more of the variance
+
+00:20:41.180 --> 00:20:42.060
+of the outcome.
+
+00:20:42.060 --> 00:20:44.860
+So this is always what you should see that shrinks down.
+
+00:20:44.860 --> 00:20:47.760
+First harmonic makes it better.
+
+00:20:47.760 --> 00:20:50.980
+Second harmonic, it's a little bit better,
+
+00:20:50.980 --> 00:20:52.820
+but it's not a lot better.
+
+00:20:52.820 --> 00:20:55.640
+So although we say there's evidence,
+
+00:20:55.640 --> 00:20:58.940
+I don't know if I'd leave it in or not.
+
+00:20:58.940 --> 00:21:00.860
+It's a bit tricky.
+
+00:21:00.860 --> 00:21:03.820
+So what do we do?
+
+00:21:03.820 --> 00:21:06.900
+So if we say the final model,
+
+00:21:06.900 --> 00:21:08.180
+so let's actually look at the final model
+
+00:21:08.180 --> 00:21:09.780
+and see what we end up with.
+
+00:21:09.780 --> 00:21:14.020
+We said that these two terms together were a 0.03,
+
+00:21:14.020 --> 00:21:19.020
+and remember interpreting these as difficult by themselves.
+
+00:21:19.780 --> 00:21:22.100
+Oftentimes, one should be significant
+
+00:21:22.100 --> 00:21:25.100
+if the pair is significant,
+
+00:21:25.100 --> 00:21:27.020
+because it has to come from somewhere.
+
+00:21:27.020 --> 00:21:27.860
+Not always, though.
+
+00:21:27.860 --> 00:21:30.520
+You can have all kinds of strange things happen.
+
+00:21:30.520 --> 00:21:31.360
+This is saying that, yeah,
+
+00:21:31.360 --> 00:21:33.260
+sine is really, really significant.
+
+00:21:33.260 --> 00:21:35.340
+Remember, cosine's not, because it's the pair,
+
+00:21:35.340 --> 00:21:37.820
+and we just happen to center it right,
+
+00:21:37.820 --> 00:21:40.820
+'cause otherwise it has to move more.
+
+00:21:40.820 --> 00:21:42.940
+Time, guest weeks.
+
+00:21:42.940 --> 00:21:47.180
+So extra $11 per guest week, estimate, and time.
+
+00:21:47.180 --> 00:21:51.060
+So if I am now filling out my taxes,
+
+00:21:51.060 --> 00:21:52.540
+and they say, you had a guest that week,
+
+00:21:52.540 --> 00:21:54.180
+how much power do they use?
+
+00:21:54.180 --> 00:21:58.160
+My guests use $11 worth of power a week for each week.
+
+00:21:58.160 --> 00:22:03.020
+So up to $44 a month is my extra power
+
+00:22:03.020 --> 00:22:04.980
+due to the guests being in the house.
+
+00:22:04.980 --> 00:22:09.260
+Adjusting for first and second harmonics in your data.
+
+00:22:09.260 --> 00:22:11.780
+I don't know if the auditor's gonna be happy
+
+00:22:11.780 --> 00:22:13.380
+if they see that,
+
+00:22:13.380 --> 00:22:15.380
+but your adjusted square is actually pretty good here,
+
+00:22:15.380 --> 00:22:17.060
+6.7458.
+
+00:22:17.060 --> 00:22:23.460
+So those were some kind of toy examples.
+
+00:22:23.460 --> 00:22:28.460
+Now we have the sole bike data,
+
+00:22:28.460 --> 00:22:34.100
+which is what we've been using over and over,
+
+00:22:34.100 --> 00:22:36.900
+and our models are getting more and more complex.
+
+00:22:36.900 --> 00:22:38.420
+Today, we're actually going through
+
+00:22:38.420 --> 00:22:43.300
+and looking at functioning days and holidays and seasons,
+
+00:22:43.300 --> 00:22:45.220
+and we're bringing time into this now.
+
+00:22:45.220 --> 00:22:48.460
+So what does the bike data look like?
+
+00:22:48.460 --> 00:22:52.100
+Just to remind you, if you look at this,
+
+00:22:52.100 --> 00:22:55.140
+what do you see?
+
+00:22:55.140 --> 00:22:59.140
+We see these weird drops to zero, especially in October.
+
+00:22:59.140 --> 00:23:02.580
+So I guess this is like their Christmas season, right?
+
+00:23:02.580 --> 00:23:05.620
+When you have a bunch of holidays and then holidays again.
+
+00:23:05.620 --> 00:23:07.660
+And so dropping to zero is gonna be hard to predict
+
+00:23:07.660 --> 00:23:09.780
+'cause all of a sudden it's just forcing these lines
+
+00:23:09.780 --> 00:23:12.020
+way down, and then they bounce back,
+
+00:23:12.020 --> 00:23:13.260
+and then they drop and they bounce up.
+
+00:23:13.260 --> 00:23:15.100
+So let's clean up the data a bit.
+
+00:23:15.100 --> 00:23:18.780
+We can do that by looking at functioning days.
+
+00:23:18.780 --> 00:23:20.060
+There's 12 days with zero rentals,
+
+00:23:20.060 --> 00:23:22.140
+but 13 are marked as non-functioning.
+
+00:23:22.140 --> 00:23:24.420
+I don't know how it's non-functioning,
+
+00:23:24.420 --> 00:23:26.060
+but still has some rentals.
+
+00:23:26.060 --> 00:23:27.980
+That could be an error in the data.
+
+00:23:27.980 --> 00:23:32.300
+That could be, all kinds of things could be causing this,
+
+00:23:32.300 --> 00:23:35.220
+but we'll just exclude them all and get rid of the 13 days.
+
+00:23:35.220 --> 00:23:38.340
+And so this is what we end up with.
+
+00:23:38.340 --> 00:23:39.300
+It looks a bit cleaner.
+
+00:23:39.300 --> 00:23:40.140
+It doesn't go as crazy.
+
+00:23:40.140 --> 00:23:41.580
+October looks a lot better.
+
+00:23:41.580 --> 00:23:43.540
+Still something funky going on there.
+
+00:23:43.540 --> 00:23:49.740
+And also remember we're using day index,
+
+00:23:49.740 --> 00:23:52.180
+so consecutive rows, not always consecutive days.
+
+00:23:52.180 --> 00:23:56.180
+So this is only for one year.
+
+00:23:56.180 --> 00:23:57.620
+It's rising and falling within the year.
+
+00:23:57.620 --> 00:23:59.500
+You can tell, yep, it goes up.
+
+00:23:59.500 --> 00:24:01.260
+Something happens and it goes back down.
+
+00:24:01.260 --> 00:24:03.060
+Yep, looks good.
+
+00:24:03.060 --> 00:24:05.100
+So let's start modeling this.
+
+00:24:05.100 --> 00:24:09.940
+We're gonna basically start going through the semester now.
+
+00:24:11.220 --> 00:24:12.820
+Well, let's just fit a linear model to it.
+
+00:24:12.820 --> 00:24:15.140
+And so we'd say, oh, what's our bike trend?
+
+00:24:15.140 --> 00:24:17.020
+And we get this.
+
+00:24:17.020 --> 00:24:19.020
+Some are above and some are below.
+
+00:24:19.020 --> 00:24:20.700
+It's not a great model.
+
+00:24:20.700 --> 00:24:23.940
+Something we haven't done this lecture yet,
+
+00:24:23.940 --> 00:24:27.180
+let's fit a natural spline to it, degrees of freedom five.
+
+00:24:27.180 --> 00:24:31.580
+Remember these are still cubic, but it has several knots
+
+00:24:31.580 --> 00:24:36.580
+and you get this really kind of non-balanced curve.
+
+00:24:36.580 --> 00:24:38.460
+That's not a sign, right?
+
+00:24:38.460 --> 00:24:41.260
+That's kind of a cool little shape there.
+
+00:24:41.260 --> 00:24:42.660
+So that's your natural spline.
+
+00:24:42.660 --> 00:24:44.220
+That seems to work pretty well.
+
+00:24:44.220 --> 00:24:48.740
+But we can also add our Fourier terms,
+
+00:24:48.740 --> 00:24:50.260
+which is our sine and cosine.
+
+00:24:50.260 --> 00:24:53.780
+And we're just doing two times pi times the day index
+
+00:24:53.780 --> 00:24:55.180
+divided by 365.
+
+00:24:55.180 --> 00:25:01.380
+Yes, and there is our plot.
+
+00:25:01.380 --> 00:25:06.380
+And so we're looking at this one, sine and cosine.
+
+00:25:06.380 --> 00:25:08.180
+They happen to both be significant here,
+
+00:25:08.180 --> 00:25:11.500
+which means likely when we do the AOV test,
+
+00:25:11.500 --> 00:25:12.740
+since they're both significant,
+
+00:25:12.740 --> 00:25:14.740
+that the pair is gonna be significant.
+
+00:25:14.740 --> 00:25:18.740
+But we'll test and see if that's true.
+
+00:25:18.740 --> 00:25:22.940
+This tends to underestimate here, overestimate here.
+
+00:25:22.940 --> 00:25:26.460
+It does pretty good, but it's not quite hitting the peaks.
+
+00:25:26.460 --> 00:25:28.740
+So that's not too bad.
+
+00:25:28.740 --> 00:25:30.060
+I think it looks, to me,
+
+00:25:30.060 --> 00:25:34.060
+it looks a bit worse than the natural spline.
+
+00:25:36.380 --> 00:25:38.180
+But what do they look like on the same plot?
+
+00:25:38.180 --> 00:25:40.860
+And let's compare them just using our square.
+
+00:25:40.860 --> 00:25:45.220
+So you can really see the differences now
+
+00:25:45.220 --> 00:25:49.980
+between the Fourier curve and the spline curve.
+
+00:25:49.980 --> 00:25:51.940
+The spline curve is able to much,
+
+00:25:51.940 --> 00:25:56.500
+it's able to follow a non-sinusoidal pattern, basically.
+
+00:25:56.500 --> 00:25:58.260
+So it has more flexibility.
+
+00:25:58.260 --> 00:26:02.140
+But the extra flexibility comes from
+
+00:26:02.140 --> 00:26:04.380
+it's estimating more terms, right?
+
+00:26:04.380 --> 00:26:06.900
+'Cause we've got degree of freedom five.
+
+00:26:06.900 --> 00:26:08.340
+So that makes sense.
+
+00:26:08.340 --> 00:26:11.060
+So is that extra flexibility worth the extra fit?
+
+00:26:11.060 --> 00:26:14.060
+So natural spline is 0.668 versus 641.
+
+00:26:14.060 --> 00:26:15.660
+We can definitely test this
+
+00:26:15.660 --> 00:26:17.060
+and see if there's the difference.
+
+00:26:17.060 --> 00:26:18.100
+I don't believe I tested here,
+
+00:26:18.100 --> 00:26:21.180
+but I leave that to you to test that
+
+00:26:21.180 --> 00:26:22.340
+and see what you think.
+
+00:26:22.340 --> 00:26:26.660
+And so what can we do from here?
+
+00:26:26.660 --> 00:26:29.620
+Now that we've started to build up our model,
+
+00:26:29.620 --> 00:26:31.540
+now we can go and we can add in the weather data,
+
+00:26:31.540 --> 00:26:32.820
+which we've added previously,
+
+00:26:32.820 --> 00:26:34.940
+and we can start adding a second Fourier pair
+
+00:26:34.940 --> 00:26:37.020
+for our second harmonic.
+
+00:26:37.020 --> 00:26:39.580
+So second harmonic is gonna be twice as fast as the first.
+
+00:26:39.580 --> 00:26:41.300
+Once again, you could do it three times as fast,
+
+00:26:41.300 --> 00:26:44.300
+but it usually makes more sense just to do a doubling.
+
+00:26:44.300 --> 00:26:47.380
+It'll capture most of the variability.
+
+00:26:47.380 --> 00:26:48.900
+So we'll go in with four,
+
+00:26:48.900 --> 00:26:51.820
+and then we just add those other pairs in,
+
+00:26:51.820 --> 00:26:54.540
+plus writing solar radiation and rainfall and temperature.
+
+00:26:54.540 --> 00:26:57.260
+And then when we get down,
+
+00:26:57.260 --> 00:27:02.060
+I just start a square, wow, 8659, that is 641.
+
+00:27:02.060 --> 00:27:03.140
+That's quite a big jump.
+
+00:27:03.140 --> 00:27:07.820
+And once again, has to C2, both of those are significant.
+
+00:27:07.820 --> 00:27:08.980
+So likely if we do the test,
+
+00:27:08.980 --> 00:27:10.780
+that's gonna be significant as well.
+
+00:27:10.780 --> 00:27:13.100
+Oh yeah, there we go.
+
+00:27:13.100 --> 00:27:15.460
+So 869 is the R square,
+
+00:27:15.460 --> 00:27:18.140
+and this is the second order harmonic fit.
+
+00:27:18.140 --> 00:27:20.340
+This doesn't look like a very good fit here,
+
+00:27:20.340 --> 00:27:22.820
+but remember it has to fit.
+
+00:27:22.820 --> 00:27:25.260
+It's the best fit over the whole pattern.
+
+00:27:25.260 --> 00:27:30.260
+It is grabbing these weird drops,
+
+00:27:30.420 --> 00:27:35.100
+which it needs to be able to mostly pick up on
+
+00:27:35.100 --> 00:27:36.780
+if it's gonna fit the data well.
+
+00:27:36.780 --> 00:27:40.980
+So this is actually not a bad fit,
+
+00:27:40.980 --> 00:27:43.180
+and you can see it's quite a complicated fit.
+
+00:27:43.180 --> 00:27:47.980
+So what does it look like in the residual space?
+
+00:27:47.980 --> 00:27:49.420
+And so this was our original.
+
+00:27:49.420 --> 00:27:54.380
+Yeah, as you saw, it's above and below, above and below.
+
+00:27:54.380 --> 00:27:56.820
+And if I looked at this, I'd say this is not great.
+
+00:27:56.820 --> 00:27:57.700
+The pattern up and down,
+
+00:27:57.700 --> 00:28:00.380
+I would still say there's some seasonality to it,
+
+00:28:00.380 --> 00:28:04.420
+but it's not, I'd still say there's seasonality to it.
+
+00:28:04.420 --> 00:28:06.820
+The second order, when we add in the weather,
+
+00:28:06.820 --> 00:28:10.780
+ooh, this is, there's a seasonality,
+
+00:28:10.780 --> 00:28:12.420
+but it's much, much better, right?
+
+00:28:12.420 --> 00:28:15.180
+You can see how much more of the variation we're explaining
+
+00:28:15.180 --> 00:28:17.980
+because we've once again shrunk it towards zero.
+
+00:28:17.980 --> 00:28:19.220
+So the model's explaining more,
+
+00:28:19.220 --> 00:28:21.860
+so there's less residual variance to look at.
+
+00:28:21.860 --> 00:28:26.420
+So this is, I would say overall, a much better fit.
+
+00:28:26.420 --> 00:28:29.700
+So the summary of what we've done,
+
+00:28:29.700 --> 00:28:30.740
+we've done a lot this week.
+
+00:28:30.740 --> 00:28:34.300
+So these are, how to describe this to you guys.
+
+00:28:34.300 --> 00:28:38.180
+These are things you need to play with.
+
+00:28:38.180 --> 00:28:39.380
+I think it's hard to learn these
+
+00:28:39.380 --> 00:28:40.780
+without actually trying these models
+
+00:28:40.780 --> 00:28:43.140
+and putting in different frequencies
+
+00:28:43.140 --> 00:28:45.780
+and try a twice as fast harmonic by itself
+
+00:28:45.780 --> 00:28:47.900
+and maybe half as fast and see
+
+00:28:47.900 --> 00:28:51.780
+what can you actually get out of it as far as it's fit
+
+00:28:51.780 --> 00:28:53.700
+and how does it affect things?
+
+00:28:53.700 --> 00:28:55.540
+It's really good to check.
+
+00:28:55.540 --> 00:28:58.060
+The bike, we're almost fully done with the bike.
+
+00:28:58.060 --> 00:29:00.500
+We still have a bit left,
+
+00:29:00.500 --> 00:29:03.940
+but basically we're done with the bike
+
+00:29:03.940 --> 00:29:07.420
+as far as adding things to its mean structure.
+
+00:29:07.420 --> 00:29:08.980
+So we're not gonna get more complicated with the bike.
+
+00:29:08.980 --> 00:29:11.020
+We've added these curves for time,
+
+00:29:11.020 --> 00:29:12.420
+we've added weather effects,
+
+00:29:12.420 --> 00:29:17.300
+and now we're gonna start shifting from the error structure
+
+00:29:17.300 --> 00:29:19.100
+in, or sorry, from the mean structure
+
+00:29:19.100 --> 00:29:20.380
+into the error structure.
+
+00:29:20.380 --> 00:29:23.340
+And the errors are how the individual points
+
+00:29:23.340 --> 00:29:24.820
+are related to each other.
+
+00:29:24.820 --> 00:29:26.900
+And so we'll know that, I mean,
+
+00:29:27.900 --> 00:29:29.340
+looking at time series data,
+
+00:29:29.340 --> 00:29:31.380
+usually the day before predicts the day after.
+
+00:29:31.380 --> 00:29:34.540
+So if it's 80 degrees today, or, oh, sorry, in centigrade,
+
+00:29:34.540 --> 00:29:37.420
+if it's 16 today, it's gonna be,
+
+00:29:37.420 --> 00:29:39.380
+the chances of it being 25 tomorrow
+
+00:29:39.380 --> 00:29:41.740
+are lower than the chances of it being 18 tomorrow.
+
+00:29:41.740 --> 00:29:45.780
+So if you can incorporate that into your model,
+
+00:29:45.780 --> 00:29:50.140
+you're gonna end up with more accurate error values.
+
+00:29:50.140 --> 00:29:55.140
+And that tells you how surprised you'll be
+
+00:29:55.860 --> 00:29:57.940
+at seeing a value more extreme.
+
+00:29:57.940 --> 00:30:00.820
+And so we're gonna do that,
+
+00:30:00.820 --> 00:30:03.220
+and next week is the error structure,
+
+00:30:03.220 --> 00:30:04.820
+and how do we do that?
+
+00:30:04.820 --> 00:30:07.340
+And so this week was all the curve fitting stuff.
+
+00:30:07.340 --> 00:30:10.940
+So I will see you in the next lecture.

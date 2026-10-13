@@ -1,0 +1,808 @@
+WEBVTT
+
+00:00:00.500 --> 00:00:06.000
+Hi, well, welcome to Lecture 25, the General Linear Model.
+
+00:00:06.000 --> 00:00:14.000
+So, so far in this course, we've learned a lot about models and how the parameters work and how things are related.
+
+00:00:14.000 --> 00:00:21.000
+So, today we're going to go a little bit further and we're trying to learn more about the...
+
+00:00:21.000 --> 00:00:28.000
+So, we've looked at numerical covariance, we've looked at ANOVA type factors.
+
+00:00:28.000 --> 00:00:34.000
+And so, now we're actually like, what can we do? We can stick them all in one model.
+
+00:00:34.000 --> 00:00:43.000
+We call these a General Linear Model, which, unfortunately, there's also something called a Generalized Linear Model,
+
+00:00:43.000 --> 00:00:49.000
+which are going to be covered, we'll cover those a bit later. So, these are two different things.
+
+00:00:49.000 --> 00:00:56.000
+But the main question we're trying to address with these models is, if we add a factor to regression,
+
+00:00:56.000 --> 00:01:05.000
+does it change the intercept, the slope, or both? And so, we're going to go through an example today.
+
+00:01:05.000 --> 00:01:11.000
+First, we're going to give you the mathematical underpinnings, how this is going to work.
+
+00:01:11.000 --> 00:01:19.000
+And then we'll go through an example together to show you how it's working.
+
+00:01:19.000 --> 00:01:28.000
+So, if you remember, when we fit factors inside of linear models, or essentially just indicator variables,
+
+00:01:28.000 --> 00:01:36.000
+we've got this so-called design matrix that we use, that if you were to actually look at what's happening
+
+00:01:36.000 --> 00:01:42.000
+under the hood when we're fitting these models, it's just a 0 or a 1. So, does this factor exist? Yes.
+
+00:01:42.000 --> 00:01:48.000
+Does this factor exist? Yes. And there's a couple ways you could imagine you could do that.
+
+00:01:48.000 --> 00:01:55.000
+You can do everything versus a given level. So, say you have three levels, small, medium, and large.
+
+00:01:55.000 --> 00:02:03.000
+You could say, my baseline is small, and then medium is the difference from small to medium,
+
+00:02:03.000 --> 00:02:12.000
+and large is the difference from small to large. Or, you could say, I want to fit small, medium, and large,
+
+00:02:12.000 --> 00:02:18.000
+and they're not differences from each other. So, you'd end up with the same estimate, it's just the way you parameterize it.
+
+00:02:18.000 --> 00:02:28.000
+By default, in most software packages I've used, we just pick something as the reference level.
+
+00:02:28.000 --> 00:02:34.000
+So, you'll say that, you know, Maori's the reference level, or New Zealand European's the reference level,
+
+00:02:34.000 --> 00:02:38.000
+and everything's compared to that, or has a home as the reference.
+
+00:02:38.000 --> 00:02:43.000
+And so, typically you'll choose the reference to either be the most common, but in software packages,
+
+00:02:43.000 --> 00:02:51.000
+you'll often choose the lowest alphabet number. Alphabet number, sorry, the alphabet letter.
+
+00:02:51.000 --> 00:02:59.000
+And so, let's see, what else do we have here? And then we have something where,
+
+00:02:59.000 --> 00:03:06.000
+and if we start adding interactions between factors, numerical covariates, we can allow them to have different slopes.
+
+00:03:06.000 --> 00:03:14.000
+So, let's take a look at this a bit more. Let's look at the images first.
+
+00:03:14.000 --> 00:03:21.000
+So, these are the models you've been making. This could potentially be adding another factor that gives you another level.
+
+00:03:21.000 --> 00:03:28.000
+And this is saying, hey, I've got two separate, not only do I have different groups, but I have different slopes in them.
+
+00:03:28.000 --> 00:03:37.000
+So, more formally, if we have response variable y, a numerical covariate x, this is your standard linear regression,
+
+00:03:37.000 --> 00:03:45.000
+and now we're adding in a factor, we'll call that a, we can make the models by saying what the factor's allowed to change.
+
+00:03:45.000 --> 00:03:50.000
+If the factor doesn't do anything, we can just do this.
+
+00:03:50.000 --> 00:03:54.000
+We can essentially just stick in, and we can adjust for a factor, and it doesn't actually change.
+
+00:03:54.000 --> 00:03:58.000
+And we get one slope, and we get one intercept, and that's all it does.
+
+00:03:58.000 --> 00:04:08.000
+But if the factor allows the line to shift up and down, but the slope remains consistent, it'd be something like this.
+
+00:04:08.000 --> 00:04:13.000
+So, now factor group one to factor group two, the slope is the same.
+
+00:04:13.000 --> 00:04:21.000
+So, we're not fitting, we're still fitting a unified slope, but we're allowing the factor to say kind of where the intercept is.
+
+00:04:21.000 --> 00:04:25.000
+This holds a lot of times.
+
+00:04:25.000 --> 00:04:33.000
+Kind of, if you think of maybe heights of people growing, some people might start off higher or lower,
+
+00:04:33.000 --> 00:04:36.000
+but they're going to take roughly the same trajectory.
+
+00:04:36.000 --> 00:04:46.000
+And this is a much more complex relationship here where we can say, does the relationship with x depend on the level of a?
+
+00:04:46.000 --> 00:04:51.000
+So, this is actually an interaction. So, the slopes are going to differ, and so we're going to say,
+
+00:04:51.000 --> 00:04:55.000
+whatever group this is, is growing slowly, and this one, whoa, shooting up like a rocket.
+
+00:04:55.000 --> 00:04:59.000
+And so, we're going to spend most of the time on these two here in this lecture.
+
+00:04:59.000 --> 00:05:06.000
+Trying to see what questions we can answer with this, and what we can do with it.
+
+00:05:06.000 --> 00:05:10.000
+So, just as kind of a reminder, this is the single regression line.
+
+00:05:10.000 --> 00:05:21.000
+You've got some yij, and then you've got an intercept, and then you've got your beta values times your numerical variable,
+
+00:05:21.000 --> 00:05:24.000
+and you've got some error here.
+
+00:05:24.000 --> 00:05:31.000
+And so, this is one intercept and one slope for all observations, and factor A is not even in this model.
+
+00:05:31.000 --> 00:05:35.000
+And so, in R, we put this in as y tilde x.
+
+00:05:35.000 --> 00:05:42.000
+Now, we want to add some parallel regression lines, and we're going to allow the factor to change the intercept.
+
+00:05:42.000 --> 00:05:45.000
+But, we require the slope to remain constant.
+
+00:05:45.000 --> 00:05:49.000
+We've got the same response, and we've got an intercept.
+
+00:05:49.000 --> 00:05:55.000
+Now, we've got this shift, and you can see how this is shifting numerically, the lines up and down.
+
+00:05:55.000 --> 00:05:59.000
+It literally is just adding and subtracting a value to this baseline value.
+
+00:05:59.000 --> 00:06:02.000
+The slopes are still the same, and we've still got error.
+
+00:06:02.000 --> 00:06:05.000
+You have slopes the same.
+
+00:06:05.000 --> 00:06:08.000
+The reference level, A sub 1, is 0.
+
+00:06:08.000 --> 00:06:12.000
+And so, this is the common way we do this.
+
+00:06:12.000 --> 00:06:16.000
+There is other ways to do it, but it's kind of outside the scope of this course.
+
+00:06:16.000 --> 00:06:20.000
+But, you could imagine there's all kinds of other ways we could do references.
+
+00:06:20.000 --> 00:06:31.000
+And so, here, we wrote this in R as y tilde A is your group plus x.
+
+00:06:31.000 --> 00:06:33.000
+And it doesn't matter which one we stick first.
+
+00:06:33.000 --> 00:06:35.000
+It doesn't really do anything different.
+
+00:06:35.000 --> 00:06:37.000
+And so, these lines are parallel.
+
+00:06:37.000 --> 00:06:42.000
+Statistically, the factor adjusts the expected response after accounting for x.
+
+00:06:42.000 --> 00:06:45.000
+So, it's x given A.
+
+00:06:45.000 --> 00:06:51.000
+It does not change the expected change in y for when you increase in x.
+
+00:06:51.000 --> 00:06:54.000
+So, it's just changing a slope, essentially.
+
+00:06:54.000 --> 00:06:56.000
+Or, sorry, not a slope.
+
+00:06:56.000 --> 00:06:58.000
+Changing an intercept.
+
+00:06:58.000 --> 00:07:01.000
+Now, we've got separate regression lines.
+
+00:07:01.000 --> 00:07:05.000
+So, we can allow both the intercept and the slope to depend on the factor level.
+
+00:07:05.000 --> 00:07:08.000
+So, we've got yij again.
+
+00:07:08.000 --> 00:07:10.000
+We've got an intercept.
+
+00:07:10.000 --> 00:07:12.000
+We've got a group.
+
+00:07:12.000 --> 00:07:15.000
+We've got a slope.
+
+00:07:15.000 --> 00:07:17.000
+Wait, what's the difference between this one?
+
+00:07:17.000 --> 00:07:19.000
+Let's go back.
+
+00:07:19.000 --> 00:07:22.000
+What's happened?
+
+00:07:22.000 --> 00:07:25.000
+Now, these betas have i's on them.
+
+00:07:25.000 --> 00:07:28.000
+So, we actually have multiple betas we're estimating.
+
+00:07:28.000 --> 00:07:33.000
+So, no longer do we have a single beta that fits all of these slopes.
+
+00:07:33.000 --> 00:07:39.000
+We now have a beta for each of the factor levels i.
+
+00:07:39.000 --> 00:07:43.000
+How do we write this?
+
+00:07:43.000 --> 00:07:47.000
+It's essentially, we have an A, and we have an A interacted with an x.
+
+00:07:47.000 --> 00:07:50.000
+And so, that's going to put the i there.
+
+00:07:50.000 --> 00:07:53.000
+Typically, in R, we'll just do a times.
+
+00:07:53.000 --> 00:07:56.000
+And this means plus, and then times.
+
+00:07:56.000 --> 00:07:59.000
+We call this shorthand because there are weird exceptions
+
+00:07:59.000 --> 00:08:02.000
+where you'd want to just do this and not do that.
+
+00:08:02.000 --> 00:08:04.000
+But we don't do that in this course.
+
+00:08:04.000 --> 00:08:06.000
+It's a bit weird.
+
+00:08:06.000 --> 00:08:09.000
+So, A times x is A plus x plus A times x.
+
+00:08:09.000 --> 00:08:12.000
+So, that's the whole thing.
+
+00:08:12.000 --> 00:08:14.000
+Regression lines are no longer parallel.
+
+00:08:14.000 --> 00:08:20.000
+So, just as a quick recap, the null model.
+
+00:08:20.000 --> 00:08:22.000
+You guys did this one.
+
+00:08:22.000 --> 00:08:23.000
+You might have done this one.
+
+00:08:23.000 --> 00:08:27.000
+If you haven't done it yet, it's in the appendix of the course.
+
+00:08:27.000 --> 00:08:30.000
+Basically, this is just fitting what's the mean of your value.
+
+00:08:30.000 --> 00:08:32.000
+This is not a really informative model.
+
+00:08:32.000 --> 00:08:35.000
+You can fit the factor only.
+
+00:08:35.000 --> 00:08:37.000
+Essentially, it's like the null model,
+
+00:08:37.000 --> 00:08:40.000
+except every value of your factor A gets a value,
+
+00:08:40.000 --> 00:08:43.000
+essentially calculating the average of each factor value.
+
+00:08:43.000 --> 00:08:46.000
+Y is x, and so this is ignoring the factor.
+
+00:08:46.000 --> 00:08:48.000
+Parallel lines.
+
+00:08:48.000 --> 00:08:56.000
+We add the A to the x, and then separate lines, A times the x.
+
+00:08:56.000 --> 00:09:00.000
+We don't use the factor linear normals very often,
+
+00:09:00.000 --> 00:09:03.000
+unless we're going to compare models, which we're going to do next week.
+
+00:09:03.000 --> 00:09:07.000
+Or no, not next week, next lecture, sorry.
+
+00:09:07.000 --> 00:09:09.000
+26, we do that.
+
+00:09:09.000 --> 00:09:13.000
+So, this is kind of the evolution.
+
+00:09:13.000 --> 00:09:16.000
+Y to x, y to A plus x, and y to A times x.
+
+00:09:16.000 --> 00:09:22.000
+And so, no factor, adjusting the slopes.
+
+00:09:22.000 --> 00:09:24.000
+Sorry, I keep getting those wrong.
+
+00:09:24.000 --> 00:09:28.000
+Adjusting the intercepts, making parallel lines,
+
+00:09:28.000 --> 00:09:31.000
+and this is making the slopes.
+
+00:09:31.000 --> 00:09:37.000
+So, in order, do nothing, change the intercept, and change the slopes here.
+
+00:09:37.000 --> 00:09:39.000
+Make sure you know how to read these,
+
+00:09:39.000 --> 00:09:43.000
+so things like this are good for questions on the final exam.
+
+00:09:43.000 --> 00:09:47.000
+So, if we give you formulas, we tell you these are shorthands.
+
+00:09:47.000 --> 00:09:52.000
+Can you actually read these out?
+
+00:09:52.000 --> 00:09:56.000
+And so, you can imagine, we can do all kinds of things, right?
+
+00:09:56.000 --> 00:09:59.000
+And so, as we're in this back end of this course,
+
+00:09:59.000 --> 00:10:01.000
+we're going to start adding more terms.
+
+00:10:01.000 --> 00:10:06.000
+So, not just an A, not just a B, but a C, D, E, F, G, H, I, K, L, M, N, O, P, right?
+
+00:10:06.000 --> 00:10:12.000
+I mean, there's no mathematical limit to the number of terms
+
+00:10:12.000 --> 00:10:19.120
+add to a model. Essentially it's just hard to add new information that predicts y is usually our
+
+00:10:19.120 --> 00:10:32.720
+limiting factor. So here we could say y is a times b plus a times x plus c. Oof, that's tricky. So the
+
+00:10:32.720 --> 00:10:39.120
+main effects we're saying are a and b and this could be, I don't know, this could be plot and
+
+00:10:39.120 --> 00:10:44.160
+this could be fertilizer and plot and fertilizer and this could be sun hours and then it'd be plot
+
+00:10:44.160 --> 00:10:49.840
+by sun hours but not fertilizer. You don't care. Fertilizer doesn't interact with sun hours. And
+
+00:10:49.840 --> 00:10:56.400
+then some other common effect term z. So this is like another factor term you can add. So
+
+00:10:56.400 --> 00:11:06.240
+in a lot of models you'll hear people say I've adjusted for the number of ponies I own and so
+
+00:11:06.240 --> 00:11:12.000
+there you go. You know, the exact number of ponies I own. Does it do much? Sometimes yes, sometimes
+
+00:11:12.000 --> 00:11:18.880
+no. You know, as you saw earlier that you can add terms to the model that don't, that aren't
+
+00:11:18.880 --> 00:11:23.440
+statistically significant and don't have a given slope but sometimes we have to adjust for them
+
+00:11:23.440 --> 00:11:29.840
+due to norms in whatever field we're in. I mean if we're looking at the number of
+
+00:11:31.680 --> 00:11:36.640
+horses and you also need to adjust for the number of ponies so it's just something you have to do.
+
+00:11:36.640 --> 00:11:44.480
+So what does this model look like? It looks fun, right? I, yeah, we used to have a class where
+
+00:11:44.480 --> 00:11:47.920
+we get to write all these out and then we write out what are the expected values of these but
+
+00:11:47.920 --> 00:11:54.880
+so what have we done? We now instead of i and j we have i, j, k, and l, right? So we have four
+
+00:11:56.960 --> 00:12:06.080
+four letters because we've got an i, j, k, and l. So every time you add another variable you get
+
+00:12:06.080 --> 00:12:10.000
+another one and as I said you can have a lot of these so they get pretty hairy, right? So we still
+
+00:12:10.000 --> 00:12:14.560
+have an intercept and then we have factor a and now we have a factor b and so you can see
+
+00:12:14.560 --> 00:12:19.120
+they can add and subtract on top of each other and you can move them up and down and then we've
+
+00:12:19.120 --> 00:12:22.560
+got the interaction of these two so maybe when they're together they do something different than
+
+00:12:22.560 --> 00:12:34.080
+when they're apart and then we've got a gamma times x and then we've got an a y x and so this
+
+00:12:34.080 --> 00:12:43.520
+is like um a whatchamacallit so this is the the slope adjustment for the other levels um this is
+
+00:12:43.520 --> 00:12:51.200
+the delta the delta z and so there's some value on the z that goes across all of them
+
+00:12:52.160 --> 00:13:02.000
+and that's how we we get these so yeah so intercept go over this again a b a b intercept
+
+00:13:02.000 --> 00:13:11.120
+this is um the reference level so this is because there's no sub sub letter on here and these are
+
+00:13:11.120 --> 00:13:18.000
+the slopes uh and this is the z and that's just your error and so later we're actually going to
+
+00:13:18.000 --> 00:13:22.800
+fit this model and we're going to call it well you could just do a model something like this
+
+00:13:22.800 --> 00:13:31.280
+and so now here's our motivating example uh the samara it's a pretty little maple leaf used to
+
+00:13:31.280 --> 00:13:35.520
+have tons of these where i grew up um and they fall to the ground and they spin and get entire
+
+00:13:35.520 --> 00:13:38.640
+buckets of them and they're really they're really cool because they they really do spin like a
+
+00:13:38.640 --> 00:13:41.200
+helicopter so they're they're kind of fun to play with if you guys didn't play with them
+
+00:13:42.240 --> 00:13:50.080
+and so let's make some models for the samurai um and so we are given some data and we're it says
+
+00:13:50.080 --> 00:13:54.160
+we know these things about it we know the speed at which it falls we know the tree
+
+00:13:54.160 --> 00:14:00.240
+from which it was collected and we have data on three different trees and then we have the load
+
+00:14:00.240 --> 00:14:08.400
+disc loading an aerodynamical quantity based on each fruit size and weight so okay and then we
+
+00:14:08.400 --> 00:14:14.880
+expect the fall velocity to depend on disc loading but we've sampled somewhere for three different
+
+00:14:14.880 --> 00:14:21.280
+trees this gives us two scientific questions do the trees have different expected velocities
+
+00:14:21.280 --> 00:14:27.680
+after accounting for load okay and does the relationship between load and velocity itself
+
+00:14:27.680 --> 00:14:38.080
+differ among trees so this accounting for is or adjusting for is the language that means we're
+
+00:14:38.080 --> 00:14:44.640
+going to add into the model as a linear term and then if we're looking for differing of relationships
+
+00:14:44.640 --> 00:14:51.520
+it's almost always a change in slope because it's a different relationship um across values
+
+00:14:51.520 --> 00:15:00.000
+um so what does this look like we'll grab some samurai data we've got it you can download it
+
+00:15:00.000 --> 00:15:05.920
+and so the first thing we do as we did earlier we make sure that we're using tree as a factor
+
+00:15:05.920 --> 00:15:11.600
+because tree is one two three what happens you remember you don't explicitly want tree one to
+
+00:15:11.600 --> 00:15:16.640
+be better than tree two than tree three if you don't say it's a factor instead of doing a like
+
+00:15:16.640 --> 00:15:24.400
+a one hot encoding you're going to end up with um a difference between trees making it having an
+
+00:15:24.400 --> 00:15:30.240
+impact on how you interpret yeah what does that mean tree one tree two it's one unit but tree
+
+00:15:30.240 --> 00:15:37.680
+one to tree three is two units it's not it's not a nice thing so we just say factor and it makes it
+
+00:15:37.680 --> 00:15:41.760
+into a factor and that's why we call it tree f so it's tree the factor
+
+00:15:41.760 --> 00:15:48.640
+and so what does this look like so it's just ggplot standard ggplot gm point
+
+00:15:48.640 --> 00:15:53.600
+so we've got three trees here we've got tree one the little dots
+
+00:15:54.240 --> 00:16:01.360
+tree two little triangles and tree three little a little blue squares okay it looks like there's
+
+00:16:01.360 --> 00:16:08.160
+definitely tree differences uh load and velocity so but they do look like they're pretty linear
+
+00:16:08.160 --> 00:16:13.120
+so load increases the velocity which kind of makes sense right it's a heavier fruit
+
+00:16:13.120 --> 00:16:20.640
+so it can fall faster until it reaches terminal velocity um so let's build these models um model
+
+00:16:20.640 --> 00:16:27.200
+one model two model three we're still using lm velocity to load is in all the models and the
+
+00:16:27.200 --> 00:16:33.680
+difference is we're adding a factor and then we're interacting a factor and so the first one is a
+
+00:16:33.680 --> 00:16:39.040
+regression line so tree has no effect because we don't even stick it in two is parallel lines a
+
+00:16:39.040 --> 00:16:44.480
+tree can change the intercept but not the slope and m3 separate lines a tree can change both the
+
+00:16:44.480 --> 00:16:53.440
+intercept and the slope uh whoa this is what it looks like um the only thing that's changed here
+
+00:16:53.440 --> 00:16:59.920
+is how it is so this is one line and as we saw earlier that looks that looks like a good
+
+00:16:59.920 --> 00:17:08.240
+relationship between load and velocity right through the middle now we're saying let's adjust
+
+00:17:08.240 --> 00:17:15.920
+for tree you can see this tree is a bit lower but we don't have a lot of values up here so
+
+00:17:15.920 --> 00:17:26.080
+you know and it is what it is um orange yeah looks okay and then green tree one yeah i mean that
+
+00:17:26.080 --> 00:17:30.800
+that makes some sense and then finally we were going to say are these slopes different and tree
+
+00:17:31.680 --> 00:17:39.840
+one yeah it looks about the same but it's a bit shallower than the slope and we can see
+
+00:17:39.840 --> 00:17:47.840
+that's tree two is just like a rocket right and tree three is also more shallow so you can see
+
+00:17:47.840 --> 00:17:54.960
+that we end up with almost like a weighted average of the slopes here kind of um something that's
+
+00:17:54.960 --> 00:17:59.840
+exactly how it works but it's fairly close and then here everything that those all those
+
+00:17:59.840 --> 00:18:04.480
+in between we end up with somewhere closer to the purple line almost
+
+00:18:04.480 --> 00:18:12.720
+um so how do we that's what they look like but now we need to look at the coefficients
+
+00:18:12.720 --> 00:18:24.320
+so what do we have so those are models so i do we do some fancy k table knitter to make it look so
+
+00:18:24.320 --> 00:18:28.400
+you can see them but essentially all we're doing is just sticking them all in one plot so we can
+
+00:18:28.400 --> 00:18:35.600
+look at it you can look at summary and get all the extra bits but let's just see so first model
+
+00:18:35.600 --> 00:18:45.840
+we've got intercept and load so oh head zero that's negative 0.93 okay the load is 5.82
+
+00:18:45.840 --> 00:18:54.880
+so that's your beta okay and now when we get into here just like before we've got factors for trees
+
+00:18:54.880 --> 00:19:05.680
+and so remember tree one is our reference so intercept is of tree one load is not including
+
+00:19:05.680 --> 00:19:11.360
+tree one so this is tree one in it and then this is a difference from tree one to tree two so it's
+
+00:19:11.360 --> 00:19:21.280
+minus 0.1 and then tree three is minus 0.509 uh right um look at the standard error these are
+
+00:19:21.280 --> 00:19:28.880
+pretty tight estimates but these are not different so that this in this case we're testing is tree
+
+00:19:28.880 --> 00:19:33.440
+level two different than tree one so it's different than that reference we're saying
+
+00:19:33.440 --> 00:19:36.880
+no and this one we're saying is tree three different from tree one where this reference
+
+00:19:36.880 --> 00:19:43.040
+we're saying no and now we get to the fun one that actually allows us different slopes
+
+00:19:43.040 --> 00:19:47.920
+and so we've got the intercept 0.54 you see the intercepts change quite a bit here versus
+
+00:19:49.200 --> 00:19:59.040
+these two because of these interaction terms the load slope is for the slope for tree one
+
+00:19:59.040 --> 00:20:07.760
+it's 3.06 and this is just a remember it's the intercept difference for these two vector two
+
+00:20:07.760 --> 00:20:14.960
+and three uh tree two minus 0.1 see it's much more severe right so it goes from 0.01 to minus 0.84
+
+00:20:16.320 --> 00:20:20.880
+and that's due to the once again the slopes it changes the whole the whole the whole ball game
+
+00:20:20.880 --> 00:20:27.520
+here and so if we look at this it says f2 it says oh yeah now it's saying that tree two
+
+00:20:27.520 --> 00:20:34.880
+is definitely different from tree one tree three now it's still not still not different given how
+
+00:20:34.880 --> 00:20:42.480
+much variability there is and now we look at these slopes and it says tree two its slope
+
+00:20:43.520 --> 00:20:49.520
+so this slope is three and this slope is 3.7 so you add the two together and you're going to end
+
+00:20:49.520 --> 00:20:56.560
+up with 6.7 and it says oh yeah this is different than the slope of of tree one and then slope of
+
+00:20:56.560 --> 00:21:03.760
+tree three versus one it's almost an extra extra one once again standard here something's pretty
+
+00:21:03.760 --> 00:21:15.600
+big so and it says no that's not that's not different um so this is the actual summary
+
+00:21:15.600 --> 00:21:20.480
+of the third model what it what it looks like we do it in r um we can see the model
+
+00:21:20.480 --> 00:21:25.920
+fits really well adjusted our square is pretty good at 0.81 20 degrees of freedom
+
+00:21:27.600 --> 00:21:35.760
+yes some residuals so we see same values as up there um now i did mention earlier we can
+
+00:21:35.760 --> 00:21:42.640
+re-parameterize these things a bit a bit different um so i'm going to show you what what that looks
+
+00:21:42.640 --> 00:21:49.680
+like so if i if i change the model slightly and i put a zero in here instead of fitting a
+
+00:21:50.640 --> 00:21:57.680
+intercept i'm actually just going to fit tree and then tree by load so all we've done is taken out
+
+00:21:57.680 --> 00:22:02.320
+the intercept and when we do that we end up with tree one tree two three three you see it's no
+
+00:22:02.320 --> 00:22:07.680
+longer reference coded so we're not no longer going to the reference so we're saying we can
+
+00:22:07.680 --> 00:22:14.720
+directly read off tree one is 0.54 tree two is negative 0.29 tree three is 0.24 and we're testing
+
+00:22:14.720 --> 00:22:24.480
+are these estimates zero and now we've got tree one and load so these are the slopes three six
+
+00:22:24.480 --> 00:22:31.680
+seven three eight so we get the exact same things we got before right but now almost all these are
+
+00:22:31.680 --> 00:22:39.760
+significant what's going on so it's we're asking different questions of our data we are asking here
+
+00:22:41.040 --> 00:22:47.200
+is this slope zero and this says we don't have a lot of evidence saying it's zero we'd be surprised
+
+00:22:47.200 --> 00:22:52.480
+if it's if it's zero uh how about this one i'm really we'd be really really surprised if it
+
+00:22:52.480 --> 00:22:59.600
+turns out to be zero and tree three we're like maybe maybe um which is interesting so remember
+
+00:22:59.600 --> 00:23:04.880
+it's not the size of the estimate that determines the p-value it's how confident we are in his air
+
+00:23:04.880 --> 00:23:11.440
+you can see this has um like 50 percent more air than that one so we're just not sure about it and
+
+00:23:11.440 --> 00:23:19.600
+so the p-value is a way to kind of encapsulate that uncertainty um and so remember what we had
+
+00:23:19.600 --> 00:23:28.080
+before so this is what we had before intercept 54 minus 0.84 is that going to be the same 0.4 minus
+
+00:23:28.080 --> 00:23:38.240
+0.84 minus 0.29 54 minus 0.84 yeah minus point and then minus 0.29 so we end up
+
+00:23:38.240 --> 00:23:44.320
+with the same values and we end up with the same slopes because you have to add these two together
+
+00:23:44.320 --> 00:23:54.720
+so 306 and 382 306 and 306 plus 82 um so you can see we do get the exact same thing and then just
+
+00:23:54.720 --> 00:24:00.720
+check we can there's this cool function all equal and we can say is all this stuff equal and yes it
+
+00:24:00.720 --> 00:24:06.880
+is so we end up with the same residuals or just some squares and fit it's just we've parameterized
+
+00:24:06.880 --> 00:24:11.600
+and we've redistributed around where these variables are and we've also asked different
+
+00:24:11.600 --> 00:24:20.720
+questions of the data so you need to be really cognizant and pay attention if someone gives you
+
+00:24:20.720 --> 00:24:27.040
+a model that you understand what the terms are and what that means this p-value is testing because
+
+00:24:27.040 --> 00:24:34.800
+you can have the same values and different p-values where you get this will change and so it's asking
+
+00:24:34.800 --> 00:24:45.360
+a different question um and so we call that direct and reference um so finally this is this is what
+
+00:24:45.360 --> 00:24:52.480
+we end up with our with our model for the three for the three trees uh velocity five four minus
+
+00:24:52.480 --> 00:25:00.400
+two nine two four three six and three eight um it's not yeah it doesn't matter what model we used
+
+00:25:00.400 --> 00:25:05.040
+it's what we're trying to answer so the direct parameterization gives us intercept and slope
+
+00:25:05.040 --> 00:25:09.200
+for each tree the reference gives us tree one's intercept and slope followed by differences from
+
+00:25:09.200 --> 00:25:12.720
+tree one this is the standard one we use in the course and the standard one you'll see but this
+
+00:25:12.720 --> 00:25:16.340
+is also possible. This is why every time you get a model you really need to see
+
+00:25:16.340 --> 00:25:20.240
+what is the model call, so you understand what's going on. And R always stores the
+
+00:25:20.240 --> 00:25:23.900
+model call and this is why, because it makes makes a big difference. Because you
+
+00:25:23.900 --> 00:25:28.280
+get the same fitted lines. And then in the next lecture we're going to talk
+
+00:25:28.280 --> 00:25:36.540
+about how to determine is this parallel slope one, this one, is this
+
+00:25:36.540 --> 00:25:40.380
+one better than this one, or is this one better than this one, or is this one
+
+00:25:40.380 --> 00:25:43.500
+better than this one, you know. We haven't actually compared them, so we're gonna do
+
+00:25:43.500 --> 00:25:49.860
+that in the next lecture. So if you have any questions on this, be sure to come to
+
+00:25:49.860 --> 00:25:55.620
+the workshop on Wednesday night. Happy to answer any questions, happy to go through
+
+00:25:55.620 --> 00:26:00.580
+this again. Yeah, just reach out if you have any, if you need to chat, or yeah,
+
+00:26:00.580 --> 00:26:03.660
+happy to always take questions.

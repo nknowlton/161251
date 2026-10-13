@@ -1,0 +1,1216 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:07.000
+Hello, and welcome to Lecture 29, Multicollinearity and Ridge Regression.
+
+00:00:07.000 --> 00:00:17.000
+So we learned ridge regression last lecture, so here we're going to see where it's one of its best use cases.
+
+00:00:17.000 --> 00:00:21.000
+So what is collinearity and what is orthogonality?
+
+00:00:21.000 --> 00:00:31.000
+So let's look at, we call it the geometry of the predictor. So if I have just two random predictors, say X and Z here, X and Z.
+
+00:00:31.000 --> 00:00:39.000
+If a predictor is orthogonal, when the columns are orthogonal, one predictor contains no information about the other.
+
+00:00:39.000 --> 00:00:45.000
+So this almost looks like some sort of residual plot you learned in year one, and so there's no real relationship between the two.
+
+00:00:45.000 --> 00:00:50.000
+Collinear, when predictors move together, they contain overlapping information.
+
+00:00:50.000 --> 00:00:55.000
+And what do we do with that? That's what we're going to discuss today. What do you do when you have collinearity?
+
+00:00:55.000 --> 00:01:01.000
+Oftentimes you have a little bit even, because just randomness can induce some collinearity.
+
+00:01:01.000 --> 00:01:10.000
+So, yeah, it's kind of a, what do we, what do we do with it?
+
+00:01:10.000 --> 00:01:15.000
+And so what does it do to our model? So let's just say we have this model.
+
+00:01:15.000 --> 00:01:23.000
+We've got an intercept. We've got two terms, A and B, and we're saying this is what we've got.
+
+00:01:23.000 --> 00:01:32.000
+So we define this relationship. How can we get rid of that relationship?
+
+00:01:32.000 --> 00:01:40.000
+Well, we can actually go and take the values of B and shuffle the order of them and then calculate a new Y based on that shuffled B.
+
+00:01:40.000 --> 00:01:50.000
+And if I do that, I end up with, there is still some relationship, but mostly it's almost random now.
+
+00:01:50.000 --> 00:01:59.000
+And so if I have shuffled values, what's actually happening in my model?
+
+00:01:59.000 --> 00:02:08.000
+So correlated values, we've got a linear model, Y is AB, uncorrelated Y rand, because I have a B rand, and that makes a Y rand.
+
+00:02:08.000 --> 00:02:12.000
+So basically it is still A plus B. This is data I generated.
+
+00:02:12.000 --> 00:02:14.000
+Let's stick it together and make it look nice.
+
+00:02:14.000 --> 00:02:20.000
+So intercept 48 and 2, intercept 53 and 3, so that's basically the same.
+
+00:02:20.000 --> 00:02:30.000
+Our relationships between correlated predictors A and B, 4.76 and 5.29 versus 4.99 and 4.83.
+
+00:02:30.000 --> 00:02:32.000
+These are both supposed to be 5, right?
+
+00:02:32.000 --> 00:02:37.000
+So it didn't really change much, correlated versus uncorrelated.
+
+00:02:37.000 --> 00:02:42.000
+What did happen was they uncorrelated when the standard errors dropped.
+
+00:02:42.000 --> 00:02:52.000
+So we are able to more precisely estimate the parameter when there's less correlation, which is kind of the theme.
+
+00:02:52.000 --> 00:02:58.000
+So what happens if you have what's called exact dependence?
+
+00:02:58.000 --> 00:03:06.000
+So this is, if you haven't taken linear algebra, you can just think more generally.
+
+00:03:06.000 --> 00:03:14.000
+If you have a relationship and it is Z equals alpha 0 plus alpha 1 X,
+
+00:03:14.000 --> 00:03:19.000
+then Z contains no interpretation that's not already determined by the intercept and X.
+
+00:03:19.000 --> 00:03:23.000
+So there are infinitely many coefficients that give the exact same fitted values.
+
+00:03:23.000 --> 00:03:29.000
+So basically if I do any sort of linear model, remember these are normally betas, but here we have alphas,
+
+00:03:29.000 --> 00:03:35.000
+any sort of linear model to Z, so the intercept doesn't affect the correlation, right?
+
+00:03:35.000 --> 00:03:40.000
+It just shifts it up and down, which you saw that three or four lectures back.
+
+00:03:40.000 --> 00:03:43.000
+There's not new information.
+
+00:03:43.000 --> 00:03:45.000
+So what does this look like?
+
+00:03:45.000 --> 00:03:48.000
+Let's take some data, make it 1 to 8.
+
+00:03:48.000 --> 00:03:51.000
+Z is equal to 2 plus 3XY.
+
+00:03:51.000 --> 00:03:57.000
+Y is equal to blah, blah, blah, and then we'll fit X equals Y plus Z.
+
+00:03:57.000 --> 00:04:10.000
+And when we fit it, since X and Z are correlated,
+
+00:04:10.000 --> 00:04:17.000
+we end up being unable to estimate them both in the same model.
+
+00:04:17.000 --> 00:04:19.000
+You just get N/As.
+
+00:04:19.000 --> 00:04:27.000
+This is kind of a huge sign if you ever see N/As in your model that there might be some collinearity involved.
+
+00:04:27.000 --> 00:04:30.000
+The problem is this is really extreme.
+
+00:04:30.000 --> 00:04:33.000
+This is really extreme.
+
+00:04:33.000 --> 00:04:40.000
+If there's even a little bit of randomness in this, you would still get an estimate out.
+
+00:04:40.000 --> 00:04:47.000
+So this is kind of an issue when we're building models.
+
+00:04:47.000 --> 00:04:50.000
+We say the design is rank deficient.
+
+00:04:50.000 --> 00:04:55.000
+This has to do with inverting the matrix, how we fit the hat matrix.
+
+00:04:55.000 --> 00:05:00.000
+We can't do it with linearly independent columns, so one column can't make another.
+
+00:05:00.000 --> 00:05:04.000
+As I was just saying, near-dependence is less obvious, and it's going to be a lot trickier.
+
+00:05:04.000 --> 00:05:07.000
+So we're going to look at that next.
+
+00:05:07.000 --> 00:05:13.000
+Using real data, we're going to model bill using household income, number of persons, and floor area.
+
+00:05:13.000 --> 00:05:17.000
+These things are probably related.
+
+00:05:17.000 --> 00:05:21.000
+Income and floor area are probably related.
+
+00:05:21.000 --> 00:05:25.000
+Persons and floor area are probably related.
+
+00:05:25.000 --> 00:05:28.000
+But let's look.
+
+00:05:28.000 --> 00:05:31.000
+Oh no, my graphic didn't show up.
+
+00:05:31.000 --> 00:05:34.000
+There will be a graphic online, but the graphic didn't show up.
+
+00:05:34.000 --> 00:05:42.000
+So basically, area and income are strongly correlated, and persons overlap much less.
+
+00:05:42.000 --> 00:05:46.000
+So the image isn't up here, but it will be on the notes.
+
+00:05:46.000 --> 00:05:50.000
+So what does this look like for the calculations?
+
+00:05:50.000 --> 00:05:54.000
+Bill is area, persons, income, and then we calculate it.
+
+00:05:54.000 --> 00:05:58.000
+So intercept, minus 350, okay.
+
+00:05:58.000 --> 00:06:04.000
+Area, 0.28 times area, 55 persons, 0.07 times income, 0.8514.
+
+00:06:04.000 --> 00:06:11.000
+Yeah, if I gave you this data and you plug this in, residuals are roughly symmetric there.
+
+00:06:11.000 --> 00:06:17.000
+It looks like area is not significant, and income is not significant, and neither is persons.
+
+00:06:17.000 --> 00:06:22.000
+But it's still explaining a lot for having non-significant terms, right?
+
+00:06:22.000 --> 00:06:26.000
+The model overall is significant, but the individual terms are not.
+
+00:06:26.000 --> 00:06:31.000
+So what should make us suspicious about this?
+
+00:06:31.000 --> 00:06:36.000
+The overall regression can look useful in the individual terms of large standard errors.
+
+00:06:36.000 --> 00:06:38.000
+That's a really big standard error.
+
+00:06:38.000 --> 00:06:41.000
+So, yeah, 29 on 55 is big.
+
+00:06:41.000 --> 00:06:44.000
+0.13 on 7, that's twice as big.
+
+00:06:44.000 --> 00:06:47.000
+0.22 and 0.28, that's like, you know, like 90%.
+
+00:06:47.000 --> 00:06:53.000
+So those are really large, so that's kind of what I have to worry about.
+
+00:06:53.000 --> 00:06:58.000
+Coefficient signs or magnitudes can change sharply when correlated predictors enter together.
+
+00:06:58.000 --> 00:07:02.000
+So if we took in and out terms, we could potentially see this.
+
+00:07:02.000 --> 00:07:06.000
+And then small changes to the formula can reduce to large changes to the conditional coefficients.
+
+00:07:06.000 --> 00:07:12.000
+You enter in a new term, and things start changing a lot.
+
+00:07:12.000 --> 00:07:14.000
+So we will take a look at this.
+
+00:07:14.000 --> 00:07:18.000
+Let's fit area and income separately and then together.
+
+00:07:18.000 --> 00:07:25.000
+So area only model, bill and area, income only, bill and income, area, income, bill, area, and income.
+
+00:07:25.000 --> 00:07:27.000
+And so let's stick it all together and make it look nice.
+
+00:07:27.000 --> 00:07:30.000
+So let's look at the area term.
+
+00:07:30.000 --> 00:07:32.000
+And I get 0.438.
+
+00:07:32.000 --> 00:07:35.000
+But area and income together, the area term is 0.6.
+
+00:07:35.000 --> 00:07:36.000
+So it's 80% bigger.
+
+00:07:36.000 --> 00:07:39.000
+Standard area goes from 0.03 to 0.12.
+
+00:07:39.000 --> 00:07:43.000
+And the P value, they're still both significant.
+
+00:07:43.000 --> 00:07:46.000
+So that's quite a big shift, and that's a big shift in standard area.
+
+00:07:46.000 --> 00:07:50.000
+Income, ooh, so 0.29 to negative.
+
+00:07:50.000 --> 00:07:53.000
+Whoa, it's shifted directions.
+
+00:07:53.000 --> 00:07:55.000
+That's also pretty crazy.
+
+00:07:55.000 --> 00:08:00.000
+Standard area has also gone up four times, but it's still significant -- not significant, 0.1.
+
+00:08:00.000 --> 00:08:05.000
+So income lost its significance.
+
+00:08:05.000 --> 00:08:07.000
+So by themselves, they're significant.
+
+00:08:07.000 --> 00:08:13.000
+But when they enter together, the model is asking a conditional question.
+
+00:08:13.000 --> 00:08:17.000
+What is the association with income among houses of the same area?
+
+00:08:17.000 --> 00:08:23.000
+Because they move together so strongly, area and income, the data contain little independent information.
+
+00:08:23.000 --> 00:08:26.000
+This should make intuitive sense.
+
+00:08:26.000 --> 00:08:28.000
+So this is what collinear means.
+
+00:08:28.000 --> 00:08:31.000
+These are two things that are really related to each other.
+
+00:08:31.000 --> 00:08:35.000
+There's not new information, so adding them to the model is not helpful.
+
+00:08:35.000 --> 00:08:42.000
+So if anyone asks you what type of -- which type of data is best to enter in the model,
+
+00:08:42.000 --> 00:08:48.000
+you'd say data that's not correlated with any current variable has the highest chance of adding new information to a model,
+
+00:08:48.000 --> 00:08:51.000
+because it's not capturing anything that you've already captured.
+
+00:08:51.000 --> 00:08:55.000
+It could be something else that you've missed previously.
+
+00:08:55.000 --> 00:08:58.000
+So let's look at the person's coefficient.
+
+00:08:58.000 --> 00:09:03.000
+Let's do bill is area in persons and bill is income in persons.
+
+00:09:03.000 --> 00:09:07.000
+So persons, area in persons, estimates 42 to 85.
+
+00:09:07.000 --> 00:09:09.000
+I mean it changes.
+
+00:09:09.000 --> 00:09:13.000
+It's significant in both persons.
+
+00:09:13.000 --> 00:09:16.000
+The estimate changes, but the standard is about the same.
+
+00:09:16.000 --> 00:09:23.000
+So we see the coefficient of persons has changed, conditional on what else it is.
+
+00:09:23.000 --> 00:09:26.000
+This isn't just numerical nuisance.
+
+00:09:26.000 --> 00:09:32.000
+With correlated predictors, the actual interpretation of the coefficient depends on what else is held fixed, right?
+
+00:09:32.000 --> 00:09:38.000
+So we see if this was my model, we'd say persons adds this much to the bill.
+
+00:09:38.000 --> 00:09:40.000
+And for each additional person, that's $40.
+
+00:09:40.000 --> 00:09:44.000
+But if I do income, I see each additional person adds $80.
+
+00:09:44.000 --> 00:09:45.000
+What?
+
+00:09:45.000 --> 00:09:49.000
+And so the actual interpretation is changing when you stick in this correlated variable.
+
+00:09:49.000 --> 00:09:53.000
+So we need to figure out something to do with them.
+
+00:09:53.000 --> 00:09:55.000
+So how do we detect them?
+
+00:09:55.000 --> 00:10:01.000
+We'll do that first, and then we'll figure out how we can kind of enumerate the issues.
+
+00:10:01.000 --> 00:10:04.000
+So pairwise plots are useful, but we really want a diagnostic.
+
+00:10:04.000 --> 00:10:09.000
+So how well can each predictor be explained by all other predictors together?
+
+00:10:09.000 --> 00:10:15.000
+So this is us essentially regressing one predictor versus every other predictor.
+
+00:10:15.000 --> 00:10:21.000
+So the i-th predictor versus everything but that predictor, all the way up to all the predictors.
+
+00:10:21.000 --> 00:10:23.000
+And we call these r sub squares of i.
+
+00:10:23.000 --> 00:10:30.000
+If it's close to 1, most of the variation in xi is already explained by the other predictors.
+
+00:10:30.000 --> 00:10:36.000
+Very little independent information remains for estimating a separate conditional coefficient.
+
+00:10:36.000 --> 00:10:38.000
+That should make sense.
+
+00:10:38.000 --> 00:10:44.000
+So if I'm able to take a bunch of other predictors and essentially recreate a predictor,
+
+00:10:44.000 --> 00:10:46.000
+then there's not much new information.
+
+00:10:46.000 --> 00:10:49.000
+But we usually don't look at it as just the r square.
+
+00:10:49.000 --> 00:10:52.000
+We look at it as something called the variance inflation factor,
+
+00:10:52.000 --> 00:10:55.000
+and that's just 1 over 1 minus that r square.
+
+00:10:55.000 --> 00:10:59.000
+And so if r square is 0, VIF is 1.
+
+00:10:59.000 --> 00:11:01.000
+There's no indication of overlap.
+
+00:11:01.000 --> 00:11:08.000
+As r square approaches 1, the variance inflation increases rapidly for a numerical predictor.
+
+00:11:08.000 --> 00:11:10.000
+Essentially, this number goes to the moon.
+
+00:11:10.000 --> 00:11:12.000
+It gets really big.
+
+00:11:12.000 --> 00:11:15.000
+So the variance of these beta i's, we get our variance estimate,
+
+00:11:15.000 --> 00:11:19.000
+n minus 1 over variance times 1 over r squared.
+
+00:11:19.000 --> 00:11:24.000
+The final factor tells us how much variance of that coefficient
+
+00:11:24.000 --> 00:11:27.000
+has been enlarged by a linear overlap with other predictors,
+
+00:11:27.000 --> 00:11:33.000
+holding the residual variance and spread of xi fixed.
+
+00:11:33.000 --> 00:11:38.000
+So the VIF is essentially able--
+
+00:11:38.000 --> 00:11:39.000
+we'll look at it here on the next slide--
+
+00:11:39.000 --> 00:11:44.000
+but essentially it's able to show us how--
+
+00:11:44.000 --> 00:11:48.000
+it's apples-to-apples comparisons of all the variables, essentially,
+
+00:11:48.000 --> 00:11:49.000
+is the way to think about it.
+
+00:11:49.000 --> 00:11:51.000
+Is there a way I can look at all the variables,
+
+00:11:51.000 --> 00:11:54.000
+adjusting for all the other variables but that variable,
+
+00:11:54.000 --> 00:11:58.000
+and then make a determination of which ones are related to each other.
+
+00:11:58.000 --> 00:12:00.000
+To calculate it, we use the CAR package.
+
+00:12:00.000 --> 00:12:01.000
+It's really funny.
+
+00:12:01.000 --> 00:12:02.000
+It's called CAR.
+
+00:12:02.000 --> 00:12:03.000
+I always thought that was funny.
+
+00:12:03.000 --> 00:12:04.000
+And you just call it VIF.
+
+00:12:04.000 --> 00:12:06.000
+And we can give it a model.
+
+00:12:06.000 --> 00:12:08.000
+But this is the baseline electric model.
+
+00:12:08.000 --> 00:12:09.000
+And it says, oh, look.
+
+00:12:09.000 --> 00:12:11.000
+My VIF value for area is 44.
+
+00:12:11.000 --> 00:12:12.000
+Persons is 3.
+
+00:12:12.000 --> 00:12:13.000
+Income is 39.
+
+00:12:13.000 --> 00:12:21.000
+So the large values for area and income said that these two are highly related.
+
+00:12:21.000 --> 00:12:24.000
+And the other cool thing about VIFs is they almost always come in pairs,
+
+00:12:24.000 --> 00:12:26.000
+unless you have three variables that are related.
+
+00:12:26.000 --> 00:12:32.000
+The variables that are collinear with each other are going to be related--
+
+00:12:32.000 --> 00:12:37.000
+are going to have roughly the same size inflation factors.
+
+00:12:37.000 --> 00:12:39.000
+So the other thing to think about that is,
+
+00:12:39.000 --> 00:12:44.000
+if I have two sets of correlated coefficients--
+
+00:12:44.000 --> 00:12:47.000
+like one set could be in the 40s, one set could be in the 100s,
+
+00:12:47.000 --> 00:12:50.000
+whatever value it ends up being--
+
+00:12:50.000 --> 00:12:52.000
+then you could say these two are related and these two are related.
+
+00:12:52.000 --> 00:12:55.000
+So if I show you a VIF for a bunch of variables,
+
+00:12:55.000 --> 00:12:58.000
+you should be able to look at it and go, oh,
+
+00:12:58.000 --> 00:13:03.000
+this one and this one are the ones likely to be causing it.
+
+00:13:03.000 --> 00:13:07.000
+We do need to remember that VIF is not a diagnostic
+
+00:13:07.000 --> 00:13:11.000
+and it's not an instruction to delete a variable.
+
+00:13:11.000 --> 00:13:13.000
+Again, VIF is not a diagnostic
+
+00:13:13.000 --> 00:13:15.000
+and it's not an instruction to delete a variable.
+
+00:13:15.000 --> 00:13:17.000
+So VIF can be there.
+
+00:13:17.000 --> 00:13:19.000
+There can be reasons why you need to keep both of them.
+
+00:13:19.000 --> 00:13:24.000
+You might think of predicting university success
+
+00:13:24.000 --> 00:13:26.000
+and the admissions office looks at it
+
+00:13:26.000 --> 00:13:29.000
+and there's some sort of NCEA score they look at
+
+00:13:29.000 --> 00:13:31.000
+and they also look at your GPA.
+
+00:13:31.000 --> 00:13:34.000
+Those two might be highly related to each other.
+
+00:13:34.000 --> 00:13:38.000
+But they need them both because they do give slightly different information.
+
+00:13:38.000 --> 00:13:42.000
+So there can be a defensible reason why they keep them both in the model.
+
+00:13:42.000 --> 00:13:44.000
+This just tells you you need to look out for it
+
+00:13:44.000 --> 00:13:48.000
+and maybe there's something you need to do with the modeling to account for it.
+
+00:13:48.000 --> 00:13:52.000
+This is a really-- I always like this example.
+
+00:13:52.000 --> 00:13:58.000
+It's SAP data relates sales to previous advertising,
+
+00:13:58.000 --> 00:14:02.000
+current and previous promotion spending, and sales expense.
+
+00:14:02.000 --> 00:14:04.000
+And so this data was given to an analyst
+
+00:14:04.000 --> 00:14:07.000
+and they didn't know that four of the predictors
+
+00:14:07.000 --> 00:14:09.000
+were constrained by a fixed budget.
+
+00:14:09.000 --> 00:14:12.000
+So current advertising and past advertising,
+
+00:14:12.000 --> 00:14:16.000
+current promotion spending and past promotion spending
+
+00:14:16.000 --> 00:14:19.000
+are roughly equal to five of whatever units.
+
+00:14:19.000 --> 00:14:22.000
+It could be millions, it could be thousands, it doesn't matter.
+
+00:14:22.000 --> 00:14:26.000
+So when this constraint is there, these things are related to each other.
+
+00:14:26.000 --> 00:14:31.000
+But you see this is not as simple a relationship as we've seen before.
+
+00:14:31.000 --> 00:14:33.000
+This is a more complicated relationship.
+
+00:14:33.000 --> 00:14:38.000
+So the relationships that cause these correlations can be quite complex.
+
+00:14:38.000 --> 00:14:42.000
+So if we model this out,
+
+00:14:42.000 --> 00:14:47.000
+present and previous advertising, sales expense, promotion spending--
+
+00:14:47.000 --> 00:14:49.000
+we just do a regular model and we're looking at it and we're like,
+
+00:14:49.000 --> 00:14:51.000
+Okay, what did we get here?
+
+00:14:51.000 --> 00:14:57.000
+We get overall it fits really great, 0.91, adjusted our square,
+
+00:14:57.000 --> 00:14:59.000
+whole model looks good.
+
+00:14:59.000 --> 00:15:03.000
+P1 and A1, not significant.
+
+00:15:03.000 --> 00:15:06.000
+Sales expenditure, that looks good, that's highly significant.
+
+00:15:06.000 --> 00:15:09.000
+And maybe I'm going to get a promotion spending,
+
+00:15:09.000 --> 00:15:14.000
+so I could just say these two and A and P.
+
+00:15:14.000 --> 00:15:18.000
+So we're trying to estimate separate advertising and promotion coefficients
+
+00:15:18.000 --> 00:15:21.000
+from predictors that are close to linearly constant.
+
+00:15:21.000 --> 00:15:25.000
+So if we look at the VIF of this model, we end up with--
+
+00:15:25.000 --> 00:15:33.000
+oh, wow, look at this, we got A, P, standard error is low, A1, P1.
+
+00:15:33.000 --> 00:15:35.000
+Holy moly.
+
+00:15:35.000 --> 00:15:38.000
+Yeah, these are all really large.
+
+00:15:38.000 --> 00:15:40.000
+We want these values.
+
+00:15:40.000 --> 00:15:42.000
+Some people say around 2.
+
+00:15:42.000 --> 00:15:44.000
+I'm not going to tell you exactly where it is,
+
+00:15:44.000 --> 00:15:46.000
+but you want them as low as possible.
+
+00:15:46.000 --> 00:15:53.000
+A few is fine, 20s and 30s is bad, 10s, maybe take a look at it.
+
+00:15:53.000 --> 00:15:55.000
+It's not giving you good information.
+
+00:15:55.000 --> 00:15:56.000
+So what can we do?
+
+00:15:56.000 --> 00:15:58.000
+We can drop a term and see if that fixes it.
+
+00:15:58.000 --> 00:16:05.000
+So we can do PSEA1P1 or APSEP1.
+
+00:16:05.000 --> 00:16:13.000
+So we're dropping A1 here and we're dropping A here.
+
+00:16:13.000 --> 00:16:15.000
+Let's look at what we get.
+
+00:16:15.000 --> 00:16:18.000
+So this is just tidying it up so we can look at it.
+
+00:16:18.000 --> 00:16:23.000
+If we drop A, P becomes 3.7.
+
+00:16:23.000 --> 00:16:26.000
+P and P dropping A1 becomes 4.
+
+00:16:26.000 --> 00:16:28.000
+Okay, those are roughly similar.
+
+00:16:28.000 --> 00:16:30.000
+Yep, standard error.
+
+00:16:30.000 --> 00:16:34.000
+SE22 and SE22, yep.
+
+00:16:34.000 --> 00:16:38.000
+A1, P1, minus 7, minus 0.9.
+
+00:16:38.000 --> 00:16:41.000
+A1 we dropped, so P1.
+
+00:16:41.000 --> 00:16:43.000
+Ooh, P1, you see it's jumping.
+
+00:16:43.000 --> 00:16:45.000
+When it jumps signs, that's usually a sign.
+
+00:16:45.000 --> 00:16:51.000
+Although it does tend to happen the closer they are to zero already,
+
+00:16:51.000 --> 00:16:53.000
+if that makes sense.
+
+00:16:53.000 --> 00:16:54.000
+So it changes.
+
+00:16:54.000 --> 00:16:59.000
+This relationship is essentially changing depending upon which member is removed,
+
+00:16:59.000 --> 00:17:02.000
+and that's what happens when you have a linear dependency.
+
+00:17:02.000 --> 00:17:08.000
+So the other question we can ask is--so this is what the VIF is based upon.
+
+00:17:08.000 --> 00:17:11.000
+Can we reconstruct this A term advertising?
+
+00:17:11.000 --> 00:17:13.000
+So given that we know this is a linear relationship,
+
+00:17:13.000 --> 00:17:15.000
+can we reconstruct R-squared of A?
+
+00:17:15.000 --> 00:17:16.000
+And so we do that.
+
+00:17:16.000 --> 00:17:22.000
+We just say A is approximately P plus SE plus A1 plus P1, yep.
+
+00:17:22.000 --> 00:17:25.000
+And we end up with this multiple R-squared of 0.97.
+
+00:17:25.000 --> 00:17:34.000
+So, yes, we're basically able to completely reconstruct A using a linear set of terms.
+
+00:17:34.000 --> 00:17:35.000
+It's amazing, right?
+
+00:17:35.000 --> 00:17:38.000
+So you don't want to see this in your data, and they're all highly significant.
+
+00:17:38.000 --> 00:17:45.000
+And then SE, once again, does not help because it's not really related to that term.
+
+00:17:45.000 --> 00:17:49.000
+So that's cool that we saw the terms can change.
+
+00:17:49.000 --> 00:17:53.000
+We need to look at variance inflation factors.
+
+00:17:53.000 --> 00:17:56.000
+But there's no magic bullet on this.
+
+00:17:56.000 --> 00:18:00.000
+This is where modeling becomes more art than science.
+
+00:18:00.000 --> 00:18:04.000
+There's things we can do, but there's not one thing I can tell you what to do,
+
+00:18:04.000 --> 00:18:07.000
+and this is always what you should do.
+
+00:18:07.000 --> 00:18:12.000
+So we can remove or redefine one of the overlapping predictors.
+
+00:18:12.000 --> 00:18:16.000
+If you can do this, this is usually a good way to go.
+
+00:18:16.000 --> 00:18:18.000
+Better measurement, less missingness.
+
+00:18:18.000 --> 00:18:20.000
+And so, yeah, real data is usually missing some stuff.
+
+00:18:20.000 --> 00:18:24.000
+So if one variable has more data, oftentimes it's the one to use.
+
+00:18:24.000 --> 00:18:28.000
+Or do you know something about the system?
+
+00:18:28.000 --> 00:18:31.000
+You can construct a combined quantity.
+
+00:18:31.000 --> 00:18:37.000
+So you could do an average, composite, a difference, a ratio.
+
+00:18:37.000 --> 00:18:45.000
+So one thing you'll see a lot is BMI, height over kilogram squared, I think it is.
+
+00:18:45.000 --> 00:18:47.000
+Or is it kilograms over height squared?
+
+00:18:47.000 --> 00:18:48.000
+I don't remember what it is.
+
+00:18:48.000 --> 00:18:52.000
+So BMI is one of these combined things that are highly related,
+
+00:18:52.000 --> 00:18:57.000
+but together they give you information so you can come up with some new metric.
+
+00:18:57.000 --> 00:19:03.000
+Or you can use penalized regression, which is what we learned earlier.
+
+00:19:03.000 --> 00:19:06.000
+So Ridge uses an L2 and Lasso is an L1.
+
+00:19:06.000 --> 00:19:13.000
+And so Ridge is really what's cool here because by shrinking down those parameters,
+
+00:19:13.000 --> 00:19:20.000
+by penalizing them, we essentially allow ourselves to estimate the parameters
+
+00:19:20.000 --> 00:19:28.000
+a bit more stably in the presence of multi-correlation.
+
+00:19:28.000 --> 00:19:31.000
+So it doesn't make them independent.
+
+00:19:31.000 --> 00:19:35.000
+It just makes it a little bit easier to estimate.
+
+00:19:35.000 --> 00:19:38.000
+So let's look at this sole bike data.
+
+00:19:38.000 --> 00:19:44.000
+Other predictors, they have temperature, humidity, dew point.
+
+00:19:44.000 --> 00:19:46.000
+And the strongest relation is 0.13.
+
+00:19:46.000 --> 00:19:48.000
+Once again, the images are going to be in the notes.
+
+00:19:48.000 --> 00:19:49.000
+They're not here.
+
+00:19:49.000 --> 00:19:52.000
+That's a technical issue.
+
+00:19:52.000 --> 00:19:54.000
+So let's look at what we've got here.
+
+00:19:54.000 --> 00:19:56.000
+So we had rented bike, temperature, humidity, dew point,
+
+00:19:56.000 --> 00:20:00.000
+solar radiation, rainfall, snowfall, just to remind you of what we've got.
+
+00:20:00.000 --> 00:20:03.000
+So we look at a bunch of these significant, significant, significant, significant,
+
+00:20:03.000 --> 00:20:05.000
+significant, only thing that's not is dew point.
+
+00:20:05.000 --> 00:20:07.000
+So you're like, wow, okay, these are all good.
+
+00:20:07.000 --> 00:20:11.000
+And you remember we did stepwise with these models.
+
+00:20:11.000 --> 00:20:17.000
+So we thought we got a decent model with our stepwise doing this.
+
+00:20:17.000 --> 00:20:21.000
+What we hadn't checked was are the variables related.
+
+00:20:21.000 --> 00:20:24.000
+And so if I'm looking at this, I'm like, whoa,
+
+00:20:24.000 --> 00:20:30.000
+it looks like temperature and dew point are going to be related to each other.
+
+00:20:30.000 --> 00:20:36.000
+Humidity also is, which isn't a surprise, but not near to the extent as these guys.
+
+00:20:36.000 --> 00:20:40.000
+Snowfall around one, rainfall around one, solar radiation around 1.8.
+
+00:20:40.000 --> 00:20:46.000
+Yeah, so it still can be useful, remember, because all models are wrong.
+
+00:20:46.000 --> 00:20:48.000
+But we need to do something.
+
+00:20:48.000 --> 00:20:54.000
+Maybe we can adjust a bit differently.
+
+00:20:54.000 --> 00:21:01.000
+So let's look at a couple different intercept terms across the Lambda 1 SE
+
+00:21:01.000 --> 00:21:04.000
+on the penalized regression to see kind of what happens.
+
+00:21:04.000 --> 00:21:05.000
+So we've got ordinarily square.
+
+00:21:05.000 --> 00:21:07.000
+So this is our baseline.
+
+00:21:07.000 --> 00:21:10.000
+We've got a ridge intercept.
+
+00:21:10.000 --> 00:21:16.000
+See how it's constrained the estimate towards zero.
+
+00:21:16.000 --> 00:21:17.000
+So this goes up.
+
+00:21:17.000 --> 00:21:19.000
+This one goes down.
+
+00:21:19.000 --> 00:21:22.000
+This one flips.
+
+00:21:22.000 --> 00:21:24.000
+Hmm, okay.
+
+00:21:24.000 --> 00:21:26.000
+But it is actually constrained.
+
+00:21:26.000 --> 00:21:28.000
+Solar radiation is way down.
+
+00:21:28.000 --> 00:21:32.000
+So it goes from 100 to minus 16, minus 48 to minus 46, 42 to minus 4.
+
+00:21:32.000 --> 00:21:34.000
+So you can see the ones that we had --
+
+00:21:34.000 --> 00:21:40.000
+so some of these are just controlled a bit more than others as the ridge allows this.
+
+00:21:40.000 --> 00:21:43.000
+And these estimates would be much more stable.
+
+00:21:43.000 --> 00:21:48.000
+Versus a lasso, which applies, if you remember the image,
+
+00:21:48.000 --> 00:21:52.000
+differential shrinkage to those colored balls.
+
+00:21:52.000 --> 00:21:55.000
+And so this is why temperature is very similar.
+
+00:21:55.000 --> 00:21:57.000
+And this is actually pretty similar.
+
+00:21:57.000 --> 00:21:58.000
+And this guy is totally zero.
+
+00:21:58.000 --> 00:21:59.000
+Dew point is just gone.
+
+00:21:59.000 --> 00:22:00.000
+Lasso is like nope.
+
+00:22:00.000 --> 00:22:03.000
+And lasso is like snowfall, nope.
+
+00:22:03.000 --> 00:22:06.000
+Rainfall, it's a little bit smaller.
+
+00:22:06.000 --> 00:22:09.000
+And then the solar radiation, it also drops it.
+
+00:22:09.000 --> 00:22:12.000
+So lasso has actually dropped two terms,
+
+00:22:12.000 --> 00:22:14.000
+where ridge is never going to drop terms basically.
+
+00:22:14.000 --> 00:22:16.000
+I mean it could theoretically, but usually it doesn't.
+
+00:22:16.000 --> 00:22:20.000
+And then finally, there's the other option that we gave you,
+
+00:22:20.000 --> 00:22:23.000
+which is just to drop dew point.
+
+00:22:23.000 --> 00:22:27.000
+So if we manually drop dew point, what happens to these other terms?
+
+00:22:27.000 --> 00:22:29.000
+This is roughly the same.
+
+00:22:29.000 --> 00:22:30.000
+Roughly the same.
+
+00:22:30.000 --> 00:22:32.000
+Roughly the same.
+
+00:22:32.000 --> 00:22:33.000
+Roughly the same.
+
+00:22:33.000 --> 00:22:34.000
+Roughly the same.
+
+00:22:34.000 --> 00:22:39.000
+So this was just a very unstable metric.
+
+00:22:39.000 --> 00:22:40.000
+And if we can get rid of it.
+
+00:22:40.000 --> 00:22:41.000
+All right.
+
+00:22:41.000 --> 00:22:45.000
+So if I'm doing this, I would probably drop dew point.
+
+00:22:45.000 --> 00:22:49.000
+I wouldn't necessarily go in and do a ridge or a lasso unless I had a reason to.
+
+00:22:49.000 --> 00:22:52.000
+So what are they relating?
+
+00:22:52.000 --> 00:22:55.000
+The OLS estimates unpenalized conditional coefficients.
+
+00:22:55.000 --> 00:22:58.000
+Ridge keeps whole predictor, but regularizes unstable.
+
+00:22:58.000 --> 00:23:00.000
+Lasso can shrink to zero.
+
+00:23:00.000 --> 00:23:02.000
+Drop dew point changes the model itself.
+
+00:23:02.000 --> 00:23:04.000
+Yeah, because it's actually a different question.
+
+00:23:04.000 --> 00:23:07.000
+And the remaining predictors have to absorb that information.
+
+00:23:07.000 --> 00:23:15.000
+There is a distinction here between prediction and coefficient interpretation.
+
+00:23:15.000 --> 00:23:20.000
+So some of these models are going to predict similarly
+
+00:23:20.000 --> 00:23:24.000
+while they have very different numerical coefficients to overlap in predictors.
+
+00:23:24.000 --> 00:23:27.000
+So I want you to think about that one.
+
+00:23:27.000 --> 00:23:31.000
+So I can have different parameter estimates,
+
+00:23:31.000 --> 00:23:35.000
+but I'm still just as good at predicting.
+
+00:23:35.000 --> 00:23:36.000
+Right?
+
+00:23:36.000 --> 00:23:39.000
+So this is once again the whole all models are wrong.
+
+00:23:39.000 --> 00:23:43.000
+Some models are useful.
+
+00:23:43.000 --> 00:23:52.000
+And as we look ahead to next lecture, we have numerical and categorical.
+
+00:23:52.000 --> 00:23:53.000
+We can search through things.
+
+00:23:53.000 --> 00:23:56.000
+We can do penalized regressions.
+
+00:23:56.000 --> 00:24:00.000
+We now know we need to check for variance inflation factors
+
+00:24:00.000 --> 00:24:08.000
+and potentially do that before we start our stepwise or penalized searches.
+
+00:24:08.000 --> 00:24:10.000
+And then in the sole data, stepwise can behave poorly.
+
+00:24:10.000 --> 00:24:12.000
+Predictors can do much the same information.
+
+00:24:12.000 --> 00:24:14.000
+It has to decide which ones to keep and which ones to remove.
+
+00:24:14.000 --> 00:24:15.000
+Yeah.
+
+00:24:15.000 --> 00:24:17.000
+So go back and run that sole data and kick out
+
+00:24:17.000 --> 00:24:19.000
+a few terms that are highly correlated.
+
+00:24:19.000 --> 00:24:22.000
+And does it make the same decisions?
+
+00:24:22.000 --> 00:24:27.000
+And let me know how it is on the discussion board.
+
+00:24:27.000 --> 00:24:35.000
+So we've always assumed that the mean response changes linearly
+
+00:24:35.000 --> 00:24:40.000
+with our numerical predictors.
+
+00:24:40.000 --> 00:24:41.000
+Right?
+
+00:24:41.000 --> 00:24:42.000
+So it's a linear model.
+
+00:24:42.000 --> 00:24:43.000
+So it changes linearly.
+
+00:24:43.000 --> 00:24:44.000
+Yep.
+
+00:24:44.000 --> 00:24:49.000
+And we've also always assumed that every measurement has the same precision.
+
+00:24:49.000 --> 00:24:57.000
+So that's basically if I measure pony A and I measure pony B,
+
+00:24:57.000 --> 00:25:00.000
+the information I get from both is equally reliable.
+
+00:25:00.000 --> 00:25:05.000
+What would happen if I can measure pony A much better than pony B?
+
+00:25:05.000 --> 00:25:08.000
+Should I give it more weight and say, you know,
+
+00:25:08.000 --> 00:25:10.000
+I actually know this is a better measurement?
+
+00:25:10.000 --> 00:25:14.000
+It could be, you know, there's some clinical studies done
+
+00:25:14.000 --> 00:25:17.000
+and I have 10,000 people and you have 500.
+
+00:25:17.000 --> 00:25:21.000
+We have the same outcome.
+
+00:25:21.000 --> 00:25:29.000
+But do you give â€“ yeah, do you trust my 500 as much as your 10,000?
+
+00:25:29.000 --> 00:25:31.000
+And so we're going to look at that next lecture.
+
+00:25:31.000 --> 00:25:34.000
+The lecture after that is splines.
+
+00:25:34.000 --> 00:25:38.000
+And that's where the fitted mean itself can bend.
+
+00:25:38.000 --> 00:25:39.000
+And so this is so cool.
+
+00:25:39.000 --> 00:25:44.000
+So now we can â€“ we're going to kind of do baby steps into time series.
+
+00:25:44.000 --> 00:25:48.000
+And so we're going â€“ these are all still technically linear models.
+
+00:25:48.000 --> 00:25:50.000
+And I'll show you why as we get there.
+
+00:25:50.000 --> 00:25:54.000
+But, yeah, it allows us to model much more complex shapes.
+
+00:25:54.000 --> 00:25:55.860
+And so--
