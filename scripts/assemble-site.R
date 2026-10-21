@@ -284,7 +284,10 @@ cat("Course entry point:", file.path(course_dir, "index.html"), "\n")
 # 10. Generate sitemap for public teaching pages
 cat("  Generating sitemap...\n")
 html_files <- list.files(course_dir, pattern = "\\.html$", recursive = TRUE, full.names = FALSE)
-html_files <- html_files[!grepl("(-sols|_guide|/solutions?/|/answers?/)", html_files, ignore.case = TRUE)]
+html_files <- html_files[!grepl(
+  "(-sols|_guide|/solutions?/|/answers?/|(^|/)404\\.html$|speaker-view\\.html$|/libs/|/site_libs/|/trend-seasonality/index\\.html$)",
+  html_files, ignore.case = TRUE
+)]
 urls <- vapply(html_files, function(path) {
   path <- gsub("\\\\", "/", path)
   path <- sub("index\\.html$", "", path)
